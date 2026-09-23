@@ -48,20 +48,27 @@ escalation, and bounded failure behavior as those capabilities are added.
 
 **Status:** Deferred; evolve the graph in the relevant TASKS.md phases.
 
-### Protect tool logs and measure extraction overhead
+### Protect tool logs and evaluate order-detail extraction strategies
 
 **Current state:** Mock tool events are written to JSONL with their inputs and
 outputs. `gather_facts` makes a separate LLM call to extract order details
 before starting concurrent tool calls. Current fixture data is synthetic.
 
 **Follow-up:** Before using real customer data, define field redaction and log
-retention rules. Measure the extraction call's latency and token cost during
-evaluation; consider combining extraction with classification only if explicit
-order-ID validation and three-way tool concurrency remain intact.
+retention rules. During the full evaluation (TASK-19), compare the current
+separate LLM extraction call with lower-call alternatives: deterministic
+extraction of an explicit order ID while retaining the ticket's stated reason,
+and extracting order details as part of classification. Measure order-ID and
+reason extraction accuracy, tool-match/task-completion accuracy, end-to-end and
+extraction latency, and request/token usage. Keep the current separate call
+until the comparison provides evidence for a change. Any alternative must
+validate that an order ID was explicitly present and preserve concurrent
+dispatch of the three tools.
 
 **Verification:** Confirm logs exclude configured sensitive fields and expire
-according to the chosen retention policy. Include extraction latency and token
-cost in the measured run metrics.
+according to the chosen retention policy. Record the extraction-strategy
+comparison and its measured accuracy, latency, and request/token usage with the
+TASK-19 evaluation results.
 
 **Status:** Deferred; revisit during observability and evaluation work.
 
