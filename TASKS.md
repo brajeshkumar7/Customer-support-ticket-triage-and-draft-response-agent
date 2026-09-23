@@ -22,7 +22,7 @@ place; don't delete completed items, so the history stays visible.
 - [x] TASK-07: Convert tool dispatch to async (`asyncio`) for independent calls
       (automated tests pass; manual run pending external network access)
       (automated tests pass; live manual run pending external network access)
-- [ ] TASK-08: Add long-term memory store, wire read/write into graph
+- [x] TASK-08: Add long-term memory store, wire read/write into graph
 
 ## Phase 2 — Safety & Recovery
 - [ ] TASK-09: Supervisor/critic node with checklist-based evaluation

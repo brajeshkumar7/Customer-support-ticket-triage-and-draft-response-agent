@@ -72,6 +72,48 @@ TASK-19 evaluation results.
 
 **Status:** Deferred; revisit during observability and evaluation work.
 
+### Define long-term memory retention and stale-fact handling
+
+**Current state:** The graph recalls local Chroma facts across ticket runs and
+stores compact summaries with ticket and order identifiers. Recalled facts are
+treated as historical context; current tool results remain authoritative.
+
+**Follow-up:** Before using real customer data, define retention and deletion
+rules for persisted facts, how facts are scoped to a customer or tenant, and
+how outdated or conflicting facts are expired or superseded. Keep raw ticket
+text and draft replies out of long-term memory unless a documented need and
+privacy policy justify storing them.
+
+**Verification:** Test that facts can be deleted according to the retention
+policy, that one customer or tenant cannot retrieve another's facts, and that
+stale facts do not override current verified tool results.
+
+**Status:** Deferred; revisit before using real customer data and during
+production-readiness review.
+
+### Replace mock data sources and local persistence for deployment
+
+**Current state:** Order and policy tools use synthetic local fixtures, FAQ
+search uses a small in-code dataset, and long-term facts persist in local
+Chroma. These are development implementations, not production integrations.
+
+**Follow-up:** Before deployment, select and integrate the authorized commerce
+or support API as the source of current order and customer facts, and select a
+production-approved database for durable application data and/or semantic
+memory. Keep current order status and policy decisions grounded in the
+authoritative API; use long-term memory only for historical context. Choose
+providers after defining data ownership, access control, privacy, retention,
+availability, and budget requirements. Keep credentials in secret management
+and define timeouts, rate limits, and bounded failure behavior for API calls.
+
+**Verification:** Use API contract tests and sandbox/test credentials to cover
+successful lookups, missing records, authorization failures, timeouts, and
+rate limits. Verify database persistence, access isolation, backup/recovery,
+and that failures still produce the intended safe escalation or fallback.
+
+**Status:** Deferred; revisit before production deployment. No production API
+or database provider has been selected.
+
 ## Recording future follow-ups
 
 For each implementation step, record production-readiness considerations here

@@ -68,3 +68,15 @@ order lookup to return an order object before running the policy checker.
 preserving the requirement that all three tools run concurrently. Extracted
 order IDs are accepted only when explicitly present in the ticket.
 **Status:** active
+
+## [2026-09-23] Long-term memory graph wiring
+**Decision:** Recall related facts from local Chroma before classification and
+store a compact summary after a draft is produced. Chroma failures are
+non-fatal and are returned in graph state; recalled facts are historical,
+untrusted context and cannot validate order IDs or override current tool data.
+**Alternatives considered:** Fail the ticket run when Chroma is unavailable;
+use recalled facts as current order or policy evidence.
+**Reasoning:** Long-term memory should improve continuity without preventing
+the core ticket workflow from completing or weakening the existing grounding
+and explicit-order-ID checks. Summaries omit raw ticket text and draft replies.
+**Status:** active

@@ -13,4 +13,7 @@ class AgentState(TypedDict):
     order_id: NotRequired[str | None]
     stated_reason: NotRequired[str]
     tool_results: NotRequired[dict[str, Any]]
+    recalled_facts: NotRequired[list[dict[str, Any]]]
+    memory_errors: NotRequired[list[dict[str, str]]]
+    remembered_fact_id: NotRequired[str]
     draft_response: NotRequired[str]
