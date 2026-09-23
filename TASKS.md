@@ -28,7 +28,9 @@ place; don't delete completed items, so the history stays visible.
 - [x] TASK-09: Supervisor/critic node with checklist-based evaluation
 - [x] TASK-10: Retry-with-feedback loop, capped at 3 retries after the initial
       draft
-- [ ] TASK-11: Loud failure path when retry cap is hit (no silent failures)
+- [x] TASK-11: Explicit terminal outcome: send approved replies through an
+      opt-in Zoho Desk adapter or create a complete human escalation; automated
+      tests pass without live Zoho Desk requests
 
 ## Phase 3 — Observability
 - [ ] TASK-12: Structured logging: tool call, input/output, latency, token cost

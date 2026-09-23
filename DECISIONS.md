@@ -118,3 +118,34 @@ repeated supervisor failures have a deterministic escalation path. The cap
 follows PRD.md's wording of a maximum number of retries, separate from
 OpenRouter's API-level 429 retry mechanism.
 **Status:** active
+
+## [2026-09-24] Zendesk response delivery and escalation
+**Decision:** Initially selected a host-side Zendesk sender.
+**Alternatives considered:** Treat an approved draft as sent; keep delivery
+platform-independent.
+**Reasoning:** The PRD requires auto-send above a threshold and escalation
+otherwise. The user later selected Zoho Desk to meet the project's free-tier
+budget requirement.
+**Status:** Superseded by [Zoho Desk response delivery and escalation](#2026-09-24-zoho-desk-response-delivery-and-escalation)
+
+## [2026-09-24] Zoho Desk response delivery and escalation
+**Decision:** Use a host-side Zoho Desk API adapter to send approved email
+replies. Keep sending disabled by default and require all three supervisor
+checks to pass (confidence score 1.0). Use OAuth refresh-token credentials,
+resolve the recipient from the Zoho ticket, and require a configured sender
+email. Do not add dependencies or relax Docker sandbox network isolation. Keep
+the adapter at the repository root, outside `src/`, so the sandbox image does
+not include it. Never replay an ambiguous send; escalate and tell the reviewer
+to verify the ticket first.
+**Alternatives considered:** Keep Zendesk; treat an approved draft as sent;
+allow sandboxed tool code to access the helpdesk API; retry uncertain sends.
+**Reasoning:** The user selected Zoho Desk's free plan for the one-agent
+project. The PRD requires sending only above the defined confidence threshold
+and escalating otherwise. The host-side adapter meets that workflow without
+giving the network-isolated tool sandbox external access. Refresh tokens avoid
+depending on a manually renewed one-hour access token. A failed review cannot
+cause duplicate customer emails through automatic replay. If Zoho's OAuth token
+response returns its generic `www.zohoapis.<region>` host, accept it only when
+the configured Desk-specific host maps to the same data center; keep using the
+Desk-specific API host for Desk requests.
+**Status:** active

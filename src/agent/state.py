@@ -8,6 +8,7 @@ class AgentState(TypedDict):
 
     ticket_id: str
     ticket_text: str
+    zoho_ticket_id: NotRequired[str]
     category: NotRequired[str]
     urgency: NotRequired[str]
     order_id: NotRequired[str | None]
@@ -22,4 +23,14 @@ class AgentState(TypedDict):
     retry_count: NotRequired[int]
     supervisor_feedback: NotRequired[dict[str, Any]]
     escalated: NotRequired[bool]
-    escalation_reason: NotRequired[dict[str, Any]]
+    escalation_reason: NotRequired[str]
+    escalation_payload: NotRequired[dict[str, Any]]
+    failed_attempts: NotRequired[list[dict[str, Any]]]
+    confidence_score: NotRequired[float]
+    response_sent: NotRequired[bool]
+    zoho_delivery_status: NotRequired[str]
+    zoho_send_result: NotRequired[dict[str, Any]]
+    zoho_http_status: NotRequired[int | None]
+    send_failure_reason: NotRequired[str | None]
+    terminal_status: NotRequired[str]
+    workflow_error: NotRequired[dict[str, str]]

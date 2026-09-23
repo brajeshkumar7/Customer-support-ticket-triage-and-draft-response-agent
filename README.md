@@ -33,7 +33,15 @@ pytest
 ```
 
 Fill in `.env` with the required local settings and API credentials before
-running the graph manually. If PowerShell blocks activation scripts, use
+running the graph manually. Zoho Desk email delivery is disabled by default.
+When `ZOHO_DESK_SEND_ENABLED=true`, the graph sends a reply only after all
+three supervisor checks pass. Configure the Zoho API and Accounts domains,
+organization ID, a configured support sender email, OAuth client ID/secret,
+and refresh token; the OAuth app needs `Desk.tickets.READ` and
+`Desk.tickets.UPDATE` scopes. Provide the numeric `zoho_ticket_id` in graph
+input. Otherwise, the graph returns an explicit escalation for a human
+reviewer. Tests use mocked clients and never send live replies. If PowerShell
+blocks activation scripts, use
 `.venv\Scripts\python.exe -m pip install -r requirements.txt` and
 `.venv\Scripts\python.exe -m pytest` without activating the environment.
 

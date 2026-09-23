@@ -81,3 +81,11 @@ manual observation and must not be treated as an accuracy metric.
 **Regression test:** `tests/test_agent_graph.py` verifies retry feedback and
 caps using deterministic fake reviews; a real-model false-rejection rate is
 not yet measured and is deferred to TASK-18/TASK-19.
+
+**Repeat observation (2026-09-24):** During a Zoho smoke-test run, the
+supervisor failed `factual_claims_grounded` and `no_unsupported_claims` after
+the initial review and all 3 retries (final confidence 0.333). The graph
+escalated with `zoho_delivery_status` unset, so the Zoho sender was not called
+and no reply was sent. The abbreviated output did not include the full review
+reason or tool results, so this run alone does not establish whether the
+critic was wrong; capture those fields in a send-disabled diagnostic run.
