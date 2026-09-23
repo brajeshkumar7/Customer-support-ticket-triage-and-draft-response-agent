@@ -4,5 +4,11 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile
+    network_mode: none
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     volumes:
       - ../data:/app/data
