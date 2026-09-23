@@ -14,7 +14,7 @@ place; don't delete completed items, so the history stays visible.
       `llama3.1:8b` or a quantized variant that fits your hardware)
 - [ ] TASK-03: Docker sandbox base image for tool execution (Docker Personal — free)
 - [x] TASK-04: Pick memory backend (in-memory short-term + local Chroma long-term), record choice in `DECISIONS.md`, update `AGENTS.md` tech stack
-- [x] TASK-04b: Add env-configured OpenRouter RPM pacing and bounded 429 retries before real eval runs
+- [x] TASK-04b: Add API-level OpenRouter model fallbacks and bounded, logged 429 retries
 
 ## Phase 1 — Core Agent Loop
 - [ ] TASK-05: Basic LangGraph state machine, single tool, no retries yet

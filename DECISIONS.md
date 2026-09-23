@@ -35,12 +35,23 @@ locally with no paid managed service, matching the project's budget constraint.
 
 ## [2026-09-23] Configurable OpenRouter rate limiting
 **Decision:** Pace OpenRouter requests using the positive integer in
-`OPENROUTER_REQUESTS_PER_MINUTE`, defaulting to 20 requests per minute. Retry
-HTTP 429 responses at most 3 times, honoring a valid `Retry-After` header and
-otherwise using exponential backoff capped at 30 seconds.
-**Alternatives considered:** hardcode the free-tier RPM; use an on/off switch;
-retry 429 responses without a request-rate limiter.
+`OPENROUTER_REQUESTS_PER_MINUTE`, defaulting to 20 requests per minute. The
+API client acquires a slot before every attempt, including retries.
+**Alternatives considered:** hardcode the free-tier RPM; use an on/off switch.
 **Reasoning:** A numeric environment setting allows the request pace to change
-with the account quota without code changes, while bounded retries avoid
-unlimited waits or calls.
+with the account quota without code changes. The configured limiter is now
+acquired by `OpenRouterClient` before every API attempt, including retries.
+**Status:** active
+
+## [2026-09-23] OpenRouter API-level fallback and 429 retries
+**Decision:** Use `OPENROUTER_MODELS` as an ordered, comma-separated list of
+2-3 fallback model IDs. Each call supplies its primary model separately and
+sends the full configured fallback list in OpenRouter's `models` array. Retry
+account-level HTTP 429 responses up to 3 times with exponential delays of 1,
+2, and 4 seconds, log each 429, then raise `OpenRouterRateLimitError`.
+**Alternatives considered:** Handle 429 only in the graph; retry without a cap;
+send a single model and rely on client-side retry only.
+**Reasoning:** OpenRouter can fail over among configured models while a separate
+API-call wrapper handles account-level limits without involving graph retries.
+The bounded, logged retry path makes the failure visible and testable.
 **Status:** active
