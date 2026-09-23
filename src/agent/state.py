@@ -17,3 +17,5 @@ class AgentState(TypedDict):
     memory_errors: NotRequired[list[dict[str, str]]]
     remembered_fact_id: NotRequired[str]
     draft_response: NotRequired[str]
+    supervisor_status: NotRequired[str]
+    supervisor_reason: NotRequired[dict[str, Any]]

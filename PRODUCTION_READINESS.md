@@ -48,6 +48,27 @@ escalation, and bounded failure behavior as those capabilities are added.
 
 **Status:** Deferred; evolve the graph in the relevant TASKS.md phases.
 
+### Calibrate supervisor decisions against labeled scenarios
+
+**Current state:** TASK-09 asks an LLM critic to assess grounding, unsupported
+claims, and urgency-aligned tone. Its structured checklist output is validated
+and the PASS/FAIL decision is derived from the individual check results, but
+the critic has not been calibrated against a labeled evaluation set.
+
+**Follow-up:** During TASK-18 and TASK-19, measure false passes and false
+failures for each checklist item against human-labeled drafts. Track critic
+latency and token usage alongside task outcomes, and refine check definitions
+or prompts based on observed misses. Keep deterministic policy and tool facts
+authoritative; a critic verdict is a review signal, not proof that every claim
+is correct.
+
+**Verification:** Report per-check precision/recall or equivalent confusion
+counts, representative failure examples, and latency/token usage from actual
+evaluation runs. Confirm a deliberately unsupported claim is rejected and
+valid grounded drafts are not rejected at an unacceptable rate.
+
+**Status:** Deferred; evaluate with TASK-18/TASK-19.
+
 ### Protect tool logs and evaluate order-detail extraction strategies
 
 **Current state:** Mock tool events are written to JSONL with their inputs and

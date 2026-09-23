@@ -25,7 +25,7 @@ place; don't delete completed items, so the history stays visible.
 - [x] TASK-08: Add long-term memory store, wire read/write into graph
 
 ## Phase 2 — Safety & Recovery
-- [ ] TASK-09: Supervisor/critic node with checklist-based evaluation
+- [x] TASK-09: Supervisor/critic node with checklist-based evaluation
 - [ ] TASK-10: Retry-with-feedback loop, capped at N (define N, log why in `DECISIONS.md`)
 - [ ] TASK-11: Loud failure path when retry cap is hit (no silent failures)
 

@@ -90,3 +90,17 @@ introduce a separate package manager and lockfile.
 conflicting with other Python projects. The existing pip requirements file is
 sufficient, and `.venv/` is already excluded from Git.
 **Status:** active
+
+## [2026-09-24] Structured supervisor checklist review
+**Decision:** Review each draft with an explicit three-check checklist for
+tool-grounded facts, unsupported claims, and urgency-appropriate tone. Parse
+the model's per-check JSON results, derive PASS/FAIL in code, and fail closed
+with a structured reason when the response is invalid. The verdict is logged
+and the graph ends normally after recording it; retry-with-feedback remains
+TASK-10.
+**Alternatives considered:** Accept one free-form verdict; add retries in the
+same step.
+**Reasoning:** Per-check results make failures inspectable and testable, while
+keeping retry policy separate and bounded in its designated task. The model's
+verdict field is not trusted; the code computes it from validated checks.
+**Status:** active

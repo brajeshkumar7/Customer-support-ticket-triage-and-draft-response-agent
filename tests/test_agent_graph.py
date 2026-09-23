@@ -6,9 +6,19 @@ from uuid import uuid4
 import pytest
 
 from src.agent.graph import build_graph
+from src.agent.supervisor import SUPERVISOR_CHECKLIST
 from src.memory.long_term import LongTermMemory
 from src.memory.short_term import ShortTermMemory
 from src.tools.base import BaseTool, ToolNotFoundError
+
+SUPERVISOR_PASS = json.dumps(
+    {
+        "checks": [
+            {"id": check["id"], "passed": True, "reason": "The draft meets this check."}
+            for check in SUPERVISOR_CHECKLIST
+        ]
+    }
+)
 
 
 def completion(content: str) -> SimpleNamespace:
@@ -84,6 +94,7 @@ async def test_graph_gathers_tool_facts_and_drafts_from_results(long_term_memory
             '{"category":"order status","urgency":"medium"}',
             '{"order_id":"ORD-1001","reason":"package has not arrived"}',
             draft_response,
+            SUPERVISOR_PASS,
         ]
     )
     memory = ShortTermMemory(ticket_id)
@@ -105,6 +116,8 @@ async def test_graph_gathers_tool_facts_and_drafts_from_results(long_term_memory
     assert result["tool_results"]["policy_checker"]["data"]["eligible"] is False
     assert result["tool_results"]["faq_search"]["data"]["matches"]
     assert result["draft_response"] == draft_response
+    assert result["supervisor_status"] == "PASS"
+    assert result["supervisor_reason"]["failed_checks"] == []
     assert result["recalled_facts"] == []
     assert result["memory_errors"] == []
     assert result["remembered_fact_id"]
@@ -115,18 +128,22 @@ async def test_graph_gathers_tool_facts_and_drafts_from_results(long_term_memory
     response_payload = json.loads(client.calls[2]["messages"][1]["content"])
     assert response_payload["tool_results"] == result["tool_results"]
     assert response_payload["historical_memory_context"] == []
-    assert len(client.calls) == 3
+    assert "factual_claims_grounded" in client.calls[3]["messages"][0]["content"]
+    assert memory.get("supervisor_status") == "PASS"
+    assert len(client.calls) == 4
 
     graph_nodes = set(graph.get_graph().nodes)
     assert graph_nodes == {
-        "__start__", "recall", "classify", "gather_facts", "respond", "remember", "__end__"
+        "__start__", "recall", "classify", "gather_facts", "respond", "supervisor",
+        "remember", "__end__"
     }
     graph_edges = {(edge.source, edge.target) for edge in graph.get_graph().edges}
     assert ("__start__", "recall") in graph_edges
     assert ("recall", "classify") in graph_edges
     assert ("classify", "gather_facts") in graph_edges
     assert ("gather_facts", "respond") in graph_edges
-    assert ("respond", "remember") in graph_edges
+    assert ("respond", "supervisor") in graph_edges
+    assert ("supervisor", "remember") in graph_edges
     assert ("remember", "__end__") in graph_edges
 
 
@@ -138,6 +155,7 @@ async def test_three_tools_are_dispatched_concurrently(long_term_memory):
             '{"category":"general question","urgency":"low"}',
             '{"order_id":"ORD-1001","reason":"shipping question"}',
             "Draft grounded in the facts.",
+            SUPERVISOR_PASS,
         ]
     )
     graph = build_graph(
@@ -166,6 +184,7 @@ async def test_tool_failure_is_recorded_and_does_not_abort_graph(long_term_memor
             '{"category":"order status","urgency":"medium"}',
             '{"order_id":"ORD-9999","reason":"package is missing"}',
             "I could not verify the order. Please confirm its number.",
+            SUPERVISOR_PASS,
         ]
     )
     graph = build_graph(
@@ -186,6 +205,78 @@ async def test_tool_failure_is_recorded_and_does_not_abort_graph(long_term_memor
     assert result["tool_results"]["order_lookup"]["error"]["type"] == "ToolNotFoundError"
     assert result["tool_results"]["policy_checker"]["ok"] is True
     assert result["draft_response"] == "I could not verify the order. Please confirm its number."
+
+
+@pytest.mark.asyncio
+async def test_supervisor_fails_unsupported_claim_without_retry(long_term_memory):
+    ticket_id = "ticket-unsupported-claim"
+    unsupported_draft = (
+        "Your refund has already been issued and will arrive in three days."
+    )
+    supervisor_fail = json.dumps(
+        {
+            "checks": [
+                {
+                    "id": "factual_claims_grounded",
+                    "passed": False,
+                    "reason": (
+                        "The claim that the refund has already been issued and will "
+                        "arrive in three days is unsupported; no successful tool "
+                        "returned either fact."
+                    ),
+                },
+                {
+                    "id": "no_unsupported_claims",
+                    "passed": False,
+                    "reason": "No tool returned a refund issuance or delivery date.",
+                },
+                {
+                    "id": "urgency_appropriate_tone",
+                    "passed": True,
+                    "reason": "The wording is calm and appropriate for medium urgency.",
+                },
+            ]
+        }
+    )
+    client = FakeOpenRouterClient(
+        [
+            '{"category":"return request","urgency":"medium"}',
+            '{"order_id":"ORD-1002","reason":"requesting a refund"}',
+            unsupported_draft,
+            supervisor_fail,
+        ]
+    )
+    memory = ShortTermMemory(ticket_id)
+    graph = build_graph(
+        short_term_memory=memory,
+        long_term_memory=long_term_memory,
+        client=client,
+        primary_model="test-model",
+    )
+
+    result = await graph.ainvoke(
+        {
+            "ticket_id": ticket_id,
+            "ticket_text": "I want a refund for order ORD-1002.",
+        }
+    )
+
+    assert result["draft_response"] == unsupported_draft
+    assert result["supervisor_status"] == "FAIL"
+    assert set(result["supervisor_reason"]["failed_checks"]) == {
+        "factual_claims_grounded",
+        "no_unsupported_claims",
+    }
+    failed_reasons = " ".join(
+        check["reason"]
+        for check in result["supervisor_reason"]["checks"]
+        if not check["passed"]
+    ).lower()
+    assert "unsupported" in failed_reasons
+    assert "refund" in failed_reasons
+    assert result["remembered_fact_id"]
+    assert memory.get("supervisor_status") == "FAIL"
+    assert len(client.calls) == 4  # no retry loop in TASK-09
 
 
 @pytest.mark.asyncio
@@ -241,6 +332,7 @@ async def test_related_runs_recall_the_first_run_summary(chroma_long_term_memory
             '{"category":"order status","urgency":"low"}',
             '{"order_id":"ORD-1001","reason":"package has not arrived"}',
             "The current lookup says the package is in transit.",
+            SUPERVISOR_PASS,
         ]
     )
     first_graph = build_graph(
@@ -260,6 +352,7 @@ async def test_related_runs_recall_the_first_run_summary(chroma_long_term_memory
             '{"category":"order status","urgency":"low"}',
             '{"order_id":"ORD-1001","reason":"following up on delayed shipment"}',
             "The current lookup still says the package is in transit.",
+            SUPERVISOR_PASS,
         ]
     )
     second_graph = build_graph(
@@ -298,6 +391,7 @@ async def test_memory_failures_are_reported_without_aborting_graph():
             '{"category":"general question","urgency":"low"}',
             '{"order_id":null,"reason":"a general question"}',
             "I could not verify that yet. Please share more details.",
+            SUPERVISOR_PASS,
         ]
     )
     graph = build_graph(
@@ -314,7 +408,7 @@ async def test_memory_failures_are_reported_without_aborting_graph():
     assert result["draft_response"] == "I could not verify that yet. Please share more details."
     assert result["recalled_facts"] == []
     assert [error["operation"] for error in result["memory_errors"]] == ["recall", "remember"]
-    assert len(client.calls) == 3
+    assert len(client.calls) == 4
 
 
 @pytest.mark.asyncio
@@ -328,6 +422,7 @@ async def test_recalled_memory_cannot_supply_an_order_id(long_term_memory):
             '{"category":"order status","urgency":"low"}',
             '{"order_id":"ORD-1001","reason":"status request"}',
             "Please provide the order number so I can check its status.",
+            SUPERVISOR_PASS,
         ]
     )
     graph = build_graph(
