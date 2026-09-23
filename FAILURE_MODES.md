@@ -62,3 +62,22 @@ the Chroma temp-path test could not set up. TASK-07's focused tests: 11 passed.
 **Regression test:** No automated test can fix environment-level temp access.
 `tests/test_memory.py` exercises the affected Chroma behavior when a writable
 `tmp_path` is available.
+
+## FM-003 - Supervisor rejected claims supported by tool results
+
+**Observed behavior:** In a user-run sample, the supervisor returned FAIL and
+said no successful tool results were present, although the state included a
+successful order lookup (`shipped`, `In transit`), a successful policy result,
+and FAQ results. Its cited order-status and tracking-link claims were present
+in those results.
+**Root cause:** The LLM critic misread or failed to use evidence supplied in
+its review context. The exact model-level cause is unknown.
+**Fix:** No accuracy fix is established yet. TASK-10 adds bounded feedback
+retries; those retries may recover a draft but do not correct critic
+misjudgments. Critic calibration remains tracked in
+`PRODUCTION_READINESS.md` for TASK-18/TASK-19.
+**Before -> After:** No measured before/after result is available; this was one
+manual observation and must not be treated as an accuracy metric.
+**Regression test:** `tests/test_agent_graph.py` verifies retry feedback and
+caps using deterministic fake reviews; a real-model false-rejection rate is
+not yet measured and is deferred to TASK-18/TASK-19.

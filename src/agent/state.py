@@ -19,3 +19,7 @@ class AgentState(TypedDict):
     draft_response: NotRequired[str]
     supervisor_status: NotRequired[str]
     supervisor_reason: NotRequired[dict[str, Any]]
+    retry_count: NotRequired[int]
+    supervisor_feedback: NotRequired[dict[str, Any]]
+    escalated: NotRequired[bool]
+    escalation_reason: NotRequired[dict[str, Any]]

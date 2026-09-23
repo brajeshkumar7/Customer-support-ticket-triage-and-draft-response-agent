@@ -3,6 +3,8 @@
 import json
 from typing import Any
 
+SUPERVISOR_RETRY_CAP = 3
+
 SUPERVISOR_CHECKLIST = [
     {
         "id": "factual_claims_grounded",

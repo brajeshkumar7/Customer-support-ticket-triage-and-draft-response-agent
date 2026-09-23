@@ -26,7 +26,8 @@ place; don't delete completed items, so the history stays visible.
 
 ## Phase 2 — Safety & Recovery
 - [x] TASK-09: Supervisor/critic node with checklist-based evaluation
-- [ ] TASK-10: Retry-with-feedback loop, capped at N (define N, log why in `DECISIONS.md`)
+- [x] TASK-10: Retry-with-feedback loop, capped at 3 retries after the initial
+      draft
 - [ ] TASK-11: Loud failure path when retry cap is hit (no silent failures)
 
 ## Phase 3 — Observability

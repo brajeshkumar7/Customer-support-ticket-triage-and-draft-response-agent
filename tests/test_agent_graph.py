@@ -6,7 +6,7 @@ from uuid import uuid4
 import pytest
 
 from src.agent.graph import build_graph
-from src.agent.supervisor import SUPERVISOR_CHECKLIST
+from src.agent.supervisor import SUPERVISOR_CHECKLIST, SUPERVISOR_RETRY_CAP
 from src.memory.long_term import LongTermMemory
 from src.memory.short_term import ShortTermMemory
 from src.tools.base import BaseTool, ToolNotFoundError
@@ -60,6 +60,16 @@ class SuccessfulFakeTool(BaseTool):
 
     def _execute(self, **kwargs):
         return {"fixture_fact": f"available from {self.tool_name}"}
+
+
+class CountingFakeTool(SuccessfulFakeTool):
+    def __init__(self, tool_name: str) -> None:
+        super().__init__(tool_name)
+        self.call_count = 0
+
+    def _execute(self, **kwargs):
+        self.call_count += 1
+        return super()._execute(**kwargs)
 
 
 @pytest.fixture
@@ -118,6 +128,8 @@ async def test_graph_gathers_tool_facts_and_drafts_from_results(long_term_memory
     assert result["draft_response"] == draft_response
     assert result["supervisor_status"] == "PASS"
     assert result["supervisor_reason"]["failed_checks"] == []
+    assert result["retry_count"] == 0
+    assert result["escalated"] is False
     assert result["recalled_facts"] == []
     assert result["memory_errors"] == []
     assert result["remembered_fact_id"]
@@ -135,7 +147,7 @@ async def test_graph_gathers_tool_facts_and_drafts_from_results(long_term_memory
     graph_nodes = set(graph.get_graph().nodes)
     assert graph_nodes == {
         "__start__", "recall", "classify", "gather_facts", "respond", "supervisor",
-        "remember", "__end__"
+        "prepare_retry", "escalate", "remember", "__end__"
     }
     graph_edges = {(edge.source, edge.target) for edge in graph.get_graph().edges}
     assert ("__start__", "recall") in graph_edges
@@ -144,6 +156,10 @@ async def test_graph_gathers_tool_facts_and_drafts_from_results(long_term_memory
     assert ("gather_facts", "respond") in graph_edges
     assert ("respond", "supervisor") in graph_edges
     assert ("supervisor", "remember") in graph_edges
+    assert ("supervisor", "prepare_retry") in graph_edges
+    assert ("supervisor", "escalate") in graph_edges
+    assert ("prepare_retry", "respond") in graph_edges
+    assert ("escalate", "__end__") in graph_edges
     assert ("remember", "__end__") in graph_edges
 
 
@@ -208,7 +224,7 @@ async def test_tool_failure_is_recorded_and_does_not_abort_graph(long_term_memor
 
 
 @pytest.mark.asyncio
-async def test_supervisor_fails_unsupported_claim_without_retry(long_term_memory):
+async def test_supervisor_feedback_repairs_unsupported_claim(long_term_memory):
     ticket_id = "ticket-unsupported-claim"
     unsupported_draft = (
         "Your refund has already been issued and will arrive in three days."
@@ -244,14 +260,27 @@ async def test_supervisor_fails_unsupported_claim_without_retry(long_term_memory
             '{"order_id":"ORD-1002","reason":"requesting a refund"}',
             unsupported_draft,
             supervisor_fail,
+            (
+                "I cannot confirm a refund has been issued. The order has not been "
+                "delivered, so the policy check says refund eligibility cannot yet "
+                "be evaluated."
+            ),
+            SUPERVISOR_PASS,
         ]
     )
     memory = ShortTermMemory(ticket_id)
+    tools = {
+        name: CountingFakeTool(name)
+        for name in ("order_lookup", "policy_checker", "faq_search")
+    }
     graph = build_graph(
         short_term_memory=memory,
         long_term_memory=long_term_memory,
         client=client,
         primary_model="test-model",
+        order_lookup_tool=tools["order_lookup"],
+        policy_checker_tool=tools["policy_checker"],
+        faq_search_tool=tools["faq_search"],
     )
 
     result = await graph.ainvoke(
@@ -261,22 +290,84 @@ async def test_supervisor_fails_unsupported_claim_without_retry(long_term_memory
         }
     )
 
-    assert result["draft_response"] == unsupported_draft
-    assert result["supervisor_status"] == "FAIL"
-    assert set(result["supervisor_reason"]["failed_checks"]) == {
+    assert result["draft_response"].startswith("I cannot confirm a refund")
+    assert result["supervisor_status"] == "PASS"
+    assert result["retry_count"] == 1
+    assert result["escalated"] is False
+    assert set(result["supervisor_feedback"]["failed_checks"]) == {
         "factual_claims_grounded",
         "no_unsupported_claims",
     }
     failed_reasons = " ".join(
         check["reason"]
-        for check in result["supervisor_reason"]["checks"]
+        for check in result["supervisor_feedback"]["checks"]
         if not check["passed"]
     ).lower()
     assert "unsupported" in failed_reasons
     assert "refund" in failed_reasons
     assert result["remembered_fact_id"]
-    assert memory.get("supervisor_status") == "FAIL"
-    assert len(client.calls) == 4  # no retry loop in TASK-09
+    assert memory.get("supervisor_status") == "PASS"
+    assert len(client.calls) == 6
+    retry_prompt = json.loads(client.calls[4]["messages"][1]["content"])
+    assert retry_prompt["supervisor_feedback"] == result["supervisor_feedback"]
+    assert all(tool.call_count == 1 for tool in tools.values())
+
+
+@pytest.mark.asyncio
+async def test_supervisor_retry_cap_escalates_without_an_extra_draft(long_term_memory):
+    ticket_id = "ticket-retry-cap"
+    failing_review = json.dumps(
+        {
+            "checks": [
+                {
+                    "id": check["id"],
+                    "passed": check["id"] == "urgency_appropriate_tone",
+                    "reason": (
+                        "Unsupported refund claim remains in the draft."
+                        if check["id"] != "urgency_appropriate_tone"
+                        else "Tone is appropriate."
+                    ),
+                }
+                for check in SUPERVISOR_CHECKLIST
+            ]
+        }
+    )
+    client = FakeOpenRouterClient(
+        [
+            '{"category":"return request","urgency":"medium"}',
+            '{"order_id":"ORD-1002","reason":"requesting a refund"}',
+            *[
+                response
+                for _ in range(SUPERVISOR_RETRY_CAP + 1)
+                for response in ("Your refund was issued.", failing_review)
+            ],
+        ]
+    )
+    tools = {
+        name: CountingFakeTool(name)
+        for name in ("order_lookup", "policy_checker", "faq_search")
+    }
+    graph = build_graph(
+        short_term_memory=ShortTermMemory(ticket_id),
+        long_term_memory=long_term_memory,
+        client=client,
+        primary_model="test-model",
+        order_lookup_tool=tools["order_lookup"],
+        policy_checker_tool=tools["policy_checker"],
+        faq_search_tool=tools["faq_search"],
+    )
+
+    result = await graph.ainvoke(
+        {"ticket_id": ticket_id, "ticket_text": "I need a refund for ORD-1002."}
+    )
+
+    assert result["retry_count"] == SUPERVISOR_RETRY_CAP
+    assert result["escalated"] is True
+    assert result["escalation_reason"] == result["supervisor_reason"]
+    assert "factual_claims_grounded" in result["escalation_reason"]["failed_checks"]
+    assert "remembered_fact_id" not in result
+    assert len(client.calls) == 2 + 2 * (SUPERVISOR_RETRY_CAP + 1)
+    assert all(tool.call_count == 1 for tool in tools.values())
 
 
 @pytest.mark.asyncio

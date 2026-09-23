@@ -104,3 +104,17 @@ same step.
 keeping retry policy separate and bounded in its designated task. The model's
 verdict field is not trusted; the code computes it from validated checks.
 **Status:** active
+
+## [2026-09-24] Supervisor retry cap
+**Decision:** Allow at most 3 graph-level retries after the initial draft, for
+up to 4 draft/review rounds in total. Increment `retry_count` only when a
+retry is scheduled; after the third retry's review fails, escalate without
+starting another draft.
+**Alternatives considered:** No retries; 3 total draft attempts; unbounded
+retry-with-feedback.
+**Reasoning:** Three bounded retry rounds provide opportunities to correct a
+draft using critic feedback while limiting repeated model calls and ensuring
+repeated supervisor failures have a deterministic escalation path. The cap
+follows PRD.md's wording of a maximum number of retries, separate from
+OpenRouter's API-level 429 retry mechanism.
+**Status:** active
