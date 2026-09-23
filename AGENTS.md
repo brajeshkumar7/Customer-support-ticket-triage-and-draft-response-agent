@@ -66,12 +66,9 @@ it instead of adding it.**
   alone is always free. No paid tier needed for this project.
 - Async: `asyncio` for concurrent independent tool calls (stdlib, free)
 - Memory:
-  - Short-term: in-memory dict/state for a first pass; if a real store is
-    needed, self-hosted Redis (`redis-server` locally or a free-tier hosted
-    Redis like Redis Cloud's free 30MB tier) — not a paid managed instance
-  - Long-term: **Chroma** (open-source, runs locally, no cloud fee) or
-    **pgvector** on a local/free-tier Postgres — not Pinecone or another paid
-    managed vector DB
+  - Short-term: in-memory dict scoped to a ticket run; no external service
+  - Long-term: **Chroma** (`chromadb.PersistentClient`) running locally at
+    `CHROMA_PERSIST_DIR` — no paid managed vector database
 - Package manager: `uv` (free, fast) or `pip` — both free, `uv` preferred if available
 
 ## Free-tier / rate-limit awareness

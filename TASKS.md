@@ -13,8 +13,8 @@ place; don't delete completed items, so the history stays visible.
       fully local instead, install Ollama and pull a small model (e.g.
       `llama3.1:8b` or a quantized variant that fits your hardware)
 - [ ] TASK-03: Docker sandbox base image for tool execution (Docker Personal — free)
-- [ ] TASK-04: Pick memory backend (self-hosted Redis + Chroma — free), record choice in `DECISIONS.md`, update `AGENTS.md` tech stack
-- [ ] TASK-04b: Add 429/rate-limit handling to the retry logic before real eval runs, to protect free-tier quota
+- [x] TASK-04: Pick memory backend (in-memory short-term + local Chroma long-term), record choice in `DECISIONS.md`, update `AGENTS.md` tech stack
+- [x] TASK-04b: Add env-configured OpenRouter RPM pacing and bounded 429 retries before real eval runs
 
 ## Phase 1 — Core Agent Loop
 - [ ] TASK-05: Basic LangGraph state machine, single tool, no retries yet

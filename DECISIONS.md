@@ -23,3 +23,24 @@ retry only
 **Reasoning:** 3 attempts caught ~90% of recoverable failures in early manual
 testing; beyond that, cost per run rose faster than completion rate improved
 **Status:** active
+
+## [2026-09-23] Memory backend choice
+**Decision:** Use an in-memory dict scoped to each ticket run for short-term
+state, and local Chroma persistence at `CHROMA_PERSIST_DIR` for long-term facts.
+**Alternatives considered:** Redis for short-term state; pgvector or a paid
+managed vector database for long-term memory.
+**Reasoning:** The per-run dict needs no external service, and Chroma runs
+locally with no paid managed service, matching the project's budget constraint.
+**Status:** active
+
+## [2026-09-23] Configurable OpenRouter rate limiting
+**Decision:** Pace OpenRouter requests using the positive integer in
+`OPENROUTER_REQUESTS_PER_MINUTE`, defaulting to 20 requests per minute. Retry
+HTTP 429 responses at most 3 times, honoring a valid `Retry-After` header and
+otherwise using exponential backoff capped at 30 seconds.
+**Alternatives considered:** hardcode the free-tier RPM; use an on/off switch;
+retry 429 responses without a request-rate limiter.
+**Reasoning:** A numeric environment setting allows the request pace to change
+with the account quota without code changes, while bounded retries avoid
+unlimited waits or calls.
+**Status:** active
