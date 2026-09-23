@@ -1,6 +1,6 @@
-"""State shared by the minimal ticket classification graph."""
+"""State shared by the support-ticket triage graph."""
 
-from typing import NotRequired, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 
 class AgentState(TypedDict):
@@ -10,4 +10,7 @@ class AgentState(TypedDict):
     ticket_text: str
     category: NotRequired[str]
     urgency: NotRequired[str]
+    order_id: NotRequired[str | None]
+    stated_reason: NotRequired[str]
+    tool_results: NotRequired[dict[str, Any]]
     draft_response: NotRequired[str]

@@ -1,0 +1,44 @@
+[
+  {
+    "order_id": "ORD-1001",
+    "status": "shipped",
+    "item": "Wireless headphones",
+    "tracking_status": "In transit",
+    "delivered_days_ago": null
+  },
+  {
+    "order_id": "ORD-1002",
+    "status": "delivered",
+    "item": "Coffee maker",
+    "tracking_status": "Delivered",
+    "delivered_days_ago": 12
+  },
+  {
+    "order_id": "ORD-1003",
+    "status": "delivered",
+    "item": "Desk lamp",
+    "tracking_status": "Delivered",
+    "delivered_days_ago": 3
+  },
+  {
+    "order_id": "ORD-1004",
+    "status": "delivered",
+    "item": "Blender",
+    "tracking_status": "Delivered",
+    "delivered_days_ago": 45
+  },
+  {
+    "order_id": "ORD-1005",
+    "status": "processing",
+    "item": "Water bottle",
+    "tracking_status": "Preparing for shipment",
+    "delivered_days_ago": null
+  },
+  {
+    "order_id": "ORD-1006",
+    "status": "delivered",
+    "item": "Bluetooth speaker",
+    "tracking_status": "Delivered",
+    "delivered_days_ago": 5
+  }
+]

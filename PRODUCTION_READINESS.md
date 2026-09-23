@@ -48,6 +48,23 @@ escalation, and bounded failure behavior as those capabilities are added.
 
 **Status:** Deferred; evolve the graph in the relevant TASKS.md phases.
 
+### Protect tool logs and measure extraction overhead
+
+**Current state:** Mock tool events are written to JSONL with their inputs and
+outputs. `gather_facts` makes a separate LLM call to extract order details
+before starting concurrent tool calls. Current fixture data is synthetic.
+
+**Follow-up:** Before using real customer data, define field redaction and log
+retention rules. Measure the extraction call's latency and token cost during
+evaluation; consider combining extraction with classification only if explicit
+order-ID validation and three-way tool concurrency remain intact.
+
+**Verification:** Confirm logs exclude configured sensitive fields and expire
+according to the chosen retention policy. Include extraction latency and token
+cost in the measured run metrics.
+
+**Status:** Deferred; revisit during observability and evaluation work.
+
 ## Recording future follow-ups
 
 For each implementation step, record production-readiness considerations here

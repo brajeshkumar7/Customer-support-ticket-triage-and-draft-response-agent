@@ -55,3 +55,16 @@ send a single model and rely on client-side retry only.
 API-call wrapper handles account-level limits without involving graph retries.
 The bounded, logged retry path makes the failure visible and testable.
 **Status:** active
+
+## [2026-09-23] Extract ticket details before concurrent tool fan-out
+**Decision:** Use a separate OpenRouter call in `gather_facts` to extract an
+explicit order ID and the customer's stated reason before dispatching the
+order lookup, policy checker, and FAQ search concurrently. The policy checker
+looks up the same local order fixture independently by ID so it can run in
+parallel with order lookup.
+**Alternatives considered:** Merge extraction into classification; wait for
+order lookup to return an order object before running the policy checker.
+**Reasoning:** A dedicated extraction step keeps classification focused while
+preserving the requirement that all three tools run concurrently. Extracted
+order IDs are accepted only when explicitly present in the ticket.
+**Status:** active
