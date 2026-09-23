@@ -80,3 +80,13 @@ use recalled facts as current order or policy evidence.
 the core ticket workflow from completing or weakening the existing grounding
 and explicit-order-ID checks. Summaries omit raw ticket text and draft replies.
 **Status:** active
+
+## [2026-09-23] Local Python environment
+**Decision:** Use a project-local `.venv/` virtual environment for development
+and tests, with `requirements.txt` as the dependency source of truth.
+**Alternatives considered:** Install project dependencies into system Python;
+introduce a separate package manager and lockfile.
+**Reasoning:** An isolated environment prevents project packages from
+conflicting with other Python projects. The existing pip requirements file is
+sufficient, and `.venv/` is already excluded from Git.
+**Status:** active

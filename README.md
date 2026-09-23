@@ -17,12 +17,39 @@ defenses. Built as a portfolio project — full spec in `PRD.md`.
 
 ## Setup
 
-```bash
-cp .env.example .env
-# fill in .env with your API keys
+Use Python 3.11 or newer. Create and activate a project-local virtual
+environment before installing or running the project. The `.venv/` directory
+is ignored by Git; the dependency source of truth remains `requirements.txt`.
+
+### Windows PowerShell
+
+```powershell
+py -3.11 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+if (!(Test-Path .env)) { Copy-Item .env.example .env }
+pytest
 ```
 
-[fill in once dependency manager is chosen — e.g. `uv sync` / `poetry install`]
+Fill in `.env` with the required local settings and API credentials before
+running the graph manually. If PowerShell blocks activation scripts, use
+`.venv\Scripts\python.exe -m pip install -r requirements.txt` and
+`.venv\Scripts\python.exe -m pytest` without activating the environment.
+
+### macOS / Linux
+
+```bash
+python3.11 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+test -f .env || cp .env.example .env
+pytest
+```
+
+The Docker image installs the same `requirements.txt` inside its own
+container environment; the host `.venv` is for local development and tests.
 
 ## Results
 

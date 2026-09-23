@@ -69,7 +69,9 @@ it instead of adding it.**
   - Short-term: in-memory dict scoped to a ticket run; no external service
   - Long-term: **Chroma** (`chromadb.PersistentClient`) running locally at
     `CHROMA_PERSIST_DIR` — no paid managed vector database
-- Package manager: `uv` (free, fast) or `pip` — both free, `uv` preferred if available
+- Local development: use the repository's ignored `.venv/` virtual environment
+  with Python 3.11+; install dependencies from `requirements.txt` using pip.
+  Do not commit the environment itself.
 
 ## Free-tier / rate-limit awareness
 
