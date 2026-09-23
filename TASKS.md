@@ -18,7 +18,7 @@ place; don't delete completed items, so the history stays visible.
 
 ## Phase 1 — Core Agent Loop
 - [x] TASK-05: Basic LangGraph state machine, no tools or retries yet
-- [ ] TASK-06: Add persistent short-term state across steps
+- [x] TASK-06: Add persistent short-term state across steps
 - [ ] TASK-07: Convert tool dispatch to async (`asyncio`) for independent calls
 - [ ] TASK-08: Add long-term memory store, wire read/write into graph
 
@@ -57,4 +57,5 @@ place; don't delete completed items, so the history stays visible.
 *(Move an item here instead of building it mid-task if it's outside PRD scope.
 Revisit only after Phase 6 is done.)*
 
--
+- Production-readiness follow-ups are tracked in `PRODUCTION_READINESS.md`,
+  including per-ticket memory lifecycle and workflow-driven graph expansion.

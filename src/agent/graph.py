@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 from langgraph.graph import END, START, StateGraph
 
 from src.agent.state import AgentState
+from src.memory.short_term import ShortTermMemory
 from src.openrouter_client import OpenRouterClient
 
 CLASSIFICATIONS = {
@@ -54,17 +55,25 @@ def _parse_classification(content: str) -> tuple[str, str]:
 
 def build_graph(
     *,
+    short_term_memory: ShortTermMemory,
     client: Any | None = None,
     primary_model: str | None = None,
 ):
-    """Compile the two-node graph, with optional client/model injection for tests."""
+    """Compile a two-node graph for one ticket-scoped memory store."""
     load_dotenv()
     model = primary_model or os.getenv("OPENROUTER_PRIMARY_MODEL", "").strip()
     if not model:
         raise ValueError("OPENROUTER_PRIMARY_MODEL must name the primary OpenRouter model.")
     llm = client or OpenRouterClient()
 
+    def validate_ticket_id(state: AgentState) -> None:
+        if state["ticket_id"] != short_term_memory.ticket_id:
+            raise ValueError(
+                "AgentState ticket_id must match the injected ShortTermMemory ticket_id."
+            )
+
     async def classify(state: AgentState) -> dict[str, str]:
+        validate_ticket_id(state)
         response = await llm.create_chat_completion(
             model=model,
             messages=[
@@ -83,9 +92,13 @@ def build_graph(
             temperature=0,
         )
         category, urgency = _parse_classification(_message_content(response))
+        short_term_memory.set("ticket_text", state["ticket_text"])
+        short_term_memory.set("category", category)
+        short_term_memory.set("urgency", urgency)
         return {"category": category, "urgency": urgency}
 
     async def respond(state: AgentState) -> dict[str, str]:
+        validate_ticket_id(state)
         response = await llm.create_chat_completion(
             model=model,
             messages=[
@@ -112,7 +125,9 @@ def build_graph(
             ],
             temperature=0,
         )
-        return {"draft_response": _message_content(response)}
+        draft_response = _message_content(response)
+        short_term_memory.set("draft_response", draft_response)
+        return {"draft_response": draft_response}
 
     builder = StateGraph(AgentState)
     builder.add_node("classify", classify)
@@ -124,7 +139,11 @@ def build_graph(
 
 
 async def _run_sample() -> None:
-    result = await build_graph().ainvoke({"ticket_text": SAMPLE_TICKET})
+    ticket_id = "sample-ticket"
+    short_term_memory = ShortTermMemory(ticket_id)
+    result = await build_graph(short_term_memory=short_term_memory).ainvoke(
+        {"ticket_id": ticket_id, "ticket_text": SAMPLE_TICKET}
+    )
     print(json.dumps(result, indent=2))
 
 

@@ -8,8 +8,10 @@ skip ahead; each prompt assumes everything before it is done and checked off.
 message if continuing a session). Do not paraphrase it or "summarize the
 gist" to the agent — the specificity is the point. After the agent finishes:
 run whatever tests it wrote, check the item off in `TASKS.md`, add any
-decision to `DECISIONS.md`, and log the session in `PROGRESS.md` before
-moving to the next prompt.
+decision to `DECISIONS.md`, record relevant production-readiness follow-ups in
+`PRODUCTION_READINESS.md`, and log the session in `PROGRESS.md` before moving
+to the next prompt. Keep deferred ideas out of the active implementation unless
+they are in scope for that task; if none arise, do not add filler.
 
 **Why so explicit:** Luna is the fast/cost-efficient tier of GPT-5.6, not the
 flagship reasoning tier — it performs best on tightly-scoped, unambiguous
