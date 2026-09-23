@@ -1,7 +1,12 @@
-"""
-Shared state schema passed between LangGraph nodes.
-Implements PRD.md Section 4: Memory (short-term working state).
+"""State shared by the minimal ticket classification graph."""
 
-Define the TypedDict/Pydantic model for: ticket, classification, tool results,
-draft response, confidence score, retry count, escalation flag.
-"""
+from typing import NotRequired, TypedDict
+
+
+class AgentState(TypedDict):
+    """The input ticket and the three values produced by the graph."""
+
+    ticket_text: str
+    category: NotRequired[str]
+    urgency: NotRequired[str]
+    draft_response: NotRequired[str]
