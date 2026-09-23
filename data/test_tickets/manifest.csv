@@ -1,0 +1,3 @@
+ticket_id,category,expected_outcome,notes
+example_001,order_status,auto_resolve,replace with real synthetic tickets
+example_002,billing_dispute,escalate,ambiguous - policy conflict edge case

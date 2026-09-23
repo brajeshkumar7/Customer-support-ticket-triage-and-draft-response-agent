@@ -1,0 +1,8 @@
+# Local dev stack - Redis (if used) runs here too. All free/local, no paid tiers.
+services:
+  sandbox:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    volumes:
+      - ../data:/app/data

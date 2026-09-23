@@ -1,0 +1,8 @@
+langgraph
+langchain
+openai
+chromadb
+python-dotenv
+pytest
+pytest-asyncio
+docker
