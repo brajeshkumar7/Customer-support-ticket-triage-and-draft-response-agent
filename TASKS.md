@@ -42,7 +42,7 @@ place; don't delete completed items, so the history stays visible.
 
 ## Phase 4 — Security
 - [x] TASK-15: Build a small prompt-injection test set (5–10 attempts)
-- [ ] TASK-16: Run tests, document what got through in `PRD.md` Section 5
+- [x] TASK-16: Run tests, document what got through in `PRD.md` Section 5
 - [ ] TASK-17: Patch any successful injections, re-test, log the fix
 
 ## Phase 5 — Evaluation & Metrics
