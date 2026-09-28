@@ -45,6 +45,21 @@ blocks activation scripts, use
 `.venv\Scripts\python.exe -m pip install -r requirements.txt` and
 `.venv\Scripts\python.exe -m pytest` without activating the environment.
 
+## Run-history dashboard
+
+The local read-only dashboard uses Next.js and TypeScript and reads the agent's
+JSONL files from `data/logs/` on the server. From the repository root, start it
+with:
+
+```powershell
+cd dashboard
+npm install
+npm run dev
+```
+
+Open <http://localhost:3000>. To read logs from another location, set
+`LOGS_DIR` in `dashboard/.env.local`; see [`dashboard/README.md`](dashboard/README.md).
+
 ### macOS / Linux
 
 ```bash

@@ -163,3 +163,14 @@ PRD.md Section 6 without new dependencies. Per-run event names make the graph,
 parallel tools, and retried LLM calls traceable. Token cost is only recorded
 when supplied by the provider; no cost estimate is invented.
 **Status:** active
+
+## [2026-09-28] Dashboard in Next.js + TypeScript instead of static HTML
+**Decision:** Build the local run-history dashboard with Next.js App Router and
+TypeScript, reading JSONL logs on the server.
+**Alternatives considered:** Keep a static HTML page and read logs through the
+browser; add a separate backend service for dashboard data.
+**Reasoning:** The developer chose Next.js + TypeScript as the dashboard UI
+stack. Server-side file access lets the page read local logs without exposing
+filesystem access to browser code or adding a separate service.
+**Trade-off:** This adds a Node.js/npm toolchain to a Python project.
+**Status:** active

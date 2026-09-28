@@ -72,6 +72,7 @@ it instead of adding it.**
 - Local development: use the repository's ignored `.venv/` virtual environment
   with Python 3.11+; install dependencies from `requirements.txt` using pip.
   Do not commit the environment itself.
+- Dashboard: Next.js + TypeScript (free, runs locally, reads logs server-side).
 
 ## Free-tier / rate-limit awareness
 
@@ -132,8 +133,8 @@ satisfies. If you cannot point to one, do not implement it without explicit
 approval from the person you're working with.**
 
 This is the rule that stops "let's improve the agent" from turning into adding
-a planning agent, a reflection agent, a knowledge graph, Redis, Postgres, and a
-React dashboard that nobody asked for. If a coding session produces an idea
+a planning agent, a reflection agent, a knowledge graph, Redis, Postgres, and
+unrelated dashboards. If a coding session produces an idea
 that sounds good but doesn't map to an existing PRD requirement, it goes in
 `TASKS.md`'s Parking Lot, not into the codebase.
 

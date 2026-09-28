@@ -52,6 +52,22 @@ Zoho sender URL/request expectations. No performance or cost metrics measured.
 **Next session should start with:** TASK-13, while tracking/fixing the existing
 Zoho test failures separately.
 
+## [2026-09-28] TASK-13 local run-history dashboard
+**Worked on:** TASK-13
+**Completed:** Replaced the static placeholder with a read-only Next.js App
+Router dashboard. It reads direct `.jsonl` files server-side, supports file
+selection and case-insensitive run-ID filtering, skips invalid lines, and
+shows event details and available status evidence. Added the Node stack and
+trade-off to project docs.
+**Verification:** `npm install`, `npm run lint`, and `npm run build` passed.
+Started the local page and confirmed both actual log files render newest
+first, legacy missing fields display as em dashes, input/output details expand,
+run-ID filtering works, and unsafe filenames return 404. A temporary fixture
+confirmed malformed and structurally invalid lines are counted; the fixture
+was removed afterward.
+**Metrics measured this session:** No agent evaluation metrics measured.
+**Next session should start with:** TASK-14.
+
 ## [fill in date] Session 1
 **Worked on:**
 **Completed:**

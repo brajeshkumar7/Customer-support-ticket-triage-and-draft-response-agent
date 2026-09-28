@@ -6,3 +6,5 @@ venv/
 data/logs/*.jsonl
 chroma_data/
 .pytest_cache/
+node_modules/
+.next/

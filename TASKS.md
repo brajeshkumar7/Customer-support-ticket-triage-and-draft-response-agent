@@ -36,7 +36,7 @@ place; don't delete completed items, so the history stays visible.
 - [x] TASK-12: Structured JSONL logging for graph nodes, tool calls, LLM
       attempts, and rate-limit events (automated tests pass; live provider run
       pending external API access)
-- [ ] TASK-13: Minimal dashboard reading the JSON log
+- [x] TASK-13: Read-only local run-history dashboard in Next.js + TypeScript
 - [ ] TASK-14: Streaming output of intermediate steps to the caller
 
 ## Phase 4 — Security

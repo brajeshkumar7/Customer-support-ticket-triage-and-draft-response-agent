@@ -370,25 +370,40 @@ Requirements:
 Done when: the test passes and a real run produces a readable, complete log file.
 ```
 
-### TASK-13 — Minimal dashboard prompt
+### TASK-13 - Local run-history dashboard prompt
 ```
-Read src/observability/dashboard.html (currently a placeholder) and the
-.jsonl format produced by TASK-12 before starting.
+Read AGENTS.md, PRD.md Section 6, src/observability/logger.py, and a real
+JSONL file from data/logs/ before starting. Base types and columns on the
+observed event fields.
 
-Task: make the dashboard actually read and render the logs.
+Task: build a read-only run-history dashboard in dashboard/ using Next.js
+App Router and strict TypeScript. The dashboard is a local debugging tool.
 
 Requirements:
-1. Plain HTML + vanilla JS only — no build step, no framework, no server
-   required beyond opening the file or a trivial local static server.
-2. It should load one or more .jsonl files from data/logs/ (via fetch, or a
-   file input if fetch is blocked by local file:// restrictions) and render
-   a table: run ID, node/tool, latency, cost, pass/fail/escalated status.
-3. Do NOT add authentication, styling frameworks, or any feature beyond
-   "show me what happened in past runs" — this is a debugging tool for you,
-   not a product.
+1. Use create-next-app with TypeScript, ESLint, App Router, npm, and no
+   Tailwind. Add no dependencies beyond the scaffold. The old static
+   placeholder at src/observability/dashboard.html should be absent.
+2. Read logs only on the server from LOGS_DIR (default ../data/logs relative
+   to dashboard/). List regular .jsonl files directly in that directory.
+   Reject selected filenames containing path separators or ".."; never write
+   or modify log files.
+3. Parse line by line, skip malformed or structurally invalid events, and
+   display the skipped-line count. Use strict TypeScript types matching the
+   real formats, optional fields where necessary, no any, and show an em dash
+   for missing values.
+4. Provide a single page with newest-first file selection, a case-insensitive
+   run-ID filter, and a table for timestamp, run/ticket ID, node/tool/call,
+   latency, token cost, evidence-based status, input, and output. Truncate
+   payload previews and expand them with native details elements. Show an em
+   dash when the log event does not establish a status.
+5. Use one plain globals.css file. Do not add auth, charts, deployment config,
+   dashboard Docker, live refresh, or change Python logging code.
+6. Add dashboard/.env.example for LOGS_DIR; ignore node_modules/ and .next/;
+   document the Next.js stack in AGENTS.md and its trade-off in DECISIONS.md;
+   update TASKS.md to match this stack.
 
-Done when: after running the eval in a later phase, opening dashboard.html
-shows a real table of actual run data.
+Done when: npm install, npm run lint, and npm run build pass in dashboard/;
+with real logs, npm run dev serves rows from both current and legacy formats.
 ```
 
 ### TASK-14 — Streaming prompt

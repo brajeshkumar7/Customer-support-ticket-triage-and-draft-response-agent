@@ -62,7 +62,10 @@ section states what to measure, `PROGRESS.md` holds the actual results.)*
 
 ## 6. Observability Requirements
 - Log every tool call, its input/output, latency, and token cost
-- A simple dashboard (even a static HTML page reading a JSON log) showing run history
+- A local, read-only Next.js App Router + TypeScript dashboard showing run
+  history from server-read JSONL files under `LOGS_DIR` (default
+  `../data/logs` relative to `dashboard/`); see `dashboard/README.md` for
+  local startup instructions
 
 ## 7. Explicit Trade-off to Document
 [Fill this in once you hit a real one. Likely candidate: more retries improves
