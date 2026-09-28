@@ -33,7 +33,9 @@ place; don't delete completed items, so the history stays visible.
       tests pass without live Zoho Desk requests
 
 ## Phase 3 — Observability
-- [ ] TASK-12: Structured logging: tool call, input/output, latency, token cost
+- [x] TASK-12: Structured JSONL logging for graph nodes, tool calls, LLM
+      attempts, and rate-limit events (automated tests pass; live provider run
+      pending external API access)
 - [ ] TASK-13: Minimal dashboard reading the JSON log
 - [ ] TASK-14: Streaming output of intermediate steps to the caller
 

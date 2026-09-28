@@ -19,7 +19,7 @@ from src.agent.supervisor import (
 )
 from src.memory.long_term import LongTermMemory
 from src.memory.short_term import ShortTermMemory
-from src.observability.logger import log_tool_event
+from src.observability.logger import log_node_event, log_tool_event
 from src.openrouter_client import OpenRouterClient
 from src.tools.base import BaseTool, ToolResult
 from src.tools.faq_search import FAQSearchTool
@@ -223,6 +223,8 @@ def build_graph(
         validate_ticket_id(state)
         response = await llm.create_chat_completion(
             model=model,
+            run_id=state["ticket_id"],
+            call_name="classify",
             messages=[
                 {
                     "role": "system",
@@ -248,6 +250,8 @@ def build_graph(
         validate_ticket_id(state)
         extraction = await llm.create_chat_completion(
             model=model,
+            run_id=state["ticket_id"],
+            call_name="extract_ticket_details",
             messages=[
                 {
                     "role": "system",
@@ -279,9 +283,11 @@ def build_graph(
 
         tool_names = ("order_lookup", "policy_checker", "faq_search")
         tool_calls = (
-            order_lookup.run(order_id=order_id),
-            policy_checker.run(order_id=order_id, reason=stated_reason),
-            faq_search.run(query=state["ticket_text"]),
+            order_lookup.run(run_id=state["ticket_id"], order_id=order_id),
+            policy_checker.run(
+                run_id=state["ticket_id"], order_id=order_id, reason=stated_reason
+            ),
+            faq_search.run(run_id=state["ticket_id"], query=state["ticket_text"]),
         )
         raw_results = await asyncio.gather(*tool_calls, return_exceptions=True)
         tool_results: dict[str, dict[str, Any]] = {}
@@ -315,6 +321,8 @@ def build_graph(
         validate_ticket_id(state)
         response = await llm.create_chat_completion(
             model=model,
+            run_id=state["ticket_id"],
+            call_name="draft_response",
             messages=[
                 {
                     "role": "system",
@@ -359,6 +367,8 @@ def build_graph(
         validate_ticket_id(state)
         response = await llm.create_chat_completion(
             model=model,
+            run_id=state["ticket_id"],
+            call_name="supervisor_review",
             messages=[
                 {
                     "role": "system",
@@ -584,7 +594,7 @@ def build_graph(
                 },
                 error=error,
                 latency_ms=latency_ms,
-                token_cost=0.0,
+                run_id=state.get("ticket_id"),
             )
         except OSError:
             logger.exception("Could not write Zoho Desk send event to the JSONL log.")
@@ -683,8 +693,10 @@ def build_graph(
 
     def guarded_node(name: str, node):
         async def run(state: AgentState) -> dict[str, Any]:
+            started = time.perf_counter()
+            error_details = None
             try:
-                return await node(state)
+                result = await node(state)
             except Exception as error:
                 error_details = {
                     "node": name,
@@ -714,7 +726,18 @@ def build_graph(
                     )
                     result["failed_attempts"] = failed_attempts
                     short_term_memory.set("failed_attempts", failed_attempts)
-                return result
+            try:
+                log_node_event(
+                    node_name=name,
+                    run_id=state.get("ticket_id"),
+                    inputs=state,
+                    output=result,
+                    latency_ms=(time.perf_counter() - started) * 1000,
+                    error=error_details,
+                )
+            except OSError:
+                logger.exception("Could not write JSONL event for node %s", name)
+            return result
 
         return run
 
@@ -757,8 +780,8 @@ def build_graph(
     builder.add_node("supervisor", guarded_node("supervisor", supervisor))
     builder.add_node("prepare_retry", guarded_node("prepare_retry", prepare_retry))
     builder.add_node("send_response", guarded_node("send_response", send_response))
-    builder.add_node("escalate", escalate)
-    builder.add_node("remember", remember)
+    builder.add_node("escalate", guarded_node("escalate", escalate))
+    builder.add_node("remember", guarded_node("remember", remember))
     builder.add_edge(START, "recall")
     builder.add_conditional_edges(
         "recall", route_node_error("classify"), {"classify": "classify", "escalate": "escalate"}

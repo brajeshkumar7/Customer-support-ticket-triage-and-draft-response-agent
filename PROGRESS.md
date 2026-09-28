@@ -36,6 +36,22 @@ pick this back up cold
 
 ## Session log
 
+## [2026-09-28] TASK-12 structured JSONL logging
+**Worked on:** TASK-12
+**Completed:** Added append-only JSONL events for each graph node, tool call,
+LLM API attempt, and OpenRouter 429 response. Events include run IDs, bounded
+inputs/outputs, latency, and provider-reported LLM cost when available;
+credential-shaped fields are redacted. Added graph event-count coverage and
+updated the 429 logging test.
+**Blocked/open questions:** No live OpenRouter run was performed. The broader
+suite has unrelated existing failures in Zoho sender/configuration tests;
+task-focused graph and OpenRouter tests pass.
+**Metrics measured this session:** 30 focused graph/OpenRouter tests passed;
+full suite excluding one known configuration test: 52 passed, 6 failed on
+Zoho sender URL/request expectations. No performance or cost metrics measured.
+**Next session should start with:** TASK-13, while tracking/fixing the existing
+Zoho test failures separately.
+
 ## [fill in date] Session 1
 **Worked on:**
 **Completed:**

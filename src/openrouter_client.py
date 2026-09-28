@@ -1,8 +1,8 @@
 """OpenAI-compatible OpenRouter client with bounded account-level 429 retries."""
 
 import asyncio
-import logging
 import os
+import time
 from collections.abc import Awaitable, Callable, Sequence
 from typing import Any, TypeVar
 
@@ -10,9 +10,9 @@ from dotenv import load_dotenv
 from openai import APIStatusError, AsyncOpenAI
 
 from src.agent.rate_limit import OpenRouterRateLimiter
+from src.observability.logger import log_llm_event, log_rate_limit_event
 
 T = TypeVar("T")
-logger = logging.getLogger(__name__)
 
 DEFAULT_OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 MAX_429_RETRIES = 3
@@ -87,6 +87,8 @@ class OpenRouterClient:
         *,
         model: str,
         messages: Sequence[dict[str, Any]],
+        run_id: str | None = None,
+        call_name: str = "chat_completion",
         **options: Any,
     ) -> Any:
         """Create a completion with model fallback and bounded 429 retries.
@@ -109,30 +111,120 @@ class OpenRouterClient:
             "extra_body": {**extra_body, "models": list(self.models)},
         }
 
+        safe_inputs = {
+            "model": model,
+            "messages": list(messages),
+            "options": {key: value for key, value in request_options.items()
+                        if key not in {"model", "messages"}},
+        }
         for retry_number in range(MAX_429_RETRIES + 1):
+            attempt = retry_number + 1
             await self._rate_limiter.acquire()
+            started = time.perf_counter()
             try:
-                return await self._client.chat.completions.create(**request_options)
+                response = await self._client.chat.completions.create(**request_options)
             except APIStatusError as error:
+                latency_ms = (time.perf_counter() - started) * 1000
+                failure = {
+                    "type": type(error).__name__,
+                    "status_code": error.status_code,
+                }
+                _write_llm_event(
+                    run_id=run_id,
+                    call_name=call_name,
+                    inputs={**safe_inputs, "attempt": attempt},
+                    output=None,
+                    latency_ms=latency_ms,
+                    token_cost=None,
+                    error=failure,
+                )
                 if error.status_code != 429:
                     raise
 
-                attempt = retry_number + 1
+                delay = (
+                    INITIAL_BACKOFF_SECONDS * (2**retry_number)
+                    if retry_number < MAX_429_RETRIES
+                    else 0.0
+                )
+                _write_rate_limit_event(
+                    run_id=run_id,
+                    call_name=call_name,
+                    inputs={"model": model, "attempt": attempt},
+                    output={"status_code": 429, "retry_delay_seconds": delay},
+                    latency_ms=latency_ms,
+                    error={"type": type(error).__name__, "status_code": 429},
+                )
                 if retry_number == MAX_429_RETRIES:
-                    logger.warning(
-                        "OpenRouter returned HTTP 429 on attempt %d/%d; retry limit exhausted.",
-                        attempt,
-                        MAX_429_RETRIES + 1,
-                    )
                     raise OpenRouterRateLimitError(attempts=attempt) from error
 
-                delay = INITIAL_BACKOFF_SECONDS * (2**retry_number)
-                logger.warning(
-                    "OpenRouter returned HTTP 429 on attempt %d/%d; retrying in %.1f seconds.",
-                    attempt,
-                    MAX_429_RETRIES + 1,
-                    delay,
-                )
                 await self._sleep(delay)
+            except Exception as error:
+                _write_llm_event(
+                    run_id=run_id,
+                    call_name=call_name,
+                    inputs={**safe_inputs, "attempt": attempt},
+                    output=None,
+                    latency_ms=(time.perf_counter() - started) * 1000,
+                    token_cost=None,
+                    error={"type": type(error).__name__},
+                )
+                raise
+            else:
+                _write_llm_event(
+                    run_id=run_id,
+                    call_name=call_name,
+                    inputs={**safe_inputs, "attempt": attempt},
+                    output=_completion_log_output(response),
+                    latency_ms=(time.perf_counter() - started) * 1000,
+                    token_cost=_completion_cost(response),
+                )
+                return response
 
         raise RuntimeError("unreachable OpenRouter retry state")
+
+
+def _field(value: Any, name: str) -> Any:
+    if isinstance(value, dict):
+        return value.get(name)
+    result = getattr(value, name, None)
+    if result is not None:
+        return result
+    extras = getattr(value, "model_extra", None)
+    return extras.get(name) if isinstance(extras, dict) else None
+
+
+def _completion_cost(response: Any) -> float | None:
+    usage = _field(response, "usage")
+    cost = _field(usage, "cost")
+    try:
+        return float(cost) if cost is not None else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _completion_log_output(response: Any) -> dict[str, Any]:
+    choices = _field(response, "choices") or []
+    first_choice = choices[0] if choices else None
+    message = _field(first_choice, "message")
+    usage = _field(response, "usage")
+    return {
+        "model": _field(response, "model"),
+        "content": _field(message, "content"),
+        "usage": usage,
+    }
+
+
+def _write_llm_event(**event: Any) -> None:
+    try:
+        log_llm_event(**event)
+    except OSError:
+        # Observability failure must not change the API result.
+        pass
+
+
+def _write_rate_limit_event(**event: Any) -> None:
+    try:
+        log_rate_limit_event(**event)
+    except OSError:
+        # The bounded retry path remains available if the disk is unavailable.
+        pass

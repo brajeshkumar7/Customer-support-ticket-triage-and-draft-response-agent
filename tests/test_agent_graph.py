@@ -10,6 +10,7 @@ from src.agent.supervisor import SUPERVISOR_CHECKLIST, SUPERVISOR_RETRY_CAP
 from src.memory.long_term import LongTermMemory
 from src.memory.short_term import ShortTermMemory
 from src.tools.base import BaseTool, ToolNotFoundError
+import src.observability.logger as event_logger
 from zoho_desk_client import ZohoDeskDeliveryError
 
 SUPERVISOR_PASS = json.dumps(
@@ -83,6 +84,62 @@ class CountingFakeTool(SuccessfulFakeTool):
     def _execute(self, **kwargs):
         self.call_count += 1
         return super()._execute(**kwargs)
+
+
+@pytest.mark.asyncio
+async def test_graph_writes_one_jsonl_event_per_node_and_tool_call(
+    long_term_memory, monkeypatch, tmp_path
+):
+    log_path = tmp_path / "events.jsonl"
+    monkeypatch.setattr(event_logger, "_LOG_PATH", log_path)
+    ticket_id = "ticket-structured-logs"
+    client = FakeOpenRouterClient(
+        [
+            '{"category":"general question","urgency":"low"}',
+            '{"order_id":null,"reason":"general question"}',
+            "Please share more details so I can help.",
+            SUPERVISOR_PASS,
+        ]
+    )
+    graph = build_graph(
+        short_term_memory=ShortTermMemory(ticket_id),
+        long_term_memory=long_term_memory,
+        client=client,
+        primary_model="test-model",
+    )
+
+    result = await graph.ainvoke(
+        {"ticket_id": ticket_id, "ticket_text": "I have a general question."}
+    )
+
+    assert result["terminal_status"] == "escalated"
+    events = [
+        json.loads(line)
+        for line in log_path.read_text(encoding="utf-8").splitlines()
+    ]
+    node_names = {
+        event["node_name"]
+        for event in events
+        if event["event_type"] == "node_transition"
+    }
+    tool_names = {
+        event["tool_name"] for event in events if event["event_type"] == "tool_call"
+    }
+    assert node_names == {
+        "recall", "classify", "gather_facts", "respond", "supervisor",
+        "send_response", "escalate",
+    }
+    assert tool_names == {
+        "order_lookup", "policy_checker", "faq_search", "zoho_desk_send_public_reply"
+    }
+    assert len(events) == len(node_names) + len(tool_names) == 11
+    for event in events:
+        assert event["timestamp"]
+        assert event["run_id"] == ticket_id
+        assert event["name"]
+        assert "inputs" in event
+        assert "output" in event
+        assert event["latency_ms"] >= 0
 
 
 @pytest.fixture(autouse=True)

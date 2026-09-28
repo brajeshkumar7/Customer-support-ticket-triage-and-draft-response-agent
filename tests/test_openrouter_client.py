@@ -1,3 +1,4 @@
+import json
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
@@ -5,6 +6,7 @@ import httpx
 import pytest
 from openai import APIStatusError
 
+import src.observability.logger as event_logger
 import src.openrouter_client as openrouter_module
 import src.agent.rate_limit as rate_limit_module
 from src.openrouter_client import (
@@ -156,10 +158,10 @@ async def test_each_429_retry_acquires_an_rpm_slot(monkeypatch) -> None:
 
 @pytest.mark.asyncio
 async def test_429_retries_with_exponential_backoff_then_raises_typed_error(
-    monkeypatch,
-    caplog,
+    monkeypatch, tmp_path,
 ) -> None:
     monkeypatch.setattr(openrouter_module, "load_dotenv", lambda: None)
+    monkeypatch.setattr(event_logger, "_LOG_PATH", tmp_path / "events.jsonl")
     create = AsyncMock(side_effect=_raise_429)
     delays: list[float] = []
 
@@ -180,7 +182,20 @@ async def test_429_retries_with_exponential_backoff_then_raises_typed_error(
     assert raised.value.attempts == 4
     assert create.await_count == 4
     assert delays == [1.0, 2.0, 4.0]
-    assert sum("HTTP 429" in record.message for record in caplog.records) == 4
+    events = [
+        json.loads(line)
+        for line in (tmp_path / "events.jsonl").read_text(encoding="utf-8").splitlines()
+    ]
+    assert sum(event["event_type"] == "rate_limit" for event in events) == 4
+    assert sum(event["event_type"] == "llm_call" for event in events) == 4
+    assert all(
+        "token_cost" in event
+        and "inputs" in event
+        and "output" in event
+        and "latency_ms" in event
+        for event in events
+        if event["event_type"] == "llm_call"
+    )
     assert all(
         call.kwargs["extra_body"]["models"] == ["fallback-a", "fallback-b"]
         for call in create.await_args_list

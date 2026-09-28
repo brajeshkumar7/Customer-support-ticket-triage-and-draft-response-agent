@@ -48,7 +48,7 @@ class BaseTool(ABC):
 
     tool_name = "base_tool"
 
-    async def run(self, **kwargs: Any) -> ToolResult:
+    async def run(self, *, run_id: str | None = None, **kwargs: Any) -> ToolResult:
         started = time.perf_counter()
         try:
             data = await asyncio.to_thread(self._execute, **kwargs)
@@ -58,6 +58,7 @@ class BaseTool(ABC):
                 output=None,
                 error={"type": type(error).__name__, "message": str(error)},
                 latency_ms=(time.perf_counter() - started) * 1000,
+                run_id=run_id,
             )
             raise
         except Exception as error:
@@ -69,6 +70,7 @@ class BaseTool(ABC):
                 output=None,
                 error={"type": type(wrapped).__name__, "message": str(wrapped)},
                 latency_ms=(time.perf_counter() - started) * 1000,
+                run_id=run_id,
             )
             raise wrapped from error
 
@@ -78,6 +80,7 @@ class BaseTool(ABC):
             output=result.to_dict(),
             error=None,
             latency_ms=(time.perf_counter() - started) * 1000,
+            run_id=run_id,
         )
         return result
 
@@ -88,6 +91,7 @@ class BaseTool(ABC):
         output: dict[str, Any] | None,
         error: dict[str, str] | None,
         latency_ms: float,
+        run_id: str | None,
     ) -> None:
         try:
             log_tool_event(
@@ -96,7 +100,7 @@ class BaseTool(ABC):
                 output=output,
                 error=error,
                 latency_ms=latency_ms,
-                token_cost=0.0,
+                run_id=run_id,
             )
         except OSError:
             # Logging failures should be visible without hiding the tool result/error.

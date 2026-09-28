@@ -149,3 +149,17 @@ response returns its generic `www.zohoapis.<region>` host, accept it only when
 the configured Desk-specific host maps to the same data center; keep using the
 Desk-specific API host for Desk requests.
 **Status:** active
+
+## [2026-09-28] Structured JSONL observability
+**Decision:** Append graph-node, tool, LLM-attempt, and rate-limit events to one
+thread-safe `data/logs/events.jsonl` file. Each event carries its run ID,
+timestamp, inputs, outputs, and latency; LLM events also record provider-reported
+token cost when available. Bound serialized inputs/outputs and redact common
+credential fields before writing.
+**Alternatives considered:** separate log files per event type; rely on console
+logs; write a database-backed event store.
+**Reasoning:** A single append-only JSONL file is directly readable and meets
+PRD.md Section 6 without new dependencies. Per-run event names make the graph,
+parallel tools, and retried LLM calls traceable. Token cost is only recorded
+when supplied by the provider; no cost estimate is invented.
+**Status:** active
