@@ -37,7 +37,8 @@ place; don't delete completed items, so the history stays visible.
       attempts, and rate-limit events (automated tests pass; live provider run
       pending external API access)
 - [x] TASK-13: Read-only local run-history dashboard in Next.js + TypeScript
-- [ ] TASK-14: Streaming output of intermediate steps to the caller
+- [x] TASK-14: Stream graph node updates to the caller (fake-client graph
+      tests pass; live OpenRouter demo pending free-model configuration)
 
 ## Phase 4 — Security
 - [ ] TASK-15: Build a small prompt-injection test set (5–10 attempts)

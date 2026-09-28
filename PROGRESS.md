@@ -68,6 +68,21 @@ was removed afterward.
 **Metrics measured this session:** No agent evaluation metrics measured.
 **Next session should start with:** TASK-14.
 
+## [2026-09-28] TASK-14 graph streaming
+**Worked on:** TASK-14
+**Completed:** Added an async LangGraph update-stream example that prints each
+completed node's partial state as it arrives. It omits the Zoho ticket ID so
+it cannot post a reply. Added a fake-client test for incremental node updates
+through the disabled-send escalation path; no graph node logic changed.
+**Verification:** The streaming test passed; Python syntax compilation passed.
+The graph test module passed 19 tests with one unrelated failing Zoho test
+deselected. That existing failure is recorded as FM-004. The live sample was
+not run because `.env` selects model IDs without the `:free` suffix and the
+project budget rules prohibit risking a paid call; run it after configuring
+free-tier models.
+**Metrics measured this session:** No agent evaluation metrics measured.
+**Next session should start with:** TASK-15.
+
 ## [fill in date] Session 1
 **Worked on:**
 **Completed:**

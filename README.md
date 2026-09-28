@@ -60,6 +60,17 @@ npm run dev
 Open <http://localhost:3000>. To read logs from another location, set
 `LOGS_DIR` in `dashboard/.env.local`; see [`dashboard/README.md`](dashboard/README.md).
 
+## Stream graph updates
+
+With the OpenRouter settings configured in `.env`, run the sample workflow and
+print each completed node update as it arrives:
+
+```powershell
+.\.venv\Scripts\python.exe -m src.agent.stream_example
+```
+
+The sample does not include a Zoho ticket ID, so it cannot post a reply.
+
 ### macOS / Linux
 
 ```bash

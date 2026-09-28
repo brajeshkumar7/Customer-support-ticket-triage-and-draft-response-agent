@@ -5,11 +5,13 @@ from uuid import uuid4
 
 import pytest
 
+import src.agent.graph as graph_module
 from src.agent.graph import build_graph
 from src.agent.supervisor import SUPERVISOR_CHECKLIST, SUPERVISOR_RETRY_CAP
 from src.memory.long_term import LongTermMemory
 from src.memory.short_term import ShortTermMemory
 from src.tools.base import BaseTool, ToolNotFoundError
+import src.tools.base as tool_base_module
 import src.observability.logger as event_logger
 from zoho_desk_client import ZohoDeskDeliveryError
 
@@ -140,6 +142,50 @@ async def test_graph_writes_one_jsonl_event_per_node_and_tool_call(
         assert "inputs" in event
         assert "output" in event
         assert event["latency_ms"] >= 0
+
+
+@pytest.mark.asyncio
+async def test_graph_astream_emits_node_updates_in_workflow_order(
+    long_term_memory, monkeypatch
+):
+    monkeypatch.setattr(graph_module, "log_node_event", lambda **_: None)
+    monkeypatch.setattr(graph_module, "log_tool_event", lambda **_: None)
+    monkeypatch.setattr(tool_base_module, "log_tool_event", lambda **_: None)
+    ticket_id = "ticket-streaming"
+    client = FakeOpenRouterClient(
+        [
+            '{"category":"general question","urgency":"low"}',
+            '{"order_id":null,"reason":"general question"}',
+            "Please share more details so I can help.",
+            SUPERVISOR_PASS,
+        ]
+    )
+    graph = build_graph(
+        short_term_memory=ShortTermMemory(ticket_id),
+        long_term_memory=long_term_memory,
+        client=client,
+        primary_model="test-model",
+    )
+
+    streamed_updates = []
+    async for update in graph.astream(
+        {"ticket_id": ticket_id, "ticket_text": "I have a general question."},
+        stream_mode="updates",
+    ):
+        streamed_updates.append(update)
+
+    assert [list(update) for update in streamed_updates] == [
+        ["recall"],
+        ["classify"],
+        ["gather_facts"],
+        ["respond"],
+        ["supervisor"],
+        ["send_response"],
+        ["escalate"],
+    ]
+    assert streamed_updates[0]["recall"]["retry_count"] == 0
+    assert streamed_updates[3]["respond"]["draft_response"]
+    assert streamed_updates[-1]["escalate"]["terminal_status"] == "escalated"
 
 
 @pytest.fixture(autouse=True)

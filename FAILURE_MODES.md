@@ -89,3 +89,20 @@ escalated with `zoho_delivery_status` unset, so the Zoho sender was not called
 and no reply was sent. The abbreviated output did not include the full review
 reason or tool results, so this run alone does not establish whether the
 critic was wrong; capture those fields in a send-disabled diagnostic run.
+
+## FM-004 - Zoho configuration test injects a sender while expecting it unused
+
+**Observed behavior:** `test_missing_zoho_desk_configuration_escalates_without_sending`
+failed because its injected fake Zoho sender received the reply despite the
+test clearing the Zoho credential environment variables.
+**Root cause:** `build_graph` uses an explicitly injected `zoho_desk_client`
+without loading or validating environment credentials; credential validation
+through `ZohoDeskClient.from_env()` only occurs when no sender is injected. The
+test expects missing environment configuration to block even an injected
+sender.
+**Fix:** No change made in TASK-14 because this is outside the streaming task;
+the test expectation or its setup needs separate review.
+**Before -> After:** One failing test in `tests/test_agent_graph.py`; 19 other
+tests in that module pass.
+**Regression test:** `tests/test_agent_graph.py::test_missing_zoho_desk_configuration_escalates_without_sending`
+currently exposes the mismatch and fails.
