@@ -83,6 +83,18 @@ free-tier models.
 **Metrics measured this session:** No agent evaluation metrics measured.
 **Next session should start with:** TASK-15.
 
+## [2026-09-28] TASK-15 prompt-injection case data
+**Worked on:** TASK-15
+**Completed:** Replaced the evaluation placeholder with exactly 10 structured
+tool-output mutation cases covering FAQ, order lookup, and policy results.
+Three cases embed plausible quoted or operational text. No agent, tool,
+fixture, or live-run behavior was changed.
+**Verification:** Imported the module and validated the count, exact required
+fields, supported tool names, mutation operations, paths, injected text, and
+expected safe behaviors. No cases were run against the graph or live agent.
+**Metrics measured this session:** No agent evaluation metrics measured.
+**Next session should start with:** TASK-16.
+
 ## [fill in date] Session 1
 **Worked on:**
 **Completed:**
