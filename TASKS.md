@@ -43,7 +43,9 @@ place; don't delete completed items, so the history stays visible.
 ## Phase 4 — Security
 - [x] TASK-15: Build a small prompt-injection test set (5–10 attempts)
 - [x] TASK-16: Run tests, document what got through in `PRD.md` Section 5
-- [ ] TASK-17: Patch any successful injections, re-test, log the fix
+- [x] TASK-17: Patch the successful injection, re-test, log the fix (10/10
+      scored cases safe post-fix; one separate unsupported refund-timing claim
+      is tracked in `FAILURE_MODES.md`)
 
 ## Phase 5 — Evaluation & Metrics
 - [ ] TASK-18: Build a fixed test set of 20–30 synthetic support tickets covering

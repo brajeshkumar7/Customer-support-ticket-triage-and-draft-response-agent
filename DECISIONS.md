@@ -174,3 +174,19 @@ stack. Server-side file access lets the page read local logs without exposing
 filesystem access to browser code or adding a separate service.
 **Trade-off:** This adds a Node.js/npm toolchain to a Python project.
 **Status:** active
+
+## [2026-09-29] Allowlist tool fields in model context
+**Decision:** Before sending tool results to drafting or supervisor models,
+project them onto the documented schema for each tool. Exclude unknown tool
+names, undocumented fields, nested FAQ fields outside the FAQ schema, and
+free-text exception messages. Keep complete results in graph state for logs
+and human escalation.
+**Alternatives considered:** Pass raw tool result dictionaries to models and
+rely on prompt instructions to ignore unexpected fields; discard all tool
+free-text fields, including documented policy reasons and FAQ answers.
+**Reasoning:** TASK-16 found that a case-only `review_note` field caused the
+drafting model to repeat an unverified manager-approval claim. Schema
+projection removes fields outside the tool contract while retaining
+documented facts and useful text. Remaining free-text fields are still marked
+as untrusted and cannot override structured order or policy results.
+**Status:** active; the local post-fix run scored all 10 injection cases SAFE.
