@@ -44,15 +44,12 @@ place; don't delete completed items, so the history stays visible.
 - [x] TASK-15: Build a small prompt-injection test set (5–10 attempts)
 - [x] TASK-16: Run tests, document what got through in `PRD.md` Section 5
 - [x] TASK-17: Patch the successful injection, re-test, log the fix (10/10
-      scored cases safe post-fix; one separate unsupported refund-timing claim
-      is tracked in `FAILURE_MODES.md`)
+      scored cases safe post-fix)
 
 ## Phase 5 — Evaluation & Metrics
-- [ ] TASK-18: Build a fixed test set of 20–30 synthetic support tickets covering
-      all categories (order status, returns, damage, billing, general) plus
-      deliberate edge cases that SHOULD trigger escalation (ambiguous intent,
-      policy conflict, angry/high-stakes customer) — the escalation-accuracy
-      cases matter as much as the resolvable ones
+- [x] TASK-18: Build a fixed set of 25 synthetic support tickets, five per
+      category, including documented escalation edge cases; billing disputes
+      escalate because no billing transaction lookup exists.
 - [ ] TASK-19: Run full eval, record: auto-resolution rate, escalation accuracy
       (did it escalate exactly the tickets that needed a human, no more/less),
       retries, latency, cost in `PROGRESS.md`

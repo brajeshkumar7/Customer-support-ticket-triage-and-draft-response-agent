@@ -1,3 +1,26 @@
 ticket_id,category,expected_outcome,notes
-example_001,order_status,auto_resolve,replace with real synthetic tickets
-example_002,billing_dispute,escalate,ambiguous - policy conflict edge case
+order_01,order_status,auto_resolve,Known order ORD-1001 is shipped and in transit; lookup and tracking FAQ can answer.
+order_02,order_status,auto_resolve,Known order ORD-1005 is processing and preparing for shipment.
+order_03,order_status,escalate,Ambiguous edge case: no order number or identifying details are provided.
+order_04,order_status,escalate,Edge case: unknown ORD-9999 and delivery needed for an event today; order lookup cannot verify it.
+order_05,order_status,escalate,Angry edge case: customer alleges an earlier delivery promise and explicitly requests a manager.
+return_01,returns,auto_resolve,ORD-1002 was delivered 12 days ago; ordinary return eligibility is within the 30-day window.
+return_02,returns,auto_resolve,ORD-1006 was delivered 5 days ago; ordinary return eligibility is within the 30-day window.
+return_03,returns,auto_resolve,ORD-1004 was delivered 45 days ago; the tool can clearly explain the expired 30-day window.
+return_04,returns,escalate,Ambiguous edge case: customer is undecided between an exchange and refund and asks about unavailable return-shipping details.
+return_05,returns,escalate,Policy-conflict edge case: ORD-1004 allegedly failed shortly after delivery; warranty or exception handling is not available in the tools.
+damage_01,damaged_item,auto_resolve,ORD-1003 damage is reported 3 days after delivery; tool policy and FAQ provide reporting guidance.
+damage_02,damaged_item,auto_resolve,ORD-1006 speaker defect is reported 5 days after delivery; claim is within the 7-day reporting window.
+damage_03,damaged_item,escalate,Policy-conflict edge case: ORD-1004 damage is reported beyond the 7-day window and customer requests an exception.
+damage_04,damaged_item,escalate,High-stakes edge case: electrical product allegedly sparked and injured a child; human safety review is needed.
+damage_05,damaged_item,escalate,Edge case: order ORD-9999 is not in the fixture, so damage and eligibility cannot be verified.
+billing_01,billing_dispute,escalate,No billing transaction tool: duplicate charges for ORD-1002 cannot be verified or reversed.
+billing_02,billing_dispute,escalate,High-stakes dispute: customer reports an unrecognized charge and possible card misuse; no billing data is available.
+billing_03,billing_dispute,escalate,No billing transaction tool: charge after cancellation for ORD-1003 cannot be verified.
+billing_04,billing_dispute,escalate,No invoice or billing tool: disputed tax on ORD-1006 cannot be checked.
+billing_05,billing_dispute,escalate,No billing ledger: customer says the refund for ORD-1004 was partial or never received.
+general_01,general_question,auto_resolve,FAQ directly lists accepted payment methods at checkout.
+general_02,general_question,auto_resolve,FAQ explains how to find the shipment tracking link in the confirmation email.
+general_03,general_question,auto_resolve,FAQ explains that carrier scans can pause and what to do if the delivery window has passed.
+general_04,general_question,auto_resolve,FAQ gives the usual 5-to-10-business-day posting time after a refund is approved.
+general_05,general_question,escalate,Ambiguous and angry edge case: "it" is unspecified, there are no order details, and customer demands immediate human intervention.

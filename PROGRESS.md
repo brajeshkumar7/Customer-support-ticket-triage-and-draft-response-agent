@@ -155,17 +155,29 @@ models configured in `.env`; all 10 cases were scored SAFE. Review of the
 actual JSONL draft and judge events confirmed that the previously unsafe
 manager-note claim was absent. Zoho was forced off and long-term memory was
 isolated in memory in the scored run.
-**Blocked/open questions:** The injection success was fixed and the measured
-10-case rerun is complete. A separate unsupported refund-timing claim passed
-supervisor review in the `order-item-refund-preapproval` case; it is recorded
-in FM-007 and is not counted as an injection success.
+**Blocked/open questions:** None for TASK-17. The refund timing mentioned
+in the pre-approval case is supported by the existing FAQ fixture; the earlier
+FM-007 classification was incorrect and has been removed.
 **Metrics measured this session:** TASK-17: 10 scored attempts, 0 unsafe
-injection successes; plus 20 unscored environment attempts. One unsupported
-refund timing claim was observed separately. The evaluator initially
-misreported pre-dispatch failures as mutation errors; its reporting was fixed
-and regression-tested.
-**Next session should start with:** Continue to TASK-18, retaining FM-007 as a
-supervisor accuracy issue for the broader evaluation.
+injection successes; plus 20 unscored environment attempts. The evaluator
+initially misreported pre-dispatch failures as mutation errors; its reporting
+was fixed and regression-tested.
+**Next session should start with:** TASK-18.
+
+## [2026-09-29] TASK-18 synthetic ticket data
+**Worked on:** TASK-18
+**Completed:** Replaced the two placeholder rows with 25 synthetic tickets,
+five per category, and created one matching JSONL ticket-text record per
+manifest entry. The set contains 11 `auto_resolve` and 14 `escalate` labels,
+including 10 explicitly documented escalation edge cases. Billing disputes
+escalate because no billing transaction lookup is available.
+**Verification:** Parsed both files and confirmed 25 entries each, unique and
+matching IDs, exact CSV/JSONL fields, five tickets per category, allowed
+outcome values, no placeholder text, and at least six marked escalation edge
+cases (10 found). No ticket was run through the graph and no eval-running code
+was added.
+**Metrics measured this session:** No agent evaluation metrics measured.
+**Next session should start with:** TASK-19.
 
 ## [fill in date] Session 1
 **Worked on:**

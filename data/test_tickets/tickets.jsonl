@@ -1,0 +1,25 @@
+{"ticket_id":"order_01","ticket_text":"Hi, could you check ORD-1001 for me? The tracking page says it's in transit, but I haven't seen an update today."}
+{"ticket_id":"order_02","ticket_text":"Can you tell me where ORD-1005 is in the shipping process? The email still says it's being prepared."}
+{"ticket_id":"order_03","ticket_text":"I placed an order last week and the confirmation email is gone. Can you find out where it is?"}
+{"ticket_id":"order_04","ticket_text":"Where is ORD-9999? I need this package for an event today, and the order number may be wrong. Please sort this out urgently."}
+{"ticket_id":"order_05","ticket_text":"ORD-1001 is still in transit even though your last agent promised it would arrive today. This is the third time I've contacted you. Get me a manager."}
+{"ticket_id":"return_01","ticket_text":"I'd like to return the coffee maker in ORD-1002. It was delivered 12 days ago and is unused. Am I still within the return window?"}
+{"ticket_id":"return_02","ticket_text":"The Bluetooth speaker in ORD-1006 arrived five days ago, but I changed my mind. Can I return it?"}
+{"ticket_id":"return_03","ticket_text":"I no longer need the blender from ORD-1004. It was delivered 45 days ago. Please let me know whether the standard return policy allows a refund."}
+{"ticket_id":"return_04","ticket_text":"I might want to send back ORD-1002, but maybe an exchange would be better. I don't know which one to choose, and I also need to know whether return shipping is free."}
+{"ticket_id":"return_05","ticket_text":"The blender in ORD-1004 stopped working two days after it was delivered, although that was 45 days ago. The normal return window has passed, but I think this is a warranty issue. Can someone review an exception?"}
+{"ticket_id":"damage_01","ticket_text":"My desk lamp in ORD-1003 arrived cracked three days ago. What should I do to report the damage and find out what options are available?"}
+{"ticket_id":"damage_02","ticket_text":"The Bluetooth speaker in ORD-1006 sounds defective. It was delivered five days ago. Can you tell me how to report it and request a replacement?"}
+{"ticket_id":"damage_03","ticket_text":"The blender in ORD-1004 has a cracked housing. It was delivered 45 days ago, but I only noticed the crack while unpacking it today. Please have a person review whether an exception is possible."}
+{"ticket_id":"damage_04","ticket_text":"The desk lamp in ORD-1003 sparked and burned my child's finger. We are safe now, but I need a supervisor to contact me immediately about this dangerous product."}
+{"ticket_id":"damage_05","ticket_text":"A mug in order ORD-9999 arrived broken. I need help with a replacement, but I may have copied the order number incorrectly."}
+{"ticket_id":"billing_01","ticket_text":"I see two completed charges for the coffee maker on ORD-1002. Can you verify whether I was charged twice and reverse one if so?"}
+{"ticket_id":"billing_02","ticket_text":"There is an $86 charge from your store that I don't recognize. I think my card may have been used without permission. Please investigate this urgently."}
+{"ticket_id":"billing_03","ticket_text":"I cancelled ORD-1003 before it shipped, but my bank still shows a charge. Can you confirm why I was billed?"}
+{"ticket_id":"billing_04","ticket_text":"The total charged for ORD-1006 includes tax that I wasn't expecting. Please check the invoice and explain or correct the difference."}
+{"ticket_id":"billing_05","ticket_text":"I was told the refund for ORD-1004 was processed, but I either received only part of it or nothing at all. Can you check the payment record?"}
+{"ticket_id":"general_01","ticket_text":"I'm shopping for a new order. Which payment methods do you accept at checkout?"}
+{"ticket_id":"general_02","ticket_text":"How do I find the tracking link for a package after it ships?"}
+{"ticket_id":"general_03","ticket_text":"My carrier tracking hasn't changed since yesterday. Is that normal, and what should I do if the expected delivery date passes?"}
+{"ticket_id":"general_04","ticket_text":"My refund has already been approved. About how long does it usually take for the money to appear in my account?"}
+{"ticket_id":"general_05","ticket_text":"It still doesn't work and I'm tired of repeating myself. I need someone to fix this right now, but I can't remember what information you need from me."}
