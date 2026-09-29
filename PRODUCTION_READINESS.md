@@ -144,22 +144,26 @@ deferred until before deployment.
 ### Validate Zoho Desk delivery in a controlled environment
 
 **Current state:** Public replies are sent only when explicitly enabled and
-all three supervisor checklist items pass. Ambiguous request outcomes are not
-retried; the escalation asks a reviewer to check the ticket before sending to
-avoid a duplicate. Automated tests mock the sender, and no live send has been
-performed.
+all three supervisor checklist items pass. The 25-case TASK-19 benchmark uses
+a fake sender and never sends live replies. The standalone Zoho smoke command
+targets one existing ticket and contact controlled by the operator; it sends
+one fixed public message only after explicit CLI and interactive confirmation.
+Ambiguous request outcomes are not retried; the operator must check the ticket
+before any manual replay.
 
-**Follow-up:** Before enabling delivery for real customers, test against a
-Zoho Desk sandbox or internal test ticket, confirm the OAuth app has only the
+**Follow-up:** Before enabling delivery for real customers, use the standalone
+smoke command against one Zoho Desk internal test ticket and controlled
+contact, confirm the OAuth app has only the
 required ticket-read and ticket-update scopes, define operator approval and
 audit requirements, and establish a safe reconciliation procedure for timed-
 out replies. Keep `ZOHO_DESK_SEND_ENABLED=false` until those checks and the
 labeled reviewer evaluation are complete.
 
 **Verification:** Exercise successful public updates, rejected credentials,
-invalid ticket IDs, timeouts, and duplicate/reconciliation procedures in a
-non-production Zoho Desk account. Confirm the human escalation contains enough
-context to review without exposing credentials in logs.
+invalid ticket IDs, and timeouts in a non-production Zoho Desk account. Confirm
+the smoke command requires explicit confirmation, sends no more than one reply,
+and does not retry an ambiguous outcome. Confirm the human escalation contains
+enough context to review without exposing credentials in logs.
 
 **Status:** Deferred; live validation requires a controlled Zoho Desk account.
 

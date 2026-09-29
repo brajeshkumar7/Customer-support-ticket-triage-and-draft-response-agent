@@ -4,6 +4,8 @@ __pycache__/
 .venv/
 venv/
 data/logs/*.jsonl
+data/eval_reports/
+data/test_tickets/zoho_ticket_map.csv
 chroma_data/
 .pytest_cache/
 node_modules/

@@ -16,13 +16,19 @@ class LongTermMemory:
         self,
         persist_dir: str | Path | None = None,
         collection_name: str = "learned_facts",
+        *,
+        ephemeral: bool = False,
     ) -> None:
         load_dotenv()
-        configured_path = persist_dir or os.getenv(
-            "CHROMA_PERSIST_DIR", "./chroma_data"
-        )
-        self.persist_dir = Path(configured_path).expanduser()
-        self.client = chromadb.PersistentClient(path=str(self.persist_dir))
+        if ephemeral:
+            self.persist_dir = None
+            self.client = chromadb.EphemeralClient()
+        else:
+            configured_path = persist_dir or os.getenv(
+                "CHROMA_PERSIST_DIR", "./chroma_data"
+            )
+            self.persist_dir = Path(configured_path).expanduser()
+            self.client = chromadb.PersistentClient(path=str(self.persist_dir))
         self.collection = self.client.get_or_create_collection(name=collection_name)
 
     def add(

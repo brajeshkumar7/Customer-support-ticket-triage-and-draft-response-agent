@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 from langgraph.graph import END, START, StateGraph
 
 from src.agent.state import AgentState
+from src.agent.reply_sender import ReplySender
 from src.agent.supervisor import (
     SUPERVISOR_CHECKLIST,
     SUPERVISOR_RETRY_CAP,
@@ -227,7 +228,7 @@ def build_graph(
     order_lookup_tool: BaseTool | None = None,
     policy_checker_tool: BaseTool | None = None,
     faq_search_tool: BaseTool | None = None,
-    zoho_desk_client: Any | None = None,
+    reply_sender: ReplySender | None = None,
 ):
     """Compile a per-ticket graph with injectable memory, tools, and model client."""
     load_dotenv()
@@ -552,7 +553,7 @@ def build_graph(
             latency_ms: float = 0.0,
             error: dict[str, str] | None = None,
         ) -> dict[str, Any]:
-            _log_zoho_send(
+            _log_reply_send(
                 state,
                 delivery_status=delivery_status,
                 latency_ms=latency_ms,
@@ -591,7 +592,7 @@ def build_graph(
                 reason="No Zoho Desk ticket ID was supplied; the approved draft was not sent.",
             )
 
-        sender = zoho_desk_client
+        sender = reply_sender
         if sender is None:
             try:
                 sender = ZohoDeskClient.from_env()
@@ -628,15 +629,18 @@ def build_graph(
             )
 
         http_status = result.get("http_status") if isinstance(result, dict) else None
+        simulated = isinstance(result, dict) and result.get("simulated") is True
         safe_result = {
             "zoho_ticket_id": str(ticket_id),
             "http_status": http_status,
+            "simulated": simulated,
         }
-        _log_zoho_send(
+        _log_reply_send(
             state,
             delivery_status="sent",
             latency_ms=(time.perf_counter() - started) * 1000,
             http_status=http_status,
+            simulated=simulated,
         )
         short_term_memory.set("response_sent", True)
         short_term_memory.set("terminal_status", "sent")
@@ -651,17 +655,18 @@ def build_graph(
             "confidence_score": state.get("confidence_score", 0.0),
         }
 
-    def _log_zoho_send(
+    def _log_reply_send(
         state: AgentState,
         *,
         delivery_status: str,
         latency_ms: float,
         error: dict[str, str] | None = None,
         http_status: int | None = None,
+        simulated: bool = False,
     ) -> None:
         try:
             log_tool_event(
-                tool_name="zoho_desk_send_public_reply",
+                tool_name="reply_sender_send_public_reply",
                 inputs={
                     "ticket_id": state.get("ticket_id"),
                     "zoho_ticket_id": state.get("zoho_ticket_id"),
@@ -669,6 +674,7 @@ def build_graph(
                 output={
                     "delivery_status": delivery_status,
                     "http_status": http_status,
+                    "simulated": simulated,
                 },
                 error=error,
                 latency_ms=latency_ms,

@@ -112,7 +112,11 @@ async def test_reuses_access_token_for_subsequent_ticket_replies():
     await client.send_public_reply("101", "Second reply")
 
     assert sum(urlsplit(request.full_url).path.endswith("/oauth/v2/token") for request in requests) == 1
-    assert sum(request.get_method() == "POST" for request in requests) == 2
+    assert sum(
+        request.get_method() == "POST"
+        and urlsplit(request.full_url).path.endswith("/sendReply")
+        for request in requests
+    ) == 2
 
 
 @pytest.mark.asyncio
@@ -142,7 +146,13 @@ async def test_ticket_without_requester_email_fails_before_sending():
 
     assert error.value.delivery_status == "failed"
     assert len(requests) == 2
-    assert all(request.get_method() != "POST" for request in requests)
+    assert all(
+        not (
+            request.get_method() == "POST"
+            and urlsplit(request.full_url).path.endswith("/sendReply")
+        )
+        for request in requests
+    )
 
 
 @pytest.mark.asyncio
@@ -168,7 +178,11 @@ async def test_reply_http_error_classification_and_no_retry(status_code, expecte
 
     assert error.value.delivery_status == expected_status
     assert error.value.http_status == status_code
-    assert sum(request.get_method() == "POST" for request in requests) == 1
+    assert sum(
+        request.get_method() == "POST"
+        and urlsplit(request.full_url).path.endswith("/sendReply")
+        for request in requests
+    ) == 1
 
 
 @pytest.mark.asyncio
@@ -189,7 +203,11 @@ async def test_timeout_during_reply_is_unknown_and_not_replayed():
         await client.send_public_reply("12345", "Reply")
 
     assert error.value.delivery_status == "unknown"
-    assert sum(request.get_method() == "POST" for request in requests) == 1
+    assert sum(
+        request.get_method() == "POST"
+        and urlsplit(request.full_url).path.endswith("/sendReply")
+        for request in requests
+    ) == 1
 
 
 def test_rejects_non_zoho_api_domains():

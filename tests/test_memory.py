@@ -26,3 +26,14 @@ def test_long_term_memory_adds_and_queries_fact(tmp_path) -> None:
     assert matches[0]["id"] == fact_id
     assert matches[0]["text"] == "Customers may return unopened items within 30 days."
     assert matches[0]["metadata"] == {"category": "returns", "source": "test"}
+
+
+def test_ephemeral_long_term_memory_is_isolated_and_queryable() -> None:
+    memory = LongTermMemory(ephemeral=True, collection_name="eval_memory_test")
+    memory.add("The test ticket is about a delayed package.", {"source": "test"})
+
+    matches = memory.query("delayed package", n_results=1)
+
+    assert matches
+    assert matches[0]["text"] == "The test ticket is about a delayed package."
+    assert memory.persist_dir is None

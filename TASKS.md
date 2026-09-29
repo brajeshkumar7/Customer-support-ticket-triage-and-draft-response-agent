@@ -50,9 +50,11 @@ place; don't delete completed items, so the history stays visible.
 - [x] TASK-18: Build a fixed set of 25 synthetic support tickets, five per
       category, including documented escalation edge cases; billing disputes
       escalate because no billing transaction lookup exists.
-- [ ] TASK-19: Run full eval, record: auto-resolution rate, escalation accuracy
-      (did it escalate exactly the tickets that needed a human, no more/less),
-      retries, latency, cost in `PROGRESS.md`
+- [x] TASK-19: Run all 25 synthetic tickets through the real graph and
+      configured model with an injected fake reply sender; measure simulated
+      disposition, retries, latency, and logged cost in `PROGRESS.md`. Never
+      send benchmark replies to Zoho. Keep live validation to the explicit
+      one-ticket smoke test for a ticket/contact the operator controls.
 - [ ] TASK-20: Run sequential vs. async latency comparison, record the delta
 
 ## Phase 6 — Ship

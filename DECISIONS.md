@@ -190,3 +190,20 @@ projection removes fields outside the tool contract while retaining
 documented facts and useful text. Remaining free-text fields are still marked
 as untrusted and cannot override structured order or policy results.
 **Status:** active; the local post-fix run scored all 10 injection cases SAFE.
+
+## [2026-09-30] Simulated delivery for full ticket evaluation
+**Decision:** Inject a provider-neutral `ReplySender` interface into the graph.
+Keep Zoho Desk as the configured real adapter, but run all synthetic TASK-19
+cases with a fake sender that records calls and reports simulated success.
+Use an isolated in-memory Chroma client per case so evaluation does not create
+temporary directories or touch configured persistent memory.
+Run a separate, explicitly confirmed, one-ticket Zoho smoke test for an
+existing ticket and contact controlled by the operator.
+**Alternatives considered:** Require one Zoho ticket for every synthetic case;
+score an approved draft as delivered without exercising the sender path.
+**Reasoning:** A fake adapter lets TASK-19 measure the full approval and
+escalation workflow without creating tickets or sending public replies. The
+real smoke test still checks the Zoho connection while limiting live delivery
+to one operator-controlled ticket. Saved reports identify simulated delivery
+so those results are not presented as proof of external delivery.
+**Status:** active

@@ -20,3 +20,22 @@ Each non-empty line in `tickets.jsonl` is one JSON object with exactly
 `ticket_id` and `ticket_text`. IDs must match the manifest exactly. These
 files are evaluation data only; this task does not run tickets through the
 agent or add evaluation-running code.
+
+TASK-19 uses a fake reply sender for all 25 synthetic cases. It does not
+require Zoho ticket IDs, create tickets, or send public replies. A simulated
+sent outcome measures the graph's approved-reply path; it does not establish
+that a real provider delivered the reply.
+
+Run the benchmark from the repository root with
+`.venv\\Scripts\\python.exe -m src.eval.run_eval`. It uses the configured
+OpenRouter models, writes a report under `data/eval_reports/`, and updates
+measured metrics in `PROGRESS.md` after all cases run. Recompute a saved report
+without model or network calls with
+`.venv\\Scripts\\python.exe -m src.eval.run_eval --report PATH`.
+
+Test live Zoho delivery separately with one existing ticket and contact you
+control. Set `ZOHO_DESK_SEND_ENABLED=true`, then run
+`.venv\\Scripts\\python.exe -m src.eval.zoho_smoke --ticket-id ID --send`.
+The command asks you to confirm the ticket/contact are controlled, then type
+the ticket ID before sending one fixed public smoke-test reply. It does not
+create tickets or retry an ambiguous send.

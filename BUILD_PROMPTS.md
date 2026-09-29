@@ -542,31 +542,34 @@ entries with no placeholder rows remaining.
 
 ### TASK-19 — Run full eval prompt
 ```
-Read src/eval/run_eval.py (currently a docstring), the test ticket set from
-TASK-18, and PRD.md Section 5 before starting.
+Read src/eval/run_eval.py, the test ticket set from TASK-18, and PRD.md
+Section 5 before starting.
 
 Task: implement and run the eval harness.
 
 Requirements:
 1. For each ticket in data/test_tickets/tickets.jsonl, run the full agent
-   graph and record: did it match the expected_outcome from manifest.csv
-   (auto_resolve vs escalate)? Retry count. Latency. Token cost (pull from
-   the logger's .jsonl output).
+   graph using the configured model and an injected fake reply sender. Never
+   create Zoho tickets or post public replies during this benchmark. Record
+   whether the simulated disposition matched manifest.csv, retry count,
+   latency, and provider-reported token cost from the logger's .jsonl output.
+   Label simulated reply success clearly; it is not actual delivery.
 2. Compute and print: overall completion rate, escalation accuracy
    (specifically: of tickets expected to escalate, what fraction did; of
    tickets expected to auto-resolve, what fraction incorrectly escalated or
    incorrectly auto-sent), mean retries-to-success, failure-after-cap rate,
    p95 latency, total and per-ticket cost.
-3. Write every one of these numbers into PROGRESS.md's metrics tracker
-   table — replace every "—" placeholder with the real measured value and
-   today's date. Do not leave any placeholder unless a metric genuinely
-   couldn't be measured (state why if so).
+3. Write the computed measurements into PROGRESS.md's metrics tracker after
+   all 25 cases have run. Identify the disposition metric as simulated. Leave
+   a metric unmeasured only when the harness cannot measure it and state why.
 4. Do NOT hand-edit or round any number for presentation — copy exactly
    what the harness computed.
 
-Done when: PROGRESS.md's metrics table is fully populated with real numbers
-sourced from this run, and running src/eval/run_eval.py again reproduces
-consistent results.
+Done when: PROGRESS.md contains real measurements sourced from a complete
+simulated-delivery run, and `python -m src.eval.run_eval --report PATH`
+recomputes the saved report's metrics without calling models or Zoho. Test
+real Zoho delivery separately with one explicitly confirmed controlled ticket
+using `python -m src.eval.zoho_smoke --ticket-id ID --send`.
 ```
 
 ### TASK-20 — Sequential vs async comparison prompt

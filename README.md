@@ -35,7 +35,8 @@ pytest
 Fill in `.env` with the required local settings and API credentials before
 running the graph manually. Zoho Desk email delivery is disabled by default.
 When `ZOHO_DESK_SEND_ENABLED=true`, the graph sends a reply only after all
-three supervisor checks pass. Configure the Zoho API and Accounts domains,
+three supervisor checks pass. Zoho is the current replaceable reply adapter.
+Configure the Zoho API and Accounts domains,
 organization ID, a configured support sender email, OAuth client ID/secret,
 and refresh token; the OAuth app needs `Desk.tickets.READ` and
 `Desk.tickets.UPDATE` scopes. Provide the numeric `zoho_ticket_id` in graph
@@ -71,6 +72,39 @@ print each completed node update as it arrives:
 
 The sample does not include a Zoho ticket ID, so it cannot post a reply.
 
+## Evaluate the synthetic tickets
+
+Run all 25 cases through the graph and configured model with a fake reply
+sender:
+
+```powershell
+.\.venv\Scripts\python.exe -m src.eval.run_eval
+```
+
+The fake sender lets the evaluator measure approved-reply and escalation
+decisions without creating Zoho tickets or posting public replies. A simulated
+send is not evidence of real delivery. The run saves a report in
+`data/eval_reports/` and updates `PROGRESS.md` with measured results. To
+recompute a saved report without external calls:
+
+```powershell
+.\.venv\Scripts\python.exe -m src.eval.run_eval --report data/eval_reports/REPORT.json
+```
+
+### Test real Zoho delivery once
+
+Use an existing ticket and contact you control. Set `ZOHO_DESK_SEND_ENABLED=true`
+in `.env`, then run:
+
+```powershell
+.\.venv\Scripts\python.exe -m src.eval.zoho_smoke --ticket-id YOUR_TICKET_API_ID --send
+```
+
+The command requires confirming that the ticket/contact are controlled and
+then typing the ticket ID. It sends one fixed public smoke-test message. Do
+not use a customer ticket. The smoke test does not create tickets or retry an
+ambiguous send.
+
 ### macOS / Linux
 
 ```bash
@@ -93,7 +127,7 @@ must trace back to a real logged run — see AGENTS.md's "Definition of done.")*
 
 | Metric | Result |
 |---|---|
-| Task completion rate | — |
+| Task completion rate (simulated delivery) | — |
 | p95 latency (async vs sequential) | — |
 | Cost per successful run | — |
 | Prompt-injection defense | — |

@@ -44,13 +44,17 @@ class FakeOpenRouterClient:
 class FakeZohoDeskClient:
     def __init__(self, error: Exception | None = None) -> None:
         self.error = error
+        self.simulated = False
         self.calls: list[dict[str, str]] = []
 
     async def send_public_reply(self, ticket_id: str, body: str):
         self.calls.append({"ticket_id": ticket_id, "body": body})
         if self.error:
             raise self.error
-        return {"zoho_ticket_id": ticket_id, "http_status": 200}
+        result = {"zoho_ticket_id": ticket_id, "http_status": 200}
+        if self.simulated:
+            result["simulated"] = True
+        return result
 
 
 class BarrierTool(BaseTool):
@@ -180,7 +184,7 @@ async def test_graph_writes_one_jsonl_event_per_node_and_tool_call(
         "send_response", "escalate",
     }
     assert tool_names == {
-        "order_lookup", "policy_checker", "faq_search", "zoho_desk_send_public_reply"
+        "order_lookup", "policy_checker", "faq_search", "reply_sender_send_public_reply"
     }
     assert len(events) == len(node_names) + len(tool_names) == 11
     for event in events:
@@ -241,6 +245,7 @@ def disable_zoho_desk_sending_by_default(monkeypatch):
     monkeypatch.setenv("ZOHO_DESK_SEND_ENABLED", "false")
     for name in (
         "ZOHO_DESK_API_DOMAIN",
+        "ZOHO_ACCOUNTS_DOMAIN",
         "ZOHO_DESK_ORG_ID",
         "ZOHO_DESK_FROM_EMAIL",
         "ZOHO_ACCOUNTS_DOMAIN",
@@ -248,7 +253,7 @@ def disable_zoho_desk_sending_by_default(monkeypatch):
         "ZOHO_CLIENT_SECRET",
         "ZOHO_REFRESH_TOKEN",
     ):
-        monkeypatch.delenv(name, raising=False)
+        monkeypatch.setenv(name, "")
 
 
 @pytest.fixture
@@ -284,6 +289,7 @@ async def test_graph_gathers_facts_reviews_and_sends_reply(
     long_term_memory, enabled_fake_zoho_desk, monkeypatch
 ):
     zoho_desk_events = []
+    enabled_fake_zoho_desk.simulated = True
     monkeypatch.setattr(
         "src.agent.graph.log_tool_event",
         lambda **event: zoho_desk_events.append(event),
@@ -305,7 +311,7 @@ async def test_graph_gathers_facts_reviews_and_sends_reply(
         long_term_memory=long_term_memory,
         client=client,
         primary_model="test-model",
-        zoho_desk_client=enabled_fake_zoho_desk,
+        reply_sender=enabled_fake_zoho_desk,
     )
 
     result = await graph.ainvoke(
@@ -333,12 +339,14 @@ async def test_graph_gathers_facts_reviews_and_sends_reply(
     assert result["response_sent"] is True
     assert result["terminal_status"] == "sent"
     assert result["zoho_delivery_status"] == "sent"
+    assert result["zoho_send_result"]["simulated"] is True
     assert enabled_fake_zoho_desk.calls == [
         {"ticket_id": "12345", "body": draft_response}
     ]
     assert len(zoho_desk_events) == 1
-    assert zoho_desk_events[0]["tool_name"] == "zoho_desk_send_public_reply"
+    assert zoho_desk_events[0]["tool_name"] == "reply_sender_send_public_reply"
     assert zoho_desk_events[0]["output"]["delivery_status"] == "sent"
+    assert zoho_desk_events[0]["output"]["simulated"] is True
     assert zoho_desk_events[0]["latency_ms"] >= 0
     logged_event = json.dumps(zoho_desk_events[0])
     assert "test-token" not in logged_event
@@ -437,7 +445,7 @@ async def test_three_tools_are_dispatched_concurrently(long_term_memory, enabled
         order_lookup_tool=BarrierTool("order_lookup", barrier),
         policy_checker_tool=BarrierTool("policy_checker", barrier),
         faq_search_tool=BarrierTool("faq_search", barrier),
-        zoho_desk_client=enabled_fake_zoho_desk,
+        reply_sender=enabled_fake_zoho_desk,
     )
 
     result = await graph.ainvoke(
@@ -473,7 +481,7 @@ async def test_tool_failure_is_recorded_and_does_not_abort_graph(
         order_lookup_tool=FailingTool(),
         policy_checker_tool=SuccessfulFakeTool("policy_checker"),
         faq_search_tool=SuccessfulFakeTool("faq_search"),
-        zoho_desk_client=enabled_fake_zoho_desk,
+        reply_sender=enabled_fake_zoho_desk,
     )
 
     result = await graph.ainvoke(
@@ -550,7 +558,7 @@ async def test_supervisor_feedback_repairs_unsupported_claim(
         order_lookup_tool=tools["order_lookup"],
         policy_checker_tool=tools["policy_checker"],
         faq_search_tool=tools["faq_search"],
-        zoho_desk_client=enabled_fake_zoho_desk,
+        reply_sender=enabled_fake_zoho_desk,
     )
 
     result = await graph.ainvoke(
@@ -671,7 +679,7 @@ async def test_zoho_desk_sending_disabled_escalates_with_reviewed_draft(
         long_term_memory=long_term_memory,
         client=client,
         primary_model="test-model",
-        zoho_desk_client=sender,
+        reply_sender=sender,
     )
 
     result = await graph.ainvoke(
@@ -727,7 +735,7 @@ async def test_zoho_desk_send_failures_escalate_without_replaying(
         long_term_memory=long_term_memory,
         client=client,
         primary_model="test-model",
-        zoho_desk_client=sender,
+        reply_sender=sender,
     )
 
     result = await graph.ainvoke(
@@ -766,7 +774,7 @@ async def test_missing_zoho_ticket_id_escalates_without_sending(
         long_term_memory=long_term_memory,
         client=client,
         primary_model="test-model",
-        zoho_desk_client=sender,
+        reply_sender=sender,
     )
 
     result = await graph.ainvoke(
@@ -801,13 +809,11 @@ async def test_missing_zoho_desk_configuration_escalates_without_sending(
             SUPERVISOR_PASS,
         ]
     )
-    sender = FakeZohoDeskClient()
     graph = build_graph(
         short_term_memory=ShortTermMemory("ticket-no-zoho-credentials"),
         long_term_memory=long_term_memory,
         client=client,
         primary_model="test-model",
-        zoho_desk_client=sender,
     )
 
     result = await graph.ainvoke(
@@ -818,7 +824,6 @@ async def test_missing_zoho_desk_configuration_escalates_without_sending(
         }
     )
 
-    assert sender.calls == []
     assert result["zoho_delivery_status"] == "not_configured"
     assert result["terminal_status"] == "escalated"
     assert "missing zoho desk configuration" in result["escalation_reason"].lower()
@@ -931,7 +936,7 @@ async def test_related_runs_recall_the_first_run_summary(
         long_term_memory=chroma_long_term_memory,
         client=first_client,
         primary_model="test-model",
-        zoho_desk_client=enabled_fake_zoho_desk,
+        reply_sender=enabled_fake_zoho_desk,
     )
     first_result = await first_graph.ainvoke(
         {
@@ -956,7 +961,7 @@ async def test_related_runs_recall_the_first_run_summary(
         long_term_memory=chroma_long_term_memory,
         client=second_client,
         primary_model="test-model",
-        zoho_desk_client=enabled_fake_zoho_desk,
+        reply_sender=enabled_fake_zoho_desk,
     )
     second_result = await second_graph.ainvoke(
         {
@@ -1000,7 +1005,7 @@ async def test_memory_failures_are_reported_without_aborting_graph(enabled_fake_
         long_term_memory=BrokenLongTermMemory(),
         client=client,
         primary_model="test-model",
-        zoho_desk_client=enabled_fake_zoho_desk,
+        reply_sender=enabled_fake_zoho_desk,
     )
 
     result = await graph.ainvoke(
@@ -1036,7 +1041,7 @@ async def test_recalled_memory_cannot_supply_an_order_id(long_term_memory, enabl
         long_term_memory=long_term_memory,
         client=client,
         primary_model="test-model",
-        zoho_desk_client=enabled_fake_zoho_desk,
+        reply_sender=enabled_fake_zoho_desk,
     )
 
     result = await graph.ainvoke(

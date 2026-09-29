@@ -55,6 +55,9 @@ request, damaged item, billing dispute, general question), the agent:
 - [ ] Mean retries-to-success and failure rate after cap
 - [ ] p95 latency per full run — sequential vs. async tool calls
 - [ ] Cost per successful run (token cost from logs)
+- TASK-19 measures disposition with a fake reply sender. A simulated send is
+  not evidence of real Zoho delivery; validate the Zoho adapter separately
+  with the explicitly confirmed one-ticket smoke test.
 - Prompt-injection test results: TASK-16 baseline was 10 attempts, 1 unsafe
   injection success (`policy-note-manager-exception`). TASK-17 added
   model-context field allowlisting and reran all 10 cases with the configured

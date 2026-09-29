@@ -18,18 +18,25 @@ Format:
 pick this back up cold
 ```
 
+| Per-ticket reported token cost | order_01=0.0019142999999999999; order_02=0.0019573999999999998; order_03=0.007313299999999999; order_04=0.0092749; order_05=0.011004; return_01=0.0019686; return_02=0.0019868; return_03=0.0023494550000000003; return_04=0.0024754300000000003; return_05=0.00460142; damage_01=0.00509074; damage_02=0.0048194299999999995; damage_03=0.00720861; damage_04=0.011868624999999999; damage_05=0.008179925; billing_01=0.0046505850000000005; billing_02=0.00970864; billing_03=0.004355515; billing_04=0.002690675; billing_05=0.0028010400000000003; general_01=0.0030952900000000005; general_02=0.0019303699999999998; general_03=0.008389655; general_04=0.007201485; general_05=0.00584907 | 2026-09-30 |
 ---
 
 ## Metrics tracker (update as you measure — mirrors PRD.md Section 5)
 
 | Metric | Value | Date measured |
 |---|---|---|
-| Task completion rate | — | — |
-| Mean retries-to-success | — | — |
-| Failure rate after cap | — | — |
-| p95 latency (sequential) | — | — |
-| p95 latency (async) | — | — |
-| Cost per successful run | — | — |
+| Task completion rate (simulated delivery) | 15/25 = 0.6 | 2026-09-30 |
+| Mean retries-to-success | 1.4 | 2026-09-30 |
+| Failure rate after cap | 6/25 = 0.24 | 2026-09-30 |
+| p95 latency (sequential) | Not measured: pending TASK-20 | Not measured |
+| p95 latency (async) | 116460.39039999596 ms | 2026-09-30 |
+| Cost per successful run | 0.005243950666666666 | 2026-09-30 |
+| Total reported token cost | 0.13268526 | 2026-09-30 |
+| Tickets with missing token cost | 0 | 2026-09-30 |
+| Escalation recall | 5/14 = 0.35714285714285715 | 2026-09-30 |
+| Incorrect escalation rate (auto-resolve) | 1/11 = 0.09090909090909091 | 2026-09-30 |
+| Incorrect send rate (expected escalation) | 9/14 = 0.6428571428571429 | 2026-09-30 |
+| Unscored workflow failures | 0 | 2026-09-30 |
 | Prompt-injection attempts / successes | TASK-16: 10 / 1 unsafe; TASK-17: 10 scored / 0 unsafe; 20 additional attempts unscored | 2026-09-29 |
 
 ---
@@ -179,9 +186,46 @@ was added.
 **Metrics measured this session:** No agent evaluation metrics measured.
 **Next session should start with:** TASK-19.
 
-## [fill in date] Session 1
-**Worked on:**
-**Completed:**
-**Blocked/open questions:**
-**Metrics measured this session:**
-**Next session should start with:**
+## [2026-09-29] TASK-19 evaluation harness
+**Worked on:** TASK-19
+**Completed:** Implemented ticket/manifest validation, simulated delivery
+through an injected fake reply sender, per-run isolated Chroma storage, JSONL
+cost aggregation, disposition/retry/latency metrics, saved reports, and
+offline report recomputation. Added a separate explicitly confirmed
+one-ticket Zoho smoke command and updated the task documentation.
+**Blocked/open questions:** The full 25-case run still needs to be executed
+against the configured OpenRouter models. No Zoho ticket mapping is required;
+the benchmark is designed not to send real replies.
+**Metrics measured this session:** Evaluator and smoke-command unit tests are
+recorded in the verification output for this session; model metrics remain
+unmeasured until a complete benchmark run succeeds.
+**Next session should start with:** Run `python -m src.eval.run_eval` using the
+configured models, then verify the saved report and populated metrics.
+
+## [2026-09-30] TASK-19 simulated delivery and Zoho smoke test
+**Worked on:** TASK-19
+**Completed:** Added a provider-neutral reply-sender interface, injected a
+fake sender for the 25-case benchmark, isolated evaluation memory with an
+in-memory Chroma client per case, and added an explicitly confirmed
+one-ticket Zoho smoke command. Updated benchmark and smoke-test documentation.
+Corrected Zoho query URL assembly and its mocked tests.
+**Blocked/open questions:** A complete 25-ticket attempt reached the graph,
+but every classification call failed with `APIConnectionError` before any
+ticket could be scored. The graph safely escalated; the evaluator now marks
+these runs unscored and refuses to update benchmark metrics. The saved attempt
+is `data/eval_reports/task19_20260929T191404Z_e9afc353.json`. Two tests that
+need pytest temporary directories remain blocked by this environment's
+`WinError 5`; the other targeted tests passed.
+**Metrics measured this session:** 25 attempted, 0 scored, 25 unscored due to
+OpenRouter `APIConnectionError`; no benchmark metrics are published.
+**Next session should start with:** Run `python -m src.eval.run_eval` where the
+configured OpenRouter endpoint is reachable, then verify its saved report.
+
+## [2026-09-30] TASK-19 full evaluation
+**Worked on:** TASK-19
+**Completed:** Ran 25 tickets with simulated delivery; 15 matched their expected disposition.
+**Verification:** Recomputed the saved report offline; it reproduced the same
+metrics without model or Zoho calls. No public replies were sent.
+**Blocked/open questions:** Sequential latency remains unmeasured until TASK-20. 0 tickets had at least one missing provider-reported token cost; those costs are not estimated.
+**Metrics measured this session:** See the tracker above and the saved report `data\eval_reports\task19_20260929T193705Z_288067e8.json`.
+**Next session should start with:** TASK-20 sequential versus async latency comparison.

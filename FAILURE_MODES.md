@@ -44,6 +44,12 @@ being used in the drafted response.
 **Regression test:** No automated test can establish external network
 reachability. `tests/test_agent_graph.py` verifies the graph with a fake client.
 
+**Repeat observation (2026-09-30):** TASK-19 attempted all 25 synthetic cases
+with the configured OpenRouter models and a fake reply sender. Every run failed
+at `classify` with `APIConnectionError`; the graph produced an explicit
+escalation each time. The evaluator marked all 25 workflow failures unscored,
+did not publish benchmark metrics, and made no Zoho requests.
+
 
 ## FM-002 - Pytest temporary-directory permission failures
 
@@ -109,12 +115,34 @@ without loading or validating environment credentials; credential validation
 through `ZohoDeskClient.from_env()` only occurs when no sender is injected. The
 test expects missing environment configuration to block even an injected
 sender.
-**Fix:** No change made in TASK-14 because this is outside the streaming task;
-the test expectation or its setup needs separate review.
-**Before -> After:** One failing test in `tests/test_agent_graph.py`; 19 other
-tests in that module pass.
+**Fix:** Updated the test to leave the sender uninjected and explicitly blank
+all Zoho environment credentials, including the Accounts domain. The graph
+then exercises the real missing-configuration branch without accidentally
+reading credentials from `.env`.
+**Before -> After:** Before: one failing test and a risk that it could attempt
+a request using local `.env` credentials. After: the targeted test passes and
+no live sender is injected.
 **Regression test:** `tests/test_agent_graph.py::test_missing_zoho_desk_configuration_escalates_without_sending`
-currently exposes the mismatch and fails.
+verifies the missing-configuration escalation.
+
+## FM-007 - Zoho query parameters were encoded as a URL fragment
+
+**Observed behavior:** The mocked Zoho sender tests showed a `sendReply` URL
+with `#isPrivate=false&sendImmediately=true` instead of query parameters. The
+test module reported six failures: one URL mismatch and five request-count
+assertions that counted the OAuth token POST as a reply POST. No live Zoho
+request was made during this verification.
+**Root cause:** `_api_request` put the encoded query string in the fifth
+`urlunsplit` component (the fragment) instead of the fourth (the query). The
+five count assertions also included OAuth POSTs rather than filtering for the
+`/sendReply` endpoint.
+**Fix:** Assemble the request URL with the query in the correct tuple slot and
+scope sender-count assertions to `/sendReply` requests.
+**Before -> After:** Before: six test failures were reported. After:
+`tests/test_zoho_desk_client.py` passes all 8 tests; the combined evaluator
+and Zoho-client tests pass all 20 tests.
+**Regression test:** `tests/test_zoho_desk_client.py` verifies the exact
+`sendReply` URL and that one public-reply POST is attempted without replay.
 
 ## FM-005 - Untrusted manager note was repeated in customer drafts
 

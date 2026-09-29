@@ -247,7 +247,16 @@ class ZohoDeskClient:
     ) -> dict[str, Any]:
         url = f"{self.api_domain}/api/v1/{path.lstrip('/')}"
         if query:
-            url = urlunsplit((*urlsplit(url)[:4], urlencode(query)))
+            parsed_url = urlsplit(url)
+            url = urlunsplit(
+                (
+                    parsed_url.scheme,
+                    parsed_url.netloc,
+                    parsed_url.path,
+                    urlencode(query),
+                    parsed_url.fragment,
+                )
+            )
         data = json.dumps(body).encode("utf-8") if body is not None else None
         request = Request(
             url,
