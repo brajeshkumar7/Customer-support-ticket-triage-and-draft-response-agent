@@ -55,6 +55,7 @@ def send_smoke_reply(
         tool_name="zoho_desk_smoke_reply",
         inputs={"zoho_ticket_id": ticket_id},
         output={"delivery_status": "sent", "http_status": status},
+        error=None,
         latency_ms=(time.perf_counter() - started) * 1000,
         run_id=run_id,
     )

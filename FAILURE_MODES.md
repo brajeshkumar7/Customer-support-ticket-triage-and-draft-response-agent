@@ -136,6 +136,24 @@ request was made during this verification.
 `urlunsplit` component (the fragment) instead of the fourth (the query). The
 five count assertions also included OAuth POSTs rather than filtering for the
 `/sendReply` endpoint.
+
+## FM-008 - Smoke-test success was reported as a logger error
+
+**Observed behavior:** The controlled Zoho smoke command printed
+`log_tool_event() missing 1 required keyword-only argument: 'error'` after the
+operator confirmed the ticket. The exception occurred in the success logging
+path after `send_public_reply` returned. The Zoho reply may therefore already
+have been posted; the ticket must be checked before any retry. No second send
+was initiated during diagnosis.
+**Root cause:** The success-path call to `log_tool_event` omitted its required
+`error` argument. The failure-path call supplied it, so only confirmed
+successful sends were affected.
+**Fix:** Pass `error=None` when logging a successful smoke reply and assert the
+success event records that value.
+**Before -> After:** Before: a successful sender return was followed by a
+`TypeError` instead of the normal success message. After: the logger receives
+all required fields, and regression coverage checks the successful event.
+**Regression test:** `tests/test_run_eval.py::test_zoho_smoke_posts_at_most_one_fixed_reply_after_confirmation`.
 **Fix:** Assemble the request URL with the query in the correct tuple slot and
 scope sender-count assertions to `/sendReply` requests.
 **Before -> After:** Before: six test failures were reported. After:

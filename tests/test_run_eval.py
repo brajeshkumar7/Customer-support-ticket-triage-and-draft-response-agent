@@ -384,3 +384,4 @@ def test_zoho_smoke_posts_at_most_one_fixed_reply_after_confirmation(
     assert client.calls == [("12345", SMOKE_REPLY)]
     assert len(events) == 1
     assert "body" not in events[0]["inputs"]
+    assert events[0]["error"] is None

@@ -131,6 +131,49 @@ async def test_invalid_ticket_id_is_rejected_before_any_request():
 
 
 @pytest.mark.asyncio
+async def test_fetch_ticket_reads_subject_description_and_channel_without_sending():
+    requests = []
+
+    def opener(request, *, timeout):
+        requests.append(request)
+        if urlsplit(request.full_url).path.endswith("/oauth/v2/token"):
+            return FakeResponse({"access_token": "token", "expires_in_sec": 3600})
+        return FakeResponse(
+            {
+                "id": "12345",
+                "subject": "Package not arrived",
+                "description": "Where is ORD-1001?",
+                "channel": "Email",
+                "email": "customer@example.com",
+            }
+        )
+
+    ticket = await make_client(opener).fetch_ticket("12345")
+
+    assert ticket == {
+        "id": "12345",
+        "subject": "Package not arrived",
+        "description": "Where is ORD-1001?",
+        "channel": "Email",
+    }
+    assert len(requests) == 2
+    assert requests[1].get_method() == "GET"
+    assert requests[1].full_url == "https://desk.zoho.com/api/v1/tickets/12345"
+    assert not any(request.get_method() == "POST" and "sendReply" in request.full_url for request in requests)
+
+
+@pytest.mark.asyncio
+async def test_fetch_ticket_rejects_invalid_id_before_request():
+    calls = []
+    client = make_client(lambda request, **kwargs: calls.append(request))
+
+    with pytest.raises(ZohoDeskConfigurationError, match="numeric"):
+        await client.fetch_ticket("../123")
+
+    assert calls == []
+
+
+@pytest.mark.asyncio
 async def test_ticket_without_requester_email_fails_before_sending():
     requests = []
 

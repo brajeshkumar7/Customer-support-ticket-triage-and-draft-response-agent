@@ -648,3 +648,32 @@ The project is "done" per `AGENTS.md`'s Definition of Done once every task
 above is checked off in `TASKS.md`, every metric in `PROGRESS.md` is real, and
 `README.md` and `PRD.md` Section 7 are filled in with actual results. At that
 point — and only then — it's ready to go on a resume.
+
+### TASK-24 — Single-ticket synthetic and Zoho commands
+```
+Read AGENTS.md, DECISIONS.md, src/agent/graph.py, zoho_desk_client.py,
+src/eval/run_eval.py, README.md, and flow.md before starting.
+
+Task: provide separate single-ticket commands for the synthetic local flow
+and for processing one existing Zoho Desk ticket through the agent.
+
+Requirements:
+1. `python -m src.agent.run_synthetic --case-id CASE_ID` loads one case from
+the synthetic set, uses isolated in-memory Chroma and an injected fake reply
+sender, and makes no Zoho request. Label a passing send as simulated; a failed
+review remains an escalation.
+2. `python -m src.agent.run_zoho --ticket-id NUMERIC_ID --send` requires
+`ZOHO_DESK_SEND_ENABLED=true`, the flag, and interactive confirmation that
+the ticket/contact are controlled, including retyping the ID. Fetch the
+existing ticket from Zoho with ticket-read scope; require an Email channel and
+usable ticket text before running the graph.
+3. Send at most one public email reply, automatically only after all
+supervisor checks pass. Never create a ticket or replay an ambiguous send.
+Keep `zoho_smoke` as a separate delivery-only command.
+4. Write mocked, network-free tests for both commands and ticket fetching.
+Do not perform a live Zoho request or send while implementing/testing.
+5. Update README.md and flow.md to explain both commands and update TASKS.md
+after checks pass. Record the command/sender choice in DECISIONS.md.
+
+Done when: command safety checks, graph integration, docs, and tests pass.
+```

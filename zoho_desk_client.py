@@ -11,6 +11,8 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode, urlsplit, urlunsplit
 from urllib.request import Request, urlopen
 
+from src.observability.logger import log_tool_event
+
 
 _DESK_HOSTS = {
     "desk.zoho.com",
@@ -89,7 +91,7 @@ def _https_origin(value: str, *, name: str, allowed_hosts: set[str]) -> str:
 
 
 class ZohoDeskClient:
-    """Send customer-facing email replies to existing Zoho Desk tickets."""
+    """Fetch existing Zoho Desk tickets and send customer-facing email replies."""
 
     def __init__(
         self,
@@ -168,6 +170,35 @@ class ZohoDeskClient:
         """Resolve the ticket recipient, then send exactly one public email reply."""
         return await asyncio.to_thread(self._send_public_reply, ticket_id, body)
 
+    async def fetch_ticket(self, ticket_id: str) -> dict[str, Any]:
+        """Fetch the limited ticket fields needed to run the agent, without sending."""
+        started = time.perf_counter()
+        try:
+            result = await asyncio.to_thread(self._fetch_ticket, ticket_id)
+        except Exception as error:
+            log_tool_event(
+                tool_name="zoho_desk_fetch_ticket",
+                inputs={"zoho_ticket_id": ticket_id},
+                output=None,
+                error={"code": type(error).__name__},
+                latency_ms=(time.perf_counter() - started) * 1000,
+                run_id=f"zoho-ticket-{ticket_id}",
+            )
+            raise
+        log_tool_event(
+            tool_name="zoho_desk_fetch_ticket",
+            inputs={"zoho_ticket_id": ticket_id},
+            output={
+                "channel": result.get("channel"),
+                "has_subject": bool(result.get("subject")),
+                "has_description": bool(result.get("description")),
+            },
+            error=None,
+            latency_ms=(time.perf_counter() - started) * 1000,
+            run_id=f"zoho-ticket-{ticket_id}",
+        )
+        return result
+
     def _refresh_access_token(self) -> str:
         payload = urlencode(
             {
@@ -235,6 +266,41 @@ class ZohoDeskClient:
             if self._access_token and time.monotonic() < self._token_expires_at - 60:
                 return self._access_token
             return self._refresh_access_token()
+
+    def _fetch_ticket(self, ticket_id: str) -> dict[str, Any]:
+        ticket_id = str(ticket_id).strip()
+        if not re.fullmatch(r"[0-9]+", ticket_id):
+            raise ZohoDeskConfigurationError("zoho_ticket_id must be numeric.")
+        token = self._get_access_token()
+        try:
+            ticket = self._api_request("GET", f"tickets/{ticket_id}", token=token)
+        except HTTPError as error:
+            raise ZohoDeskDeliveryError(
+                f"Zoho Desk could not retrieve the ticket (HTTP {error.code}).",
+                delivery_status="failed",
+                http_status=error.code,
+            ) from error
+        except (URLError, TimeoutError, OSError) as error:
+            raise ZohoDeskDeliveryError(
+                "Zoho Desk ticket lookup failed.", delivery_status="failed"
+            ) from error
+        except Exception as error:
+            raise ZohoDeskDeliveryError(
+                "Zoho Desk ticket details could not be read.", delivery_status="failed"
+            ) from error
+
+        returned_id = ticket.get("id", ticket_id)
+        if str(returned_id) != ticket_id:
+            raise ZohoDeskDeliveryError(
+                "Zoho returned a different ticket than requested; no agent run was started.",
+                delivery_status="failed",
+            )
+        return {
+            "id": str(ticket.get("id", ticket_id)),
+            "subject": ticket.get("subject"),
+            "description": ticket.get("description"),
+            "channel": ticket.get("channel"),
+        }
 
     def _api_request(
         self,

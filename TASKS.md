@@ -62,6 +62,15 @@ place; don't delete completed items, so the history stays visible.
 - [ ] TASK-22: README with metrics table + 2–3 documented failure modes
 - [ ] TASK-23: Fill in `PRD.md` Section 7 (Explicit Trade-off) with a real one
 
+### TASK-24 — Single-ticket synthetic and Zoho commands
+- [x] Add `python -m src.agent.run_synthetic --case-id CASE_ID` using an
+      isolated Chroma client and simulated sender, with no Zoho requests.
+- [x] Add `python -m src.agent.run_zoho --ticket-id ID --send`: confirm a
+      controlled existing ticket, fetch its Email subject/description, run the
+      graph, and send at most one public reply after supervisor PASS.
+- [x] Add network-free command/client tests and document both flows in
+      `README.md` and `flow.md`; keep `zoho_smoke` as a delivery-only test.
+
 ## Parking Lot (ideas NOT in current scope — do not build yet)
 *(Move an item here instead of building it mid-task if it's outside PRD scope.
 Revisit only after Phase 6 is done.)*

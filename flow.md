@@ -44,8 +44,8 @@ application is invoked, but it does not yet receive new tickets automatically.
 
 | Run mode | Required input/configuration |
 |---|---|
-| Local, no Zoho send | Ticket text, an internal `ticket_id`, OpenRouter API key/base URL/primary model/fallback models, and a usable Chroma directory. `ZOHO_DESK_SEND_ENABLED` defaults to `false`. |
-| Real Zoho send | Everything above, plus `ZOHO_DESK_SEND_ENABLED=true`, a Zoho ticket API ID, Desk and Accounts domains, organization ID, sender email, OAuth client ID/secret, and refresh token. |
+| One synthetic case | A case ID from the test-ticket manifest, OpenRouter API key/base URL/primary model/fallback models. Uses an injected fake sender and ephemeral Chroma; no Zoho credentials or persistent Chroma are used. |
+| Real Zoho send | OpenRouter settings, `ZOHO_DESK_SEND_ENABLED=true`, a Zoho ticket API ID, Desk and Accounts domains, organization ID, sender email, OAuth client ID/secret, refresh token, and the operator's interactive confirmations. The command fetches the ticket text from Zoho. |
 | Full synthetic benchmark | The 25 fixed synthetic tickets, configured model credentials, and the evaluator's injected fake sender. No Zoho ticket IDs or Zoho credentials are needed for delivery. |
 
 The graph makes separate model calls for classification, ticket-detail
@@ -63,15 +63,20 @@ current graph does not dispatch these three tools into that container. The
 fixtures are useful for development and evaluation; they are not live business
 data integrations.
 
-## 1. Current workflow without Zoho Desk
+## 1. Synthetic workflow without Zoho Desk (simulated delivery)
 
-Use this mode to test classification, tool gathering, drafting, review,
-retries, and escalation without connecting a helpdesk account. Sending is
-disabled by default with `ZOHO_DESK_SEND_ENABLED=false`.
+Use this mode to test one ticket's classification, tool gathering, drafting,
+review, retries, and escalation without connecting to a helpdesk. The command
+injects a fake sender: a passing draft is recorded as simulated delivery, not
+as a real email. No Zoho API is called.
+
+```powershell
+.\.venv\Scripts\python.exe -m src.agent.run_synthetic --case-id order_01
+```
 
 ```mermaid
 flowchart TD
-    A[Caller supplies ticket text and internal ticket_id] --> B[Start one graph run]
+    A[Operator selects one case ID from the synthetic ticket set] --> B[Runner loads its ticket text and creates an internal run ID]
     B --> C[Recall similar historical facts from local Chroma]
     C --> D[Classify ticket with OpenRouter: category and urgency]
     D --> E[Extract an explicit order ID and customer reason with OpenRouter]
@@ -89,9 +94,11 @@ flowchart TD
     N --> K
     M -->|FAIL after 3 retries| Q[Build explicit escalation with drafts and evidence]
     M -->|PASS| R[Send step checks the delivery setting]
-    R -->|Sending disabled in this mode| Q
-    Q --> S[Return escalation to caller for a person to review]
-    S --> T[End: no public reply was sent]
+    R -->|Fake sender records simulated success| U[Print simulated sent result; no Zoho call]
+    R -->|Supervisor or graph failure| Q
+    Q --> S[Print escalation for a person to review]
+    S --> T[End: no real public reply was sent]
+    U --> V[End: reply is simulated only]
 ```
 
 ### What happens at each step
@@ -116,59 +123,71 @@ flowchart TD
    claims, and urgency-appropriate tone. A failed draft gets feedback and can
    be regenerated up to three times after the first draft. Classification and
    tool calls are not repeated on those retries.
-7. **No-send outcome:** With sending disabled, even a passing draft is not sent.
-   The graph returns an escalation containing the approved draft so a person
-   can decide what to do. No message is automatically placed in Zoho or emailed
-   to a customer.
-8. **End:** A run ends as either `sent` or `escalated`. In this no-Zoho mode,
-   it normally ends as `escalated`, because there is no delivery system.
+7. **Simulated delivery:** The runner injects a fake sender. A passing draft
+   reaches that sender and is reported as simulated; no message is placed in
+   Zoho or emailed to a customer. A failed review remains an escalation.
+8. **End:** The synthetic command reports either `sent` with the explicit
+   `simulated` marker, or `escalated`.
    A critical graph-node or model failure also routes to an explicit
    escalation. A failed individual tool is kept in the results while the other
    tools continue.
 
-For a local demonstration, `python -m src.agent.graph` invokes a hard-coded
-sample ticket and prints the graph result. Other callers can pass their own
-ticket text to `build_graph(...).ainvoke(...)`. This is currently a Python
-entry point, not an HTTP API endpoint.
+For a local demonstration, use the command above and choose one case ID from
+the manifest. Other callers can pass ticket text to
+`build_graph(...).ainvoke(...)`. This is a local Python entry point, not an
+HTTP API endpoint.
 
 ## 2. Current workflow with Zoho Desk connected
 
-This is the current repository's real Zoho integration. A caller must already
-have the ticket text and Zoho ticket API ID and invoke the graph. The agent
-does **not** currently poll Zoho or receive a webhook when a ticket arrives.
+This is the current repository's real Zoho integration. The operator supplies
+one existing ticket API ID. The command fetches its subject and description
+from Zoho, validates that it is an Email ticket with usable text, then invokes
+the same graph. The agent does **not** automatically poll Zoho or receive a
+webhook when a ticket arrives.
+
+```powershell
+.\.venv\Scripts\python.exe -m src.agent.run_zoho --ticket-id YOUR_TICKET_API_ID --send
+```
+
+The command requires `ZOHO_DESK_SEND_ENABLED=true`, the `--send` flag, and two
+interactive confirmations: the operator types `CONTROLLED` and retypes the
+ticket ID. On supervisor PASS, one public reply is sent automatically. Run it
+separately for each controlled test ticket.
 
 ```mermaid
 flowchart TD
-    A[Operator or caller gets existing Zoho ticket text and API ID] --> B[Caller invokes graph with text, internal ticket_id, and Zoho ticket ID]
-    B --> C[Recall from local Chroma]
-    C --> D[OpenRouter classifies ticket]
-    D --> E[OpenRouter extracts explicit order ID and reason]
-    E --> F[Local order, policy, and FAQ tools run concurrently]
-    F --> G[OpenRouter drafts from current ticket and tool facts]
-    G --> H[Supervisor reviews the draft]
-    H -->|FAIL; retry budget remains| I[Inject review feedback and draft again]
-    I --> G
-    H -->|FAIL; retry cap reached| X[Return human escalation payload]
-    H -->|PASS; all checklist checks pass| J{Sending enabled, credentials configured, and Zoho ticket ID present?}
-    J -->|No| X
-    J -->|Yes| K[ReplySender selects ZohoDeskClient]
-    K --> L[Refresh OAuth access token when needed]
-    L --> M[GET Zoho ticket and validate requester email]
-    M -->|Lookup or validation fails| X
-    M -->|Valid existing ticket| N[POST one public email reply to Zoho sendReply endpoint]
-    N -->|Zoho confirms success| O[Mark terminal status sent and save summary to Chroma]
-    O --> P[Return result and append structured JSONL events]
-    N -->|HTTP rejection or uncertain timeout| X
-    X --> Q[Return ticket, tool evidence, failed drafts, and reason to caller]
-    Q --> R[Caller or operator must review and act; graph does not assign it in Zoho]
+    A[Operator enters one existing Zoho ticket API ID] --> B{Send flag, environment setting, and ownership confirmations pass?}
+    B -->|No| Z[Stop: no fetch or send]
+    B -->|Yes| C[Zoho client refreshes OAuth and fetches ticket]
+    C --> D{Existing Email ticket with usable text?}
+    D -->|No| Z
+    D -->|Yes| E[Create internal run ID and pass subject, description, and Zoho ID to graph]
+    E --> F[Recall from local Chroma]
+    F --> G[OpenRouter classifies ticket]
+    G --> H[OpenRouter extracts explicit order ID and reason]
+    H --> I[Local order, policy, and FAQ tools run concurrently]
+    I --> J[OpenRouter drafts from current ticket and tool facts]
+    J --> K[Supervisor reviews the draft]
+    K -->|FAIL; retries remain| L[Inject review feedback and draft again]
+    L --> J
+    K -->|FAIL; retry cap reached| X[Return human escalation payload]
+    K -->|PASS; all checklist checks pass| M[Graph send gate checks configuration and ticket ID]
+    M --> N[Zoho adapter refreshes OAuth as needed and validates requester email]
+    N -->|Lookup or validation fails| X
+    N -->|Valid existing email ticket| O[POST one public email reply to Zoho]
+    O -->|Zoho confirms success| P[Mark sent and save summary to Chroma]
+    P --> Q[Return outcome and append structured JSONL events]
+    O -->|HTTP rejection or uncertain timeout| X
+    X --> Y[Return ticket, tool evidence, failed drafts, and reason to caller]
+    Y --> R[Operator reviews and acts; graph does not assign the ticket]
     R --> S[End: escalated, no confirmed automated reply]
 ```
 
 ### What the current Zoho connection does
 
-1. **The caller provides the ticket.** The current sample and graph API accept
-   ticket text. The caller separately provides `zoho_ticket_id` when a real
-   reply is intended. The internal run ID is used for state and logging.
+1. **The operator identifies one controlled ticket.** They provide its numeric
+   API ID, confirm ownership, and retype the ID. The command fetches subject,
+   description, and channel from Zoho; it does not create a ticket.
 2. **The graph decides whether a reply is eligible.** It runs the same recall,
    classification, extraction, mock-tool, draft, supervisor, and bounded-retry
    path as Diagram 1.
@@ -179,8 +198,9 @@ flowchart TD
 4. **The Zoho adapter authenticates.** It uses the configured OAuth client ID,
    client secret, refresh token, region-specific Accounts/Desk domains,
    organization ID, and sender email. It obtains/refreshes an access token.
-5. **The adapter checks the existing ticket.** It requests the supplied ticket
-   from Zoho and validates its requester email. It does not create tickets.
+5. **The adapter validates before sending.** The runner first requires an
+   Email ticket with usable description text. The sender re-fetches the
+   existing ticket and validates its requester email. It does not create tickets.
 6. **The adapter sends one public reply.** It calls Zoho Desk's reply endpoint
    with the draft. There is no automatic retry after an ambiguous send timeout,
    because retrying might send a duplicate.

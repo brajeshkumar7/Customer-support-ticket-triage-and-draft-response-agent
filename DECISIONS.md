@@ -207,3 +207,21 @@ real smoke test still checks the Zoho connection while limiting live delivery
 to one operator-controlled ticket. Saved reports identify simulated delivery
 so those results are not presented as proof of external delivery.
 **Status:** active
+
+## [2026-09-30] Separate synthetic and Zoho single-ticket runners
+**Decision:** Provide one command for a single synthetic case that injects an
+isolated in-memory Chroma client and a fake sender, plus a separate command
+that fetches one existing Zoho Email ticket and invokes the same graph. The
+Zoho command requires explicit send mode and two interactive confirmations;
+after that, a supervisor PASS authorizes one public reply.
+**Alternatives considered:** Use one command with optional delivery modes;
+paste Zoho ticket text manually; keep Zoho as delivery-only smoke testing.
+**Reasoning:** Separate commands make simulated delivery and real delivery
+visibly distinct while keeping the real agent workflow involved in the Zoho
+path. Fetching from Zoho avoids copy/paste errors and uses the ticket's actual
+subject and description. No ticket creation or automatic retry is allowed.
+**Trade-off:** An automated supervisor PASS can be wrong. The latest benchmark
+had incorrect simulated sends on 9 of 14 tickets expected to escalate, so the
+real command is restricted to a ticket/contact controlled by the operator and
+the graph's decision quality still needs improvement before general use.
+**Status:** active
