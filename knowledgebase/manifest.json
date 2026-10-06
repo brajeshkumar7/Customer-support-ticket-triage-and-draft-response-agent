@@ -104,5 +104,33 @@
     "source": "data/approved_knowledge/v1.json fictional reply collection",
     "approval_scope": "automatic_reply_simulation",
     "reviewed_at": "2026-10-06"
+  },
+  "policy_fictional_support_v1_returns.pdf": {
+    "sha256": "88c200fedc92561de1e433acd0977844f7208fe9c46b82cdf0792527be952425",
+    "knowledge_id": "business_policy_returns",
+    "knowledge_version": "v1",
+    "review_status": "simulation",
+    "approval_scope": "reference_only",
+    "source": "repository fictional merchant policy, TASK-41",
+    "policy_id": "fictional_support",
+    "policy_version": "v1",
+    "policy_sha256": "d5d9ee6c59a7abf683f40360fae2de7c6f23b4d49d22e113751dd191817a58f0",
+    "rule_ids": [
+      "returns"
+    ]
+  },
+  "policy_fictional_support_v1_damage.pdf": {
+    "sha256": "21946cca8e9b947badf75cfb0fc592bef4331a52d2f16a60671aa98550d0e823",
+    "knowledge_id": "business_policy_damage",
+    "knowledge_version": "v1",
+    "review_status": "simulation",
+    "approval_scope": "reference_only",
+    "source": "repository fictional merchant policy, TASK-41",
+    "policy_id": "fictional_support",
+    "policy_version": "v1",
+    "policy_sha256": "d5d9ee6c59a7abf683f40360fae2de7c6f23b4d49d22e113751dd191817a58f0",
+    "rule_ids": [
+      "damage"
+    ]
   }
 }

@@ -1,0 +1,12 @@
+{
+  "policy_id": "fictional_support",
+  "version": "v1",
+  "review_status": "simulation",
+  "source": "repository fictional merchant policy, TASK-41",
+  "requires_delivered": true,
+  "rules": {
+    "returns": {"window_days": 30},
+    "damage": {"window_days": 7}
+  },
+  "mandatory_human_review": ["safety_incident", "policy_exception"]
+}

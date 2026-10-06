@@ -32,6 +32,7 @@ from src.tools.base import ToolError, ToolResult
 from src.tools.faq_search import FAQSearchTool
 from src.tools.order_lookup import OrderLookupTool
 from src.tools.policy_checker import PolicyCheckerTool
+from src.knowledge.policy import policy_evidence_findings, policy_configuration
 from src.tools.knowledge_search import KnowledgeSearchTool
 from src.tools.providers import FAQSource, OrderFactsProvider, PolicySource, unavailable_result
 from zoho_desk_client import (
@@ -119,6 +120,7 @@ _MODEL_TOOL_FIELDS: dict[str, tuple[str, ...]] = {
         "policy_window_days",
         "days_since_delivery",
         "reason",
+        "policy_id", "policy_version", "policy_sha256", "rule_ids", "requires_human_review",
     ),
     "faq_search": ("matches",),
     "knowledge_search": ("evidence", "retrieval"),
@@ -470,6 +472,17 @@ def build_graph(
         """Apply deterministic risk rules; an LLM PASS cannot override them."""
         validate_ticket_id(state)
         approval = evidence_approval(state)
+        policy_result = state.get("tool_results", {}).get("policy_checker")
+        policy_findings = policy_evidence_findings(
+            policy_result, state.get("retrieved_evidence", []), use_rag=rag_enabled,
+        ) if policy_result else []
+        if policy_findings:
+            from dataclasses import replace
+            approval = replace(approval, kind="human", body=None,
+                               reason_code=policy_findings[0][0] if approval.kind == "informational" else approval.reason_code,
+                               reason=policy_findings[0][1] if approval.kind == "informational" else approval.reason,
+                               findings=approval.findings + tuple(policy_findings),
+                               required_evidence=approval.required_evidence + ("matching active business policy rules",))
         allowed = approval.kind == "informational"
         decision = {
             "status": "send_allowed" if allowed else "blocked",
@@ -480,6 +493,7 @@ def build_graph(
             "evidence_ids": list(approval.evidence_ids),
             "knowledge_version": approval.knowledge_version,
             "policy_version": approval.policy_version,
+            "business_policy": policy_configuration(),
             "findings": [{"code": code, "reason": reason, "recommended_action": "human_review"}
                          for code, reason in (approval.findings or (() if allowed else ((approval.reason_code, approval.reason),)))],
             "required_evidence": list(approval.required_evidence),

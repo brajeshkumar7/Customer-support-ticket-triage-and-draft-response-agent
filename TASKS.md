@@ -282,3 +282,13 @@ Revisit only after Phase 6 is done.)*
 - [x] Run network-free safety, graph, worker and RAG regressions.
 - [x] Complete and assess all 50 attempted cases; report one unscored workflow failure and three false escalations (FM-026/027).
 - [ ] Meet local acceptance: zero critical false approvals and supported informational controls remain eligible.
+
+### TASK-41 - Shared versioned business policy
+- [x] Validate one simulation policy source; remove duplicated checker windows/prose.
+- [x] Return policy provenance and independent mandatory human-review status.
+- [x] Export immutable reference PDFs, merge manifests, propagate indexed provenance.
+- [x] Block mismatched/missing policy evidence; exclude obsolete drafting references.
+- [x] Record business policy in reports and checkpoint compatibility.
+- [x] Finish offline verification (317 tests) and all 50 fake-only benchmark attempts; three operational failures remain open.
+- [x] Accept the tested consistency contract; document two false escalations and three unscored failures without claiming overall accuracy acceptance.
+- [ ] Resolve workflow/retrieval failures and meet broader accuracy and latency gates.

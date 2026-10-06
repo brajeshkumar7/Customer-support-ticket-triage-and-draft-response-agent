@@ -764,3 +764,33 @@ simulation replies may pass the local RAG gate. Final delivery revalidates the
 reply text. Fixtures and historical memory never authorize customer-specific
 facts. Real customer delivery remains disabled. Earlier v3 policy descriptions
 are historical; do not present earlier metrics as v4 measurements.
+
+## TASK-41: One fictional business policy source
+
+`data/policies/support_v1.json` is the validated source for delivered-only
+eligibility, inclusive 30-day returns and inclusive 7-day damage reporting.
+The checker and generated PDF guidance consume these same rules. Results and
+retrieved chunks carry policy ID, version, source hash and rule IDs; window
+eligibility never authorizes a business action. Safety incidents and policy
+exceptions require human review independently of eligibility.
+
+Generate reference PDFs with `python -m src.knowledge.export_policy`, then
+index with `python -m src.knowledge.ingest`. Identical exports and indexes skip
+completed documents. A change under an existing PDF/policy version fails
+export; use a new version and extend the validated loader's supported version
+before adoption. Expanded legacy PDFs remain on disk; superseded return/damage
+references are excluded from active RAG context. The corpus has 13 PDFs: seven
+original references, four exact simulation replies, two generated policy
+references. The legacy seed exporter refuses to overwrite existing references.
+
+With RAG enabled, a used policy result requires matching active retrieved rule
+metadata. Missing, conflicting or obsolete policy evidence produces explicit
+safety findings and human escalation even if Jev passes. Business policy
+provenance is separate from `informational_only_v4` send policy. Reports and
+holdout resume checks include the active business policy; historical reports
+remain readable. Chroma history and fictional orders cannot authorize real
+customer-specific claims, and real customer sending remains disabled.
+
+Earlier descriptions of hardcoded checker windows and duplicated policy prose
+are historical. This is consistency validation, not merchant approval or a
+claim of improved model accuracy. New measurements require a completed run.

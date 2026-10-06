@@ -644,3 +644,15 @@ the local graph cannot send public replies.
 ## [2026-10-06] Shared evidence-bound safety assessment (TASK-40)
 
 Implement the approved safety plan under PRD Section 4 and Section 5. Preserve informational-only authority, collect simultaneous blocking findings, require explicit simulation reply scope for PDF approval, and revalidate exact outgoing text. Add separate v1 simulation template PDFs without altering reference PDFs. No real customer approval or new provider is enabled. Policy v4 supersedes v3; existing benchmark numbers remain historical until a complete configured-model run.
+
+## [2026-10-07] Shared business policy source (TASK-41)
+
+Under PRD Section 4 evidence consistency and Section 5 measurement, use one
+validated fictional support policy for checker rules and generated reference
+PDFs. Preserve delivered-only eligibility and inclusive 30/7-day windows.
+Safety incidents and exceptions require human review independently of window
+eligibility. Preserve existing PDFs; generate new immutable versioned files.
+Record source and PDF hashes and rule IDs, exclude obsolete policy references,
+and block mismatched or missing policy evidence. Business policy provenance is
+separate from informational send-policy version. Run offline regressions then
+one configured-model 50-case fake-only benchmark; real delivery stays blocked.

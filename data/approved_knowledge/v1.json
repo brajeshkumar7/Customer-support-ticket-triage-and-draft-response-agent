@@ -3,19 +3,32 @@
   "status": "review_required",
   "owner": "support-policy-owner",
   "entries": {
-    "tracking_link": {"scope": "general_information", "review_status": "simulation", "source": "local fictional merchant FAQ draft"},
-    "carrier_delay": {"scope": "general_information", "review_status": "simulation", "source": "local fictional merchant FAQ draft"},
-    "refund_timing": {"scope": "general_information", "review_status": "simulation", "source": "local fictional merchant FAQ draft"},
-    "payment_methods": {"scope": "general_information", "review_status": "simulation", "source": "local fictional merchant FAQ draft"}
-  },
-  "policy_reference": {
-    "returns": "Delivered items may be eligible for return within 30 days, subject to item condition and review.",
-    "damage": "Report damage within 7 days of delivery. Safety incidents require human review."
+    "tracking_link": {
+      "scope": "general_information",
+      "review_status": "simulation",
+      "source": "local fictional merchant FAQ draft"
+    },
+    "carrier_delay": {
+      "scope": "general_information",
+      "review_status": "simulation",
+      "source": "local fictional merchant FAQ draft"
+    },
+    "refund_timing": {
+      "scope": "general_information",
+      "review_status": "simulation",
+      "source": "local fictional merchant FAQ draft"
+    },
+    "payment_methods": {
+      "scope": "general_information",
+      "review_status": "simulation",
+      "source": "local fictional merchant FAQ draft"
+    }
   },
   "replies": {
     "tracking_link": "You can find the tracking link in your shipping confirmation email. It shows the latest carrier status.",
     "carrier_delay": "Carrier scans can pause during transit. If the expected delivery window has passed, please contact support with your order number so a person can investigate.",
     "refund_timing": "After a refund is approved, a payment provider may take 5 to 10 business days to post it. We cannot verify a particular refund from this message; please contact support if it has not appeared after that period.",
     "payment_methods": "Available payment methods are shown at checkout before you place an order."
-  }
+  },
+  "policy_source": "data/policies/support_v1.json"
 }

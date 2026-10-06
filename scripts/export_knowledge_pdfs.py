@@ -20,10 +20,13 @@ def main():
     folder = ROOT / "knowledgebase"
     folder.mkdir(exist_ok=True)
     styles = getSampleStyleSheet()
-    manifest = {}
+    manifest_path = folder / "manifest.json"
+    manifest = json.loads(manifest_path.read_text()) if manifest_path.exists() else {}
     documents = [(key, value, "general_information") for key, value in knowledge["replies"].items()]
-    documents += [(key, value, "policy_reference") for key, value in knowledge["policy_reference"].items()]
+    # Business policy PDFs are authored through src.knowledge.export_policy.
     documents.append(("data_boundaries", "Order, shipment and billing records in this project are fixtures. They do not verify a real customer's purchase, delivery, charge or refund. Safety incidents, business actions, policy exceptions and manager requests require a human. Historical ticket summaries are not approval evidence.", "safety_reference"))
+    if any((folder / f"{key}.pdf").exists() for key, _, _ in documents):
+        raise ValueError("Immutable reference PDFs already exist; use versioned authoring commands.")
     for key, text, scope in documents:
         path = folder / f"{key}.pdf"
         doc = SimpleDocTemplate(str(path), title=key.replace("_", " ").title(), author="Fictional merchant simulation", invariant=1)

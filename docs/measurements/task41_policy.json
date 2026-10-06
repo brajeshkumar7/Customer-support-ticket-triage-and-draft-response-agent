@@ -1,0 +1,171 @@
+{
+  "evaluation_id": "20261006T184220Z_b48293f6",
+  "measured_at": "2026-10-07T00:47:07.006977+05:30",
+  "mode": "simulated_delivery",
+  "delivery_adapter": "fake",
+  "business_policy": {
+    "available": true,
+    "policy_id": "fictional_support",
+    "policy_version": "v1",
+    "policy_sha256": "d5d9ee6c59a7abf683f40360fae2de7c6f23b4d49d22e113751dd191817a58f0"
+  },
+  "supervisor_configuration": {
+    "model": "typesafe/jev-1.13",
+    "questions_version": "supervisor_choice_v1",
+    "pass_probability": 0.9
+  },
+  "rag_configuration": {
+    "enabled": true,
+    "pipeline": "pdf-paragraph-120w-overlap20-bm25-minilm-prefix150-policy-v3",
+    "agent_version": "bounded_hybrid_active_policy_v3",
+    "corpus_sha256": "57180d98ab0102612362ac2a400de3b4e3b31d510a66b124eb2cbd410d1dc9e8"
+  },
+  "metrics": {
+    "ticket_count": 50,
+    "scored_ticket_count": 47,
+    "unscored_count": 3,
+    "matched_count": 45,
+    "task_completion_rate": 0.9574468085106383,
+    "category_classification": {
+      "measured_count": 50,
+      "correct_count": 45,
+      "accuracy": 0.9,
+      "urgency_distribution": {
+        "high": 6,
+        "medium": 22,
+        "low": 22
+      },
+      "priority_distribution": {
+        "P1": 6,
+        "P2": 22,
+        "P3": 22
+      }
+    },
+    "expected_auto_resolve_count": 6,
+    "auto_resolve_incorrect_escalation_count": 2,
+    "auto_resolve_incorrect_escalation_rate": 0.3333333333333333,
+    "expected_escalate_count": 41,
+    "expected_escalate_correct_count": 41,
+    "escalation_recall": 1.0,
+    "expected_escalate_incorrect_send_count": 0,
+    "expected_escalate_incorrect_send_rate": 0.0,
+    "false_send_count": 0,
+    "missed_escalation_count": 0,
+    "false_escalation_count": 2,
+    "unsupported_claim_review_count": 22,
+    "safety_gate_violation_count": 0,
+    "by_category": {
+      "billing_dispute": {
+        "ticket_count": 10,
+        "llm_calls": 61,
+        "reported_cost": 0.055741647000000005,
+        "calls_missing_cost": 0,
+        "false_sends": 0,
+        "missed_escalations": 0,
+        "false_escalations": 0,
+        "unsupported_claim_reviews": 3,
+        "safety_gate_violations": 0
+      },
+      "damaged_item": {
+        "ticket_count": 10,
+        "llm_calls": 60,
+        "reported_cost": 0.054554424,
+        "calls_missing_cost": 0,
+        "false_sends": 0,
+        "missed_escalations": 0,
+        "false_escalations": 0,
+        "unsupported_claim_reviews": 6,
+        "safety_gate_violations": 0
+      },
+      "general_question": {
+        "ticket_count": 10,
+        "llm_calls": 40,
+        "reported_cost": 0.035668881,
+        "calls_missing_cost": 0,
+        "false_sends": 0,
+        "missed_escalations": 0,
+        "false_escalations": 2,
+        "unsupported_claim_reviews": 1,
+        "safety_gate_violations": 0
+      },
+      "order_status": {
+        "ticket_count": 10,
+        "llm_calls": 55,
+        "reported_cost": 0.049512075999999995,
+        "calls_missing_cost": 0,
+        "false_sends": 0,
+        "missed_escalations": 2,
+        "false_escalations": 0,
+        "unsupported_claim_reviews": 4,
+        "safety_gate_violations": 0
+      },
+      "returns": {
+        "ticket_count": 10,
+        "llm_calls": 55,
+        "reported_cost": 0.045742474,
+        "calls_missing_cost": 0,
+        "false_sends": 0,
+        "missed_escalations": 0,
+        "false_escalations": 0,
+        "unsupported_claim_reviews": 8,
+        "safety_gate_violations": 0
+      }
+    },
+    "mean_retries_to_success": 0.0,
+    "failure_after_cap_count": 0,
+    "failure_after_cap_rate": 0.0,
+    "p95_latency_ms": 65542.06790000899,
+    "total_reported_token_cost": 0.241219502,
+    "llm_calls_total": 271,
+    "zero_model_call_tickets": 0,
+    "tickets_with_missing_token_cost": 0,
+    "cost_per_successful_run": 0.0049355687111111105,
+    "by_model": {
+      "openai/gpt-6-luna-pro": {
+        "llm_calls": 178,
+        "reported_cost": 0.22924231999999992,
+        "calls_missing_cost": 0
+      },
+      "typesafe/jev-1.13-20260917": {
+        "llm_calls": 93,
+        "reported_cost": 0.011977182,
+        "calls_missing_cost": 0
+      }
+    }
+  },
+  "status": "failed_accuracy_acceptance_operational_failures_open",
+  "source_report": "data/eval_reports/task29_20261006T184220Z_b48293f6.json",
+  "simulated_reply_count": 4,
+  "failures": [
+    {
+      "ticket_id": "general_03",
+      "observed_outcome": "escalated",
+      "run_error": null,
+      "matches_expected": false
+    },
+    {
+      "ticket_id": "general_04",
+      "observed_outcome": "failed",
+      "run_error": "ValueError",
+      "matches_expected": false
+    },
+    {
+      "ticket_id": "order_07",
+      "observed_outcome": "failed",
+      "run_error": "ValueError",
+      "matches_expected": false
+    },
+    {
+      "ticket_id": "order_09",
+      "observed_outcome": "failed",
+      "run_error": "ValueError",
+      "matches_expected": false
+    },
+    {
+      "ticket_id": "general_08",
+      "observed_outcome": "escalated",
+      "run_error": null,
+      "matches_expected": false
+    }
+  ]
+}

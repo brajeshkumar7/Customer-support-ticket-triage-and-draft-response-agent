@@ -610,3 +610,24 @@ One unscored respond failure (`billing_01`); three false escalations
 (`general_03`, `general_04`, `general_08`); four simulated replies and zero false
 simulated sends. The harness kept the accepted tracker intact. Operational
 parsing and RAG retrieval/coverage failures remain open; no real-send release.
+
+### FM-026 / FM-027 follow-up - TASK-41, 2026-10-07
+
+In configured-model fake-only batch `20261006T184220Z_b48293f6`, `general_04`
+failed in respond with ValueError and escalated without delivery. `general_03`
+again falsely escalated for missing exact simulation-approved retrieved text.
+These failures remain open; neither demonstrates a business-policy version
+mismatch, and the policy consistency change is not claimed to fix draft parsing
+or general FAQ retrieval. Final counts will come from the saved complete batch.
+
+## FM-028 - TASK-41 gather-facts validation failure
+
+Batch `20261006T184220Z_b48293f6`, `order_07`: gather_facts raised ValueError.
+The graph escalated explicitly without a fake send; this case is unscored.
+The logged node/type do not establish the precise malformed field or prove a
+policy-consistency fault. Retain this as an open workflow failure and exclude
+it from scored accuracy. The complete saved report preserves its run ID.
+
+### TASK-41 final measurement ? FM-026, FM-027 and FM-028
+
+Report: `data/eval_reports/task29_20261006T184220Z_b48293f6.json`. All 50 attempted; 47 scored, 45 matched. FM-026: general_04 respond ValueError. FM-028: order_07 and order_09 gather_facts ValueError. FM-027: general_03 and general_08 false escalations due to retrieval/coverage. Zero false simulated sends; four simulated replies. These failures remain open. The policy consistency tests pass, but do not establish corrected retrieval, model-output validation or deployment readiness.

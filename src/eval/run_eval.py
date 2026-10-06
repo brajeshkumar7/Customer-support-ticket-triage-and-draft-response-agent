@@ -33,6 +33,7 @@ from src.memory.long_term import LongTermMemory
 from src.memory.short_term import ShortTermMemory
 from src.openrouter_client import OpenRouterClient
 from src.knowledge.store import rag_configuration
+from src.knowledge.policy import policy_configuration
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 TICKETS_PATH = REPOSITORY_ROOT / "data" / "test_tickets" / "tickets.jsonl"
@@ -601,6 +602,7 @@ async def _run_graphs(
     }
     results: list[dict[str, Any]] = []
     corpus_configuration = rag_configuration()
+    business_policy_configuration = policy_configuration()
     llm_client = shared_client or OpenRouterClient()
     # One fresh in-memory Chroma store is shared by this evaluation batch.
     # It allows each later ticket to recall summaries written by earlier
@@ -618,7 +620,7 @@ async def _run_graphs(
         graph_result: dict[str, Any] = {}
         run_error: str | None = None
         try:
-            if rag_configuration() != corpus_configuration:
+            if rag_configuration() != corpus_configuration or policy_configuration() != business_policy_configuration:
                 raise EvaluationDataError("PDF corpus changed during evaluation; start a new batch.")
             graph = build_graph(
                 short_term_memory=ShortTermMemory(run_id),
@@ -635,7 +637,7 @@ async def _run_graphs(
                     "zoho_ticket_id": simulated_ticket_id,
                 }
             )
-            if rag_configuration() != corpus_configuration:
+            if rag_configuration() != corpus_configuration or policy_configuration() != business_policy_configuration:
                 raise EvaluationDataError("PDF corpus changed during this ticket run.")
         except Exception as error:
             run_error = type(error).__name__
@@ -939,6 +941,7 @@ def main(argv: list[str] | None = None) -> int:
         "delivery_adapter": "fake",
         "memory_mode": "shared_ephemeral_chroma_sequential",
         "rag_configuration": rag_configuration(),
+                  "business_policy": policy_configuration(),
         "simulated_reply_count": len(fake_sender.calls),
         "measured_at": datetime.now().astimezone().isoformat(),
         "ticket_count": len(cases),

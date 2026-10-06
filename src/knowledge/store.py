@@ -15,7 +15,7 @@ import chromadb
 from pypdf import PdfReader
 
 ROOT = Path(__file__).resolve().parents[2]
-PIPELINE = "pdf-paragraph-120w-overlap20-bm25-minilm-prefix150-v2"
+PIPELINE = "pdf-paragraph-120w-overlap20-bm25-minilm-prefix150-policy-v3"
 STOP_WORDS = frozenset("a an the i my you your is are was were be to of for in on at and or it this that do does can could would please".split())
 
 
@@ -184,6 +184,10 @@ class KnowledgeStore:
                         "knowledge_version": str(metadata.get("knowledge_version", "")) if trusted else "",
                         "approval_scope": str(metadata.get("approval_scope", "unspecified")) if trusted else "reference_only",
                         "source": str(metadata.get("source", relative)),
+                        "policy_id": str(metadata.get("policy_id", "")) if trusted else "",
+                        "policy_version": str(metadata.get("policy_version", "")) if trusted else "",
+                        "policy_sha256": str(metadata.get("policy_sha256", "")) if trusted else "",
+                        "rule_ids": metadata.get("rule_ids", []) if trusted else [],
                         "ledger_identity": ledger_identity,
                         "ledger_identity_method": "relative_filename_first_150_words_v2",
                     }

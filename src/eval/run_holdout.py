@@ -20,6 +20,7 @@ from src.agent.production_policy import APPROVAL_POLICY_VERSION, KNOWLEDGE_PATH,
 from src.agent.jev_triage import DEFAULT_TRIAGE_MODEL, TRIAGE_QUESTIONS_VERSION
 from src.openrouter_client import OpenRouterClient
 from src.knowledge.store import rag_configuration
+from src.knowledge.policy import policy_configuration
 from src.memory.long_term import LongTermMemory
 from src.tools.base import BaseTool, ToolUnavailableError
 from src.eval.run_eval import (
@@ -139,6 +140,8 @@ def main() -> int:
                 or checkpoint.get("delivery_adapter") != "fake"
                 or checkpoint.get("memory_mode") != "shared_ephemeral_chroma_sequential"):
             parser.error("Checkpoint does not match the frozen fake-sender, shared-Chroma holdout mode.")
+        if checkpoint.get("business_policy") != policy_configuration():
+            parser.error("Business policy changed; start a new holdout run.")
         if checkpoint.get("supervisor_configuration") != supervisor_configuration():
             parser.error("Supervisor model, questions, or threshold changed; start a new run.")
         if checkpoint.get("primary_model") != os.getenv("OPENROUTER_PRIMARY_MODEL", ""):
@@ -170,6 +173,7 @@ def main() -> int:
                   "supervisor_configuration": supervisor_configuration(),
                   "memory_mode": "shared_ephemeral_chroma_sequential",
                   "rag_configuration": rag_configuration(),
+                  "business_policy": policy_configuration(),
                   "fallback_models": [item.strip() for item in os.getenv("OPENROUTER_MODELS", "").split(",") if item.strip()],
                   "approval_policy": APPROVAL_POLICY_VERSION,
                   "knowledge_sha256": hashlib.sha256(KNOWLEDGE_PATH.read_bytes()).hexdigest(),
@@ -257,6 +261,7 @@ def main() -> int:
               "holdout_sha256": FROZEN_SHA256, "delivery_adapter": "fake",
               "memory_mode": "shared_ephemeral_chroma_sequential",
               "rag_configuration": rag_configuration(),
+                  "business_policy": policy_configuration(),
               "primary_model": os.getenv("OPENROUTER_PRIMARY_MODEL", ""),
               "triage_model": os.getenv("OPENROUTER_TRIAGE_MODEL", DEFAULT_TRIAGE_MODEL),
               "triage_questions_version": TRIAGE_QUESTIONS_VERSION,

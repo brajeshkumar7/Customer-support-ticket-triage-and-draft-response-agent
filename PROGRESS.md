@@ -1036,3 +1036,142 @@ Computed metrics copied directly from the saved report:
   }
 }
 ```
+
+## 2026-10-07 - TASK-41 implementation
+
+Checker and PDF authoring now read `data/policies/support_v1.json`. Numerical
+windows remain 30 and 7 days inclusive, with delivered-only assessment.
+Added independent human-review status and policy provenance to results,
+indexed chunks, safety state, reports and checkpoints. Superseded policy
+references are excluded from RAG context. Original PDFs were preserved.
+Two new PDFs were rendered, visually inspected and checked against generated
+source text. Repeated export skipped both; repeated ingestion skipped all 13
+with no errors. Intermediate full offline suite: 316 passed in 55.17s.
+
+TASK-41 final full offline suite: 317 passed in 55.21s. Configured-model fake-only benchmark completed; qualified results follow.
+
+### TASK-41 completed benchmark attempt (2026-10-07)
+
+Source: `data/eval_reports/task29_20261006T184220Z_b48293f6.json`. Offline recomputation reproduced the saved metrics exactly. Public diagnostic: `docs/measurements/task41_policy.json`.
+
+50 attempted, 47 scored, 45 matched; conditional disposition rate is 0.9574468085106383. This is not 50 successful scored runs. Three unscored ValueError failures remain open: general_04 (respond), order_07 and order_09 (gather_facts). Two false escalations remain: general_03 and general_08. Four simulated replies, zero false simulated sends, no real delivery.
+
+The consistency implementation is accepted on source-to-checker-to-chunk provenance, boundary and fail-closed tests. Broader accuracy/performance acceptance remains unmet. The harness refused accepted-tracker publication because of operational failures; earlier tracker measurements remain historical. No live-send release. Category-level raw missed-escalation counters include the two failed order runs; these are operational failures, not confirmed sent outcomes. Sequential latency remains unmeasured (TASK-20).
+
+Exact harness metrics, without rounding:
+
+```json
+{
+  "ticket_count": 50,
+  "scored_ticket_count": 47,
+  "unscored_count": 3,
+  "matched_count": 45,
+  "task_completion_rate": 0.9574468085106383,
+  "category_classification": {
+    "measured_count": 50,
+    "correct_count": 45,
+    "accuracy": 0.9,
+    "urgency_distribution": {
+      "high": 6,
+      "medium": 22,
+      "low": 22
+    },
+    "priority_distribution": {
+      "P1": 6,
+      "P2": 22,
+      "P3": 22
+    }
+  },
+  "expected_auto_resolve_count": 6,
+  "auto_resolve_incorrect_escalation_count": 2,
+  "auto_resolve_incorrect_escalation_rate": 0.3333333333333333,
+  "expected_escalate_count": 41,
+  "expected_escalate_correct_count": 41,
+  "escalation_recall": 1.0,
+  "expected_escalate_incorrect_send_count": 0,
+  "expected_escalate_incorrect_send_rate": 0.0,
+  "false_send_count": 0,
+  "missed_escalation_count": 0,
+  "false_escalation_count": 2,
+  "unsupported_claim_review_count": 22,
+  "safety_gate_violation_count": 0,
+  "by_category": {
+    "billing_dispute": {
+      "ticket_count": 10,
+      "llm_calls": 61,
+      "reported_cost": 0.055741647000000005,
+      "calls_missing_cost": 0,
+      "false_sends": 0,
+      "missed_escalations": 0,
+      "false_escalations": 0,
+      "unsupported_claim_reviews": 3,
+      "safety_gate_violations": 0
+    },
+    "damaged_item": {
+      "ticket_count": 10,
+      "llm_calls": 60,
+      "reported_cost": 0.054554424,
+      "calls_missing_cost": 0,
+      "false_sends": 0,
+      "missed_escalations": 0,
+      "false_escalations": 0,
+      "unsupported_claim_reviews": 6,
+      "safety_gate_violations": 0
+    },
+    "general_question": {
+      "ticket_count": 10,
+      "llm_calls": 40,
+      "reported_cost": 0.035668881,
+      "calls_missing_cost": 0,
+      "false_sends": 0,
+      "missed_escalations": 0,
+      "false_escalations": 2,
+      "unsupported_claim_reviews": 1,
+      "safety_gate_violations": 0
+    },
+    "order_status": {
+      "ticket_count": 10,
+      "llm_calls": 55,
+      "reported_cost": 0.049512075999999995,
+      "calls_missing_cost": 0,
+      "false_sends": 0,
+      "missed_escalations": 2,
+      "false_escalations": 0,
+      "unsupported_claim_reviews": 4,
+      "safety_gate_violations": 0
+    },
+    "returns": {
+      "ticket_count": 10,
+      "llm_calls": 55,
+      "reported_cost": 0.045742474,
+      "calls_missing_cost": 0,
+      "false_sends": 0,
+      "missed_escalations": 0,
+      "false_escalations": 0,
+      "unsupported_claim_reviews": 8,
+      "safety_gate_violations": 0
+    }
+  },
+  "mean_retries_to_success": 0.0,
+  "failure_after_cap_count": 0,
+  "failure_after_cap_rate": 0.0,
+  "p95_latency_ms": 65542.06790000899,
+  "total_reported_token_cost": 0.241219502,
+  "llm_calls_total": 271,
+  "zero_model_call_tickets": 0,
+  "tickets_with_missing_token_cost": 0,
+  "cost_per_successful_run": 0.0049355687111111105,
+  "by_model": {
+    "openai/gpt-6-luna-pro": {
+      "llm_calls": 178,
+      "reported_cost": 0.22924231999999992,
+      "calls_missing_cost": 0
+    },
+    "typesafe/jev-1.13-20260917": {
+      "llm_calls": 93,
+      "reported_cost": 0.011977182,
+      "calls_missing_cost": 0
+    }
+  }
+}
+```
