@@ -22,13 +22,14 @@ mode can send one public email after explicit operator approval.
   as one ticket's state.
 - **OpenRouter:** The current model provider. Jev uses the Decisions endpoint
   to choose category and urgency from typed rubrics. Generative models use the
-  chat endpoint to extract an explicit order ID/reason, draft, and review.
+  chat endpoint to extract an explicit order ID/reason, review retrieved evidence,
+  and draft. Jev separately reviews generated drafts through Decisions.
   Both use `.env` settings and the same rate budget. With PDF RAG enabled,
   every ticket runs Jev and evidence review. Covered FAQs skip generative
   drafting only after retrieval verifies matching simulation guidance.
 - **PDF RAG:** Actual documents in `knowledgebase/` are indexed by one CLI.
   Chroma stores dense MiniLM vectors; SQLite stores sparse BM25 vectors and
-  the full-file hash ledger. The agent can search across all documents up to
+  the relative-filename plus first-150-word skip ledger. The agent can search across all documents up to
   three times, review passages and cite file/page/chunk IDs in human drafts.
   Category is a hint, not a document selector. New PDFs are unreviewed.
 - **Mock tools:** Local Python tools that read the small order fixture, apply
@@ -40,7 +41,7 @@ mode can send one public email after explicit operator approval.
   complete synthetic evaluations use fresh shared ephemeral Chroma. The agent
   recalls similar summaries before working. Those summaries are historical
   context, not proof of current order facts. The current graph writes a summary
-  after a reply is confirmed sent; it does not write one on the escalation
+  after a reply is confirmed simulated; it does not write one on the escalation
   path.
 - **Reply sender:** A small interface for sending an approved reply. The normal
   benchmark injects a fake sender that records simulated success and never
@@ -57,7 +58,7 @@ mode can send one public email after explicit operator approval.
 |---|---|
 | One synthetic case | A case ID from the test-ticket manifest, OpenRouter API key/base URL/primary model/fallback models. Uses an injected fake sender and ephemeral Chroma; no Zoho credentials or persistent Chroma are used. |
 | Zoho ticket draft | OpenRouter settings, a Zoho ticket API ID, Zoho ticket-read credentials, and the operator's interactive confirmations. Fetches and analyzes without sending. |
-| Reviewed Zoho email | The same settings plus send-enabled configuration and Zoho update scope. Requires a supervisor-approved draft, recipient confirmation, and `SEND` with the ticket ID; sends one public email to the controlled requester. |
+| Reviewed Zoho email | The same settings plus send-enabled configuration and Zoho update scope. Proposes a supervisor-approved draft or, on failed/missing draft review, a fixed acknowledgement. Exact recipient and `SEND`/ticket confirmation are required for one public email. |
 | Full synthetic benchmark | The 50 development tickets or frozen 200-case author-labeled holdout, configured model credentials, and an injected fake sender. No Zoho ticket IDs or Zoho credentials are needed for delivery. |
 
 For tickets routed to human review, the graph makes separate model calls for
@@ -91,25 +92,27 @@ unresolved tickets escalate with no public reply. No Zoho API is called.
 ```mermaid
 flowchart TD
     A[Operator selects one case ID from the synthetic ticket set] --> B[Runner loads its ticket text and creates an internal run ID]
-    B --> C[Recall similar historical facts from local Chroma; never approval evidence]
+    B --> C[Recall within fresh ephemeral Chroma; never approval evidence]
     C --> TRIAGE[Jev category and urgency; priority]
     TRIAGE --> RAG[Hybrid PDF search; up to three tool calls; review coverage]
     RAG --> D{Informational gate plus retrieved hash-pinned PDF evidence}
     D -->|One fully covered FAQ intent| K[Record knowledge version and FAQ evidence ID]
     K --> R[Use exact bounded FAQ reply and deterministic exact-text review]
     R --> U[Fake sender records simulated success; no Zoho call]
-    D -->|Customer-specific or unresolved| E[Classify and extract with OpenRouter for human-review context]
+    D -->|Customer-specific or unresolved| E[Extract explicit order ID and reason for human-review context]
     E --> F{Run local fixture tools concurrently}
     F --> G[Order lookup reads mock order fixture]
-    F --> H[Policy checker reads mock order and sample policy rules]
+    F --> H[Policy checker reads mock order and validated shared business policy]
     F --> I[FAQ search checks local FAQ entries]
     G --> J[Collect successful results and individual tool errors]
     H --> J
     I --> J
-    J --> L[Prepare a cautious human-review draft from ticket and current tool results]
+    J --> CHECK[Check deterministic safety and matching active policy evidence]
+    CHECK --> L[Prepare a cited human-review draft from ticket and current tool results]
     L --> M[Supervisor checks facts, unsupported claims, and urgency tone]
     M --> Q[Build explicit escalation with draft, findings, and evidence; supervisor PASS cannot authorize sending]
-    U --> V[End: reply is simulated only]
+    U --> REM[Remember compact summary in ephemeral Chroma]
+    REM --> V[End: reply is simulated only]
     Q --> S[Print escalation for a person to review]
     S --> T[End: no real public reply was sent]
 ```
@@ -122,24 +125,26 @@ flowchart TD
 2. **Recall:** Chroma searches for similar saved summaries using the current
    ticket text. If recall fails, the run continues with no recalled facts and
    records the memory error.
-3. **Decision:** A versioned, simulation-only FAQ entry can authorize one
-   general informational reply. The decision records a reason code, evidence
-   ID, and knowledge version. The original 50/50 report used a broader rule;
-   the current 50-case manifest labels only seven FAQ cases auto-resolvable.
-4. **Classify:** With PDF RAG enabled, Jev answers two Choice questions
+3. **Classify:** With PDF RAG enabled, Jev answers two Choice questions
    in one OpenRouter Decisions call: support category and low/medium/high
    urgency. Its option probabilities, confidence, and exact served model are
    recorded in `triage_decision`. An unclear category or invalid answer
    escalates. Explicit safety/urgency signals may raise priority; category
    regex overrides no longer replace Jev's choice. No triage probability
    authorizes a public reply.
-5. **Retrieve, extract and gather:** Search the PDF corpus with dense + sparse
+4. **Retrieve, extract and gather:** Search the PDF corpus with dense + sparse
    ranking and RRF; the model may reformulate the query twice and reviews
    completeness. Retrieved passages are untrusted and cannot override safety.
-   OpenRouter extracts an order ID only if it appears
+   For non-informational cases, OpenRouter extracts an order ID only if it appears
    explicitly in the ticket. Then `order_lookup`, `policy_checker`, and
    `faq_search` run concurrently. A missing/unknown order can make an
    order-dependent tool fail while the other results are retained.
+5. **Safety decision:** A versioned, simulation-only FAQ entry can authorize one
+   general informational reply. The decision records a reason code, evidence
+   ID, and knowledge version. The original 50/50 report used a broader rule;
+   the current informational manifest labels only seven FAQ cases auto-resolvable.
+   If policy results are used, active retrieved policy ID/version/hash/rule IDs
+   must match the checker; mismatches require human review.
 6. **Draft:** OpenRouter receives the ticket, classifications, and documented
    tool fields. Tool text, ticket text, memory, and review feedback are treated
    as untrusted data, not instructions. Generated human drafts return cited
@@ -188,7 +193,7 @@ flowchart TD
     TRIAGE --> RAG[Hybrid PDF retrieval and bounded evidence review]
     RAG --> G{Retrieved pinned evidence plus exact FAQ covers the request?}
     G -->|Yes| I[Use exact FAQ text; skip generative draft and mock tools]
-    G -->|No| H[Classify, extract, gather fixture facts, and draft for a human]
+    G -->|No| H[Extract, gather fixture facts, apply safety and draft for a human]
     H --> J[Supervisor reviews draft; blocked case cannot send]
     I --> K[Draft-only override blocks public delivery]
     J --> M[Return explicit escalation with draft, tool results, and safety findings]
@@ -233,14 +238,15 @@ reviewed repository template. All other issues are routed to a human.
 ```mermaid
 flowchart TD
     A[Controlled contact emails support] --> B[Zoho creates or updates Email ticket]
-    B --> C[One Render worker polls modified tickets every 60 seconds]
+    START{Startup mode} -->|off| Z[Wait without polling]
+    START -->|live| L[Startup rejected until real sources and release decision]
+    START -->|shadow or test| C[One Render worker polls modified tickets every 60 seconds]
+    B --> START
     C --> D[Read newest inbound Email thread]
     D --> E[PostgreSQL unique job: org + ticket + inbound thread]
     E --> F{Mode}
-    F -->|off| Z[Worker does not start]
     F -->|shadow| G[Record would-send or human decision; no Zoho write]
     F -->|test| H[Check exact ticket + requester email + expiry in database allowlist]
-    F -->|live| L[Startup rejected until real sources and release decision]
     H -->|not allowed| M[Record blocked job; no Zoho write]
     H -->|allowed| I[Recheck database kill switch and approved knowledge file hash]
     I --> J[Read thread body; reject missing or truncated content]
@@ -317,8 +323,8 @@ This is a bounded informational policy, not a general proof of intent coverage.
 
 RAG approval additionally requires an explicitly scoped
 `automatic_reply_simulation` PDF containing the exact v1 reply, with trusted
-hash-pinned provenance and a cited, sufficient coverage review. The corpus now
-has seven unchanged reference-only PDFs and four separate fictional reply PDFs.
+hash-pinned provenance and a cited, sufficient coverage review. The current corpus has seven reference PDFs, four simulation reply PDFs,
+and two generated shared-policy references (13 total).
 Neither historical Chroma summaries nor reference-only PDFs authorize sending.
 The final graph delivery step rechecks evidence and exact outgoing text; the
 worker also checks exact template text. Jev PASS cannot override any blocker.

@@ -8,11 +8,13 @@ templates. Before broadening automatic replies, review document ownership,
 authority, conflicting policies, freshness, access control and citation
 entailment. Measure retrieval on a larger labeled corpus; RRF similarity is
 not confidence. Add OCR/table-aware extraction only with its own measured
-acceptance checks. The seven reference PDFs and four simulation reply PDFs are fictional, not merchant approval.
+acceptance checks. The 13 PDFs (seven references, four simulation replies, two shared-policy
+references) are fictional, not merchant approval.
 PDFs are assumed immutable. The skip ledger uses relative filename + first 150
 words, so later edits are not detected; revisions must use new filenames.
 Re-ingestion invalidates prefix-changed/removed sources; schedule that explicitly in
-any future deployment. No RAG benchmark or new real-send release is claimed.
+any future deployment. Configured-model RAG benchmark attempts are recorded, including operational
+failures; no clean current-stack accuracy acceptance or real-send release is claimed.
 
 ## Controlled deployment status (reviewed 2026-10-06)
 
@@ -45,10 +47,11 @@ phase.
 Some "Current state" and "Status" paragraphs below are dated snapshots from
 their original tasks. The current graph has recall, classify, conditional fact
 gathering, informational safety review, respond, supervisor, simulated send or
-explicit escalation, and remember on simulated success. The latest completed
-50-case run matched 50/50 author-drafted dispositions with 7 simulated sends;
-it predates the final TASK-32 triage edit. The 200-case author-labeled holdout
-matched 189/200, below its 95% target. Neither validates real customer sending.
+explicit escalation, and remember on simulated success. The accepted historical 50-case tracker matched 50/50 with seven simulated
+replies, before Jev/RAG. TASK-41 recorded 50 attempted, 47 scored, 45 matched,
+two false escalations, three operational failures and zero false simulated
+sends. The older 200-case holdout matched 189/200 below its 95% target;
+current-stack 200-case validation remains open. None validates real sending.
 
 ### Validate deterministic decision gate and improve model review quality
 
@@ -124,16 +127,22 @@ numeric-node environment setting remains intentionally absent.
 
 ### Calibrate supervisor decisions against labeled scenarios
 
-**Current state:** TASK-09 asks an LLM critic to assess grounding, unsupported
+**Historical TASK-09 state (superseded by TASK-38):** The generative critic assessed grounding, unsupported
 claims, and urgency-aligned tone. Its structured checklist output is validated
 and the PASS/FAIL decision is derived from the individual check results, but
 the critic has not been calibrated against a labeled evaluation set.
 
-**Follow-up:** During TASK-18 and TASK-19, measure false passes and false
-failures for each checklist item against human-labeled drafts. Track critic
+**Current review:** TASK-38 uses Jev typed checklist Choices with a provisional
+0.90 pass probability per check; exact FAQ review stays local. Nine visible
+development drafts showed three false rejections (FM-022), not independent
+calibration.
+
+**Follow-up:** Measure false passes and false failures for each checklist item
+against independently reviewed drafts. Track critic
 latency, retry count, escalation rate, and token usage alongside task outcomes,
 and refine check definitions or prompts based on observed misses. Keep
-deterministic policy and tool facts authoritative; a critic verdict is a review
+deterministic policy enforcement independent of model verdicts; fixture facts
+remain simulation data; a critic verdict is a review
 signal, not proof that every claim is correct. Feedback retries provide bounded
 recovery but do not correct a critic that repeatedly misjudges evidence.
 
@@ -175,7 +184,8 @@ TASK-19 evaluation results.
 
 **Current state:** The graph recalls local Chroma facts across ticket runs and
 stores compact summaries with ticket and order identifiers. Recalled facts are
-treated as historical context; current tool results remain authoritative.
+treated as historical context; current results remain the basis of local drafts, but fixtures are not
+authoritative real business data.
 
 **Follow-up:** Before using real customer data, define retention and deletion
 rules for persisted facts, how facts are scoped to a customer or tenant, and
@@ -217,9 +227,8 @@ does not authorize real delivery. Zoho Desk is selected only for ticket
 reply delivery, not as the source of order facts.
 
 **Follow-up:** Before deployment, select and integrate the authorized commerce
-or support API as the source of current order and customer facts, and select a
-production-approved database for durable application data and/or semantic
-memory. Keep current order status and policy decisions grounded in the
+or support API as the source of current order and customer facts, and validate the selected PostgreSQL job ledger for durable application data;
+customer-scoped semantic-memory approval remains separate. Keep current order status and policy decisions grounded in the
 authoritative API; use long-term memory only for historical context. Choose
 providers after defining data ownership, access control, privacy, retention,
 availability, and budget requirements. Keep credentials in secret management
@@ -331,8 +340,8 @@ This is a bounded informational policy, not a general proof of intent coverage.
 
 RAG approval additionally requires an explicitly scoped
 `automatic_reply_simulation` PDF containing the exact v1 reply, with trusted
-hash-pinned provenance and a cited, sufficient coverage review. The corpus now
-has seven unchanged reference-only PDFs and four separate fictional reply PDFs.
+hash-pinned provenance and a cited, sufficient coverage review. TASK-40 added four reply PDFs; the current corpus also has seven reference
+PDFs and two TASK-41 shared-policy references, for 13 total.
 Neither historical Chroma summaries nor reference-only PDFs authorize sending.
 The final graph delivery step rechecks evidence and exact outgoing text; the
 worker also checks exact template text. Jev PASS cannot override any blocker.

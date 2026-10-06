@@ -1,15 +1,13 @@
-# PRD â€” Support Ticket Triage Agent with Runtime Safety
+# PRD — Support Ticket Triage Agent with Runtime Safety
 
 ## 1. Problem Statement
 Most portfolio "agent" projects are a single LLM call wrapped in a loop with no
 memory, no recovery from failure, and no sandboxing. The goal here is to build a
-**multi-step, stateful agent** that can fail safely and recover â€” the behavior
+**multi-step, stateful agent** that can fail safely and recover — the behavior
 companies actually need before putting an agent into production.
 
 ## 2. Goal
-Build an agent that completes a real multi-step task (e.g., "research a topic
-across 3 sources, reconcile conflicting facts, and produce a cited summary" or
-"triage and resolve a batch of support tickets using 2â€“3 tools") with:
+Build a support-ticket triage and draft-response agent with:
 - Persistent state across steps (not just chat history)
 - Fixed tool calls; model-generated code and shell commands are never executed.
   The existing Docker runner is a stub, not an enforced production boundary.
@@ -42,8 +40,8 @@ Other tickets are drafts or
 escalations for human review; mock order data does not authorize delivery.
 
 ## 3. Non-Goals
-- Not building a general-purpose agent framework â€” pick one real, narrow task
-- Not optimizing for maximum autonomy â€” optimize for *predictable* failure
+- Not building a general-purpose agent framework — pick one real, narrow task
+- Not optimizing for maximum autonomy — optimize for *predictable* failure
 
 ## 4. Architecture
 - **PDF RAG (TASK-37):** The owner selected corpus-wide hybrid fact retrieval.
@@ -55,18 +53,19 @@ escalations for human review; mock order data does not authorize delivery.
   Safety decisions require hash-pinned retrieved evidence for existing exact
   informational simulation replies. Unreviewed PDFs cannot grant authority.
   Controlled worker and real-delivery restrictions remain unchanged.
-- **Orchestration:** LangGraph (or an equivalent graph/state-machine framework) â€”
+- **Orchestration:** LangGraph —
   chosen specifically because it models cycles and state explicitly, unlike a
   simple prompt-chaining script
 - **Tool execution:** fixed, application-owned Python tools run in the host
   process; no model-selected arbitrary code is executed. The existing Docker
   definition does not sandbox these calls. Independent required tools can run
   concurrently with `asyncio`; latency benefits must be measured.
-- **Memory:** short-term (working state per run) + long-term (a simple vector or
-  key-value store for facts learned across runs)
+- **Memory:** ticket-scoped in-memory working state and Chroma historical
+  summaries. Ordinary runs persist; synthetic batches share fresh ephemeral
+  history. Only successful simulations are remembered; recall is not evidence.
 - **Supervisor loop:** a critic step evaluates the worker's output against a
   checklist; on failure, retries with feedback injected into the next attempt,
-  capped at N retries before failing loudly (not silently)
+  capped at three retries beyond the initial draft before explicit escalation
 - **Deterministic send-safety gate:** explicit application rules can block
   delivery even when the Jev supervisor passes. An LLM verdict alone is not a
   send authorization.
@@ -79,8 +78,9 @@ escalations for human review; mock order data does not authorize delivery.
   the selected labels, all option probabilities, distribution confidence, and
   served model. Unclear or invalid answers fail into human escalation. Jev
   confidence is distinct from supervisor checklist confidence and does not
-  authorize delivery. The prior generative classifier's measurements remain
-  historical until a full Jev benchmark is run.
+  authorize delivery. The prior generative classifier's measurements remain historical. TASK-41
+  measured category accuracy at 45/50 = 0.9; its three operational failures
+  prevent clean full-workflow acceptance, and urgency calibration remains open.
 - **Controlled Zoho deployment:** a single Render worker polls Zoho and uses
   PostgreSQL for unique inbound-thread jobs, a cursor, exact test allowlists,
   a kill switch, and delivery status. `off` is the default; `shadow` never
@@ -95,7 +95,7 @@ escalations for human review; mock order data does not authorize delivery.
   contents, user-provided text) as untrusted; test the agent against a small set
   of prompt-injection attempts (e.g., a scraped webpage containing "ignore
   previous instructions...") and document what got through vs. what the
-  sandboxing/system-prompt boundaries caught
+  application safety/context boundaries caught
 
 ## 5. Success Metrics (write these down, they're your resume bullets)
 - [x] Disposition match rate across the current fixed set of 50 synthetic scenarios
@@ -124,7 +124,7 @@ escalations for human review; mock order data does not authorize delivery.
   seconds for verified customer-specific replies. Also review 100 real shadow
   decisions before a separate live-send decision. The offline policy evaluator
   cannot measure actual delivery or arrival-to-reply latency.
-- The latest completed 50-case report (before the final TASK-32 triage edit)
+- The accepted historical 50-case report (before the final TASK-32 triage edit)
   measured 50/50 disposition matches, 0 false simulated sends, 0 false
   escalations, 7 simulated replies, 43 escalations, p95
   44778.41449999687 ms, and total provider-reported cost 0.115013845.
@@ -146,8 +146,10 @@ escalations for human review; mock order data does not authorize delivery.
   from the 10 scored results. The refund-timing statement in the refund
   pre-approval case is supported by the existing refund-timing FAQ fixture.
 
-`PROGRESS.md` links each completed measurement to a saved report. The current
-triage edit still needs a fresh complete run; the interrupted OpenRouter run
+The latest TASK-41 attempt recorded 50 attempted, 47 scored, 45 matched, two false escalations, three operational failures, and zero false simulated sends. Its scored-only match rate is 0.9574468085106383; failures are excluded from that denominator, not counted as successes. See [the diagnostic](docs/measurements/task41_policy.json). Failed batches retain saved reports but do not overwrite the accepted tracker.
+
+`PROGRESS.md` preserves report provenance. Current 200-case validation,
+retrieval/workflow failures and latency gates remain open. An interrupted run
 does not establish new accuracy.
 
 ## 6. Observability Requirements
@@ -162,15 +164,18 @@ does not establish new accuracy.
 ## 7. Explicit Trade-off
 
 The informational-only approval policy gives up automation coverage to avoid
-replying from mock or unverified customer-specific data. In the latest completed
+replying from mock or unverified customer-specific data. In the accepted historical
 50-case run, 7 tickets received simulated replies and 43 escalated; all 50
 matched their author-drafted disposition labels, with zero false simulated
 sends. The separate 200-case author-labeled holdout missed its 95% target:
 189/200 dispositions matched, with 11 false escalations and no false simulated
 sends. Narrow approval improves observed send safety in these synthetic cases
 but rejects some answerable questions and cannot establish real-customer
-accuracy. The 50-case result predates the final triage edit; real sending
-remains blocked pending authoritative sources and independent review.
+accuracy. That historical 50-case result predates Jev/RAG. TASK-41 yielded
+four simulated replies, two false escalations and three operational failures;
+full-run p95 was 65542.06790000899 ms. This demonstrates the current coverage
+and latency trade-off, not production acceptance. Real sending remains blocked
+pending authoritative sources and independent review.
 
 ## 8. Deliverables
 - [ ] Public repo status is unverified; the README links the architecture diagram
@@ -204,8 +209,8 @@ This is a bounded informational policy, not a general proof of intent coverage.
 
 RAG approval additionally requires an explicitly scoped
 `automatic_reply_simulation` PDF containing the exact v1 reply, with trusted
-hash-pinned provenance and a cited, sufficient coverage review. The corpus now
-has seven unchanged reference-only PDFs and four separate fictional reply PDFs.
+hash-pinned provenance and a cited, sufficient coverage review. TASK-40 introduced four fictional reply PDFs alongside seven reference PDFs;
+TASK-41 added two shared-policy references, bringing the current corpus to 13.
 Neither historical Chroma summaries nor reference-only PDFs authorize sending.
 The final graph delivery step rechecks evidence and exact outgoing text; the
 worker also checks exact template text. Jev PASS cannot override any blocker.

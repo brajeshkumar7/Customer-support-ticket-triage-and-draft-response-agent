@@ -1,13 +1,13 @@
 # Test Tickets
 
 Current graph runs use PDF hybrid RAG by default. First run
-`python -m src.knowledge.ingest`; see `knowledgebase/README.md`. Full evaluation
+`python -m src.knowledge.ingest`; see [the knowledgebase guide](../../knowledgebase/README.md). Full evaluation
 reports retain the RAG pipeline/corpus hash, evidence review and citations.
 Historical pre-RAG scores do not measure this pipeline. Ticket-history memory
 remains a fresh shared ephemeral collection; the PDF index is separate.
 
 50 synthetic support tickets for the eval (TASKS.md TASK-18 and TASK-27), with expected
-outcomes recorded in `manifest.csv` and ticket text in `tickets.jsonl` so
+historical fixture-backed outcomes in `manifest.csv` and ticket text in `tickets.jsonl` so
 the evaluator can score runs against a fixed set. The original 25 are unchanged;
 the additional 25 include five new cases in each category. Their labels are
 author-drafted and do not count as independently human-reviewed cases.
@@ -19,7 +19,7 @@ policy conflict, angry/high-stakes customer) - PRD.md Section 5.
 `manifest.csv` columns are `ticket_id,category,expected_outcome,notes`.
 Categories use `order_status`, `returns`, `damaged_item`, `billing_dispute`,
 and `general_question`; outcomes are `auto_resolve` or `escalate`. An
-`auto_resolve` label means the available fixture/FAQ evidence is sufficient
+`auto_resolve` label in that historical manifest means the fixture/FAQ evidence was considered sufficient
 for a safe resolution if delivery is enabled; it does not guarantee that a
 reply is sent during an evaluation. Billing disputes are labeled for
 escalation because no billing transaction lookup is available.
@@ -42,14 +42,15 @@ that a real provider delivered the reply.
 failure tags. Its byte-level SHA-256 is pinned in `src/eval/run_holdout.py`;
 the runner refuses changed content. Run it with
 `.\.venv\Scripts\python.exe -m src.eval.run_holdout`. It uses configured
-OpenRouter models for non-FAQ cases and a fake sender only. A saved report can
+OpenRouter models for every RAG-enabled case and a fake sender only. A saved report can
 be recomputed offline with `--report PATH`. The holdout has not been reviewed
 independently and is separate from the future real-ticket release set.
 
 Run the benchmark from the repository root with
 `.\.venv\Scripts\python.exe -m src.eval.run_eval`. It uses the configured
 OpenRouter models, writes a report under `data/eval_reports/`, and updates
-measured metrics in `PROGRESS.md` after all cases run. Recompute a saved report
+accepted metrics in `PROGRESS.md` only after all 50 cases are scored.
+Operational failures remain in saved reports and do not overwrite the tracker. Recompute a saved report
 without model or network calls with
 `.\.venv\Scripts\python.exe -m src.eval.run_eval --report PATH`.
 

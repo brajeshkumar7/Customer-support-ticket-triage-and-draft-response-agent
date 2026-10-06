@@ -1,21 +1,33 @@
-# Agent run-history dashboard
+﻿# Agent run-history dashboard
 
-This local, read-only Next.js dashboard displays JSONL events written by the
-Python agent. It reads logs on the server and does not send log data to a
-browser-side API.
+Local read-only Next.js App Router + strict TypeScript, requiring Node 20.9+
+and npm. Logs are read on the server; rendered log values are shown in the
+browser. No external model/Zoho API, authentication or write operation is added.
 
-## Run locally
+From the repository root:
 
 ```powershell
+cd dashboard
 npm install
+if (!(Test-Path .env.local)) { Copy-Item .env.example .env.local }
 npm run dev
 ```
 
-Open <http://localhost:3000>. By default, the dashboard reads `../data/logs`
-relative to this directory. To use another directory, copy `.env.example` to
-`.env.local` and set `LOGS_DIR` to an absolute path or a path relative to
-`dashboard/`. Refresh the page to load new events.
+Open <http://localhost:3000>. `LOGS_DIR` defaults to `../data/logs`, relative to
+`dashboard/`, or can be absolute. On Linux/macOS use
+`[ -f .env.local ] || cp .env.example .env.local`. Reload manually for new events.
 
-The dashboard lists direct `.jsonl` files, skips malformed lines with a visible
-count, and supports selecting a file and filtering by run ID. It is a local
-debugging tool and has no authentication or write operations.
+```powershell
+npm run lint
+npm run build
+npm run start
+```
+
+Stop dev before starting on the same port. `start` needs a completed build.
+The server reads only direct regular `.jsonl` files; invalid names containing
+separators or `..` are rejected. Malformed/invalid lines are skipped with a
+visible count. Choose a file, filter by run ID and expand logged input/output
+with native details elements. Missing values show `—`; status is derived per
+event only when logged evidence exists. This is not an independent run verdict.
+Local logs may contain private ticket text; do not expose this debugger publicly.
+See [all project commands](../README.md).

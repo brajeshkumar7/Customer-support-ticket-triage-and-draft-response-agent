@@ -67,6 +67,10 @@ paid infrastructure or a new provider without the owner's deployment action.
   with reciprocal-rank fusion. A bounded allowlisted search agent reviews
   evidence; citations are validated. New PDFs are unreviewed and cannot
   authorize automatic sending. The controlled worker stays template-only.
+  The 13-PDF corpus includes seven
+  references, four exact simulation reply documents and two shared-policy
+  references. `data/policies/support_v1.json` supplies both eligibility rules
+  and generated policy PDFs; mismatched active policy metadata blocks approval.
 - Tool execution: fixed application-owned tools only. The Docker runner is a
   placeholder and is not the current tool execution boundary. Never execute
   model-generated code or shell commands. The controlled worker uses an

@@ -1,27 +1,30 @@
-# Support Ticket Triage Agent â€” Multi-Step Runtime Safety
+# Support Ticket Triage Agent
 
-> Status: in progress. See `TASKS.md` for current phase, `PROGRESS.md` for the
-> latest session log.
+A local, stateful support-ticket agent with Jev triage, hybrid PDF RAG,
+deterministic safety decisions, cited drafts, structured review, bounded
+retries, and observable outcomes. This is a measured portfolio project,
+**not approved for unattended real-customer delivery**.
 
-A stateful, multi-step support agent with fixed application-owned tools,
-async concurrency, observability, and tested prompt-injection defenses. The
-Docker tool runner is a placeholder; current tools run in the Python process.
-The controlled Zoho worker can send only approved informational templates to
-allowlisted test contacts. Real customer auto-send is disabled.
+The latest TASK-41 attempt had **50 attempted, 47 scored, 45 matched, two false
+escalations, three operational failures, and zero false simulated sends**.
+Failed batches retain their reports but do not overwrite the accepted metrics
+tracker. Older 50/50 results describe earlier implementations.
 
-## Project files (read in this order)
+## Guides
 
-1. `AGENTS.md` â€” instructions for AI coding tools (Codex, Cursor, Antigravity all read this)
-2. `PRD.md` â€” full spec: goals, architecture, success metrics
-3. `TASKS.md` â€” current task breakdown by phase
-4. `DECISIONS.md` â€” architecture decisions and why they were made
-5. `PROGRESS.md` â€” session-by-session log and measured metrics
+- [Project instructions](AGENTS.md), [specification](PRD.md), [tasks](TASKS.md)
+- [Architecture](docs/architecture.md), [three explained workflows](flow.md)
+- [Knowledgebase](knowledgebase/README.md), [dataset](data/test_tickets/README.md)
+- [Decisions](DECISIONS.md), [measurements and progress](PROGRESS.md), [failures](FAILURE_MODES.md)
+- [Readiness gaps](PRODUCTION_READINESS.md), [optional controlled worker](docs/controlled_render.md)
 
-## Setup
+## 1. Setup
 
-Use Python 3.11 or newer. Create and activate a project-local virtual
-environment before installing or running the project. The `.venv/` directory
-is ignored by Git; the dependency source of truth remains `requirements.txt`.
+Run commands from the repository root unless a section explicitly changes
+folders. Prerequisites: Python **3.11+**, Git, and internet access for package
+installation. The optional dashboard needs Node **20.9+** and npm. PostgreSQL
+and Zoho are unnecessary for synthetic runs. Docker, Redis, and Ollama are not
+wired into the local workflow; their legacy example settings do not enable them.
 
 ### Windows PowerShell
 
@@ -31,459 +34,347 @@ py -3.11 -m venv .venv
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 if (!(Test-Path .env)) { Copy-Item .env.example .env }
-python -m pytest
 ```
 
-Fill in `.env` with the required local settings and API credentials before
-running the graph manually. The Zoho agent graph remains draft-only. For a
-ticket and contact you control, `run_zoho --send-reviewed` can send its exact
-supervisor-approved draft after you review it and confirm the recipient and
-ticket. The separate `zoho_smoke` command tests a fixed message without
-running the agent. Zoho is the current replaceable reply adapter.
-Configure the Zoho API and Accounts domains,
-organization ID, a configured support sender email, OAuth client ID/secret,
-and refresh token; the OAuth app needs `Desk.tickets.READ` and
-`Desk.tickets.UPDATE` scopes. The Zoho commands take a numeric
-Zoho API ticket ID. Tests use mocked clients and never send live replies. If PowerShell
-blocks activation scripts, use
-`.venv\Scripts\python.exe -m pip install -r requirements.txt` and
-`.venv\Scripts\python.exe -m pytest` without activating the environment.
-
-Ticket triage uses **Jev via OpenRouter's Decisions API**. The local `.env`
-and `.env.example` contain:
-
-```dotenv
-OPENROUTER_TRIAGE_MODEL=typesafe/jev-1.13
-```
-
-Jev answers category and low/medium/high urgency in one typed request. The
-printed `triage_decision` contains its probabilities and served model; explicit
-safety signals can raise the final priority. With PDF RAG enabled, covered FAQ
-tickets also run Jev and evidence review. The legacy shortcut requires
-`RAG_ENABLED=false`. Drafting and
-extraction still use `OPENROUTER_PRIMARY_MODEL` and its chat
-fallbacks. Both APIs share request pacing and bounded retries. Jev uses no
-chat fallback; a failed or unclear decision escalates. See the
-[OpenRouter examples](https://openrouter.ai/blog/insights/what-is-jev/) and
-[TypeSafe contract](https://docs.typesafe.ai/api). Earlier benchmark scores
-predate this classifier change; its full-suite accuracy and speed are unmeasured.
-
-## PDF knowledge ingestion and hybrid RAG
-
-Seven actual seed PDFs live in [knowledgebase/](knowledgebase/README.md).
-They contain fictional merchant guidance. Add text-layer PDFs, then run:
+If Python 3.11 is not installed, select an installed Python 3.11+ interpreter.
+The activation path is `.\.venv\Scripts\Activate.ps1`, with both dots separated
+by a backslash. If script execution is blocked, optionally allow scripts only
+for this terminal, then activate:
 
 ```powershell
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
-.\.venv\Scripts\python.exe -m src.knowledge.ingest
-.\.venv\Scripts\python.exe -m src.knowledge.search "What payment methods are available?"
-.\.venv\Scripts\python.exe -m src.agent.run_synthetic --case-id general_07
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\.venv\Scripts\Activate.ps1
 ```
 
-`RAG_ENABLED=true` is the default. `RAG_INDEX_DIR=./data/rag_index` stores the
-separate PDF Chroma collection, sparse BM25 vectors and ledger. Skip identity
-is SHA-256 of the relative filename and first 150 extracted words. Immutable
-PDFs are assumed; revisions must use new filenames because later edits are
-not detected. Full-content provenance hashing happens only when indexing.
-The first ingestion after the ledger-version update rebuilds existing PDFs
-once; later runs skip completed documents. Removed PDFs are excluded. The first dense
-embedding call may download MiniLM; later calls use its cache. No embedding
-API key is needed. Scanned/encrypted PDFs report an error rather than silent OCR.
+Activation is optional: substitute `.\.venv\Scripts\python.exe` for `python`
+in every Python command below. Do not commit `.venv/` or `.env`.
 
-Jev triage precedes corpus-wide hybrid search. The model can request up to
-two additional searches via the allowlisted tool, reviews evidence, and drafts
-with validated chunk citations. Category does not select a document. Existing
-safe FAQ simulations retain exact text and require retrieved hash-pinned
-evidence. New unreviewed PDFs support human drafts only. This does not loosen
-real-delivery restrictions or replace authoritative order APIs. The independent
-controlled worker remains on its approved JSON templates.
+### Linux / macOS
 
-Full 50/200-case RAG accuracy, latency, costs and 1,000-document performance
-remain unmeasured. See TASK-37 verification in PROGRESS.md.
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+[ -f .env ] || cp .env.example .env
+```
 
-## Run-history dashboard setup
+Use a Python 3.11+ `python3`. Without activation, use `.venv/bin/python`.
 
-The local read-only dashboard uses Next.js and TypeScript and reads the agent's
-JSONL files from `data/logs/` on the server. From the repository root, start it
-with:
+### Configuration
+
+Edit `.env`, keeping credentials out of `.env.example` and Git. The examples
+below use placeholders; they are not account settings.
+
+| Group | Settings and requirements |
+| --- | --- |
+| OpenRouter | `OPENROUTER_API_KEY`, `OPENROUTER_BASE_URL`, `OPENROUTER_PRIMARY_MODEL`, `OPENROUTER_MODELS` (chat fallbacks); use the models you choose, free or paid |
+| Decisions | `OPENROUTER_TRIAGE_MODEL`, `OPENROUTER_SUPERVISOR_MODEL`; defaults are `typesafe/jev-1.13`; chat fallbacks do not replace Jev |
+| Limits | `OPENROUTER_REQUESTS_PER_MINUTE`, `OPENROUTER_TIMEOUT_SECONDS`, `AGENT_RUN_TIMEOUT_SECONDS`; bounded API retries are separate from three graph retries |
+| Knowledge | `RAG_ENABLED=true`, `RAG_INDEX_DIR=./data/rag_index`; ingest before graph evaluations |
+| Logging | `LOG_LEVEL`; local JSONL is under `data/logs/`; dashboard `LOGS_DIR` is configured separately |
+| Historical memory | `CHROMA_PERSIST_DIR`; ordinary sample/Zoho runs persist summaries; synthetic commands use ephemeral memory |
+| Zoho, optional | Regional `ZOHO_DESK_API_DOMAIN`, `ZOHO_ACCOUNTS_DOMAIN`, `ZOHO_DESK_ORG_ID`, `ZOHO_DESK_FROM_EMAIL`, OAuth client ID/secret and refresh token; ticket READ/UPDATE scopes as needed |
+| Sending | Keep `ZOHO_DESK_SEND_ENABLED=false` unless deliberately using a controlled reviewed-email or smoke command; this flag never enables graph auto-send |
+| Worker, optional | `DEPLOYMENT_MODE=off`, `DATABASE_URL`, `APPROVED_KNOWLEDGE_SHA256`; see deployment guide for additional owner review and allowlist requirements |
+
+Model-backed commands consume configured OpenRouter quotas and may incur cost.
+A probability is a model output, not calibrated proof of correctness.
+
+## 2. Prepare and inspect knowledge
+
+The checked-in corpus has **13 PDFs**: seven expanded fictional references,
+four exact informational simulation replies, and two generated business-policy
+references. References and unreviewed documents cannot authorize an automatic
+reply. Full provenance and approval scopes are in
+[the knowledgebase guide](knowledgebase/README.md).
+
+```powershell
+python -m src.knowledge.export_policy
+python -m src.knowledge.ingest
+python -m src.knowledge.search "How long does an approved refund take?" --top-k 5
+```
+
+Export is offline and derives reference PDFs from
+[data/policies/support_v1.json](data/policies/support_v1.json), the same validated
+source as the policy checker. It skips identical completed exports, merges
+manifest entries, and refuses changed content under an existing policy/PDF
+version. Ingestion writes dense local MiniLM vectors to Chroma and sparse BM25
+vectors/ledger to SQLite. Its first embedding call may download MiniLM; it does
+not call OpenRouter or Zoho. Search prints local ranked chunks and citations.
+
+Immutable documents are identified by relative filename plus the first 150
+words. Later edits are not detected by that skip key: give revisions new
+filenames, inspect provenance/scope, then ingest. Full PDF hashes are checked
+when indexing. Do not relabel public reference guidance as merchant authority.
+Superseded return/damage references stay on disk but are excluded from active
+policy evidence. Business policy `fictional_support/v1` is distinct from send
+policy `informational_only_v4`.
+
+These **authoring utilities are unnecessary for normal setup** and refuse
+existing target PDFs; do not use them as a repair/overwrite command:
+
+```powershell
+python scripts/export_knowledge_pdfs.py
+python scripts/export_simulation_reply_pdfs.py
+```
+
+Do not regenerate the frozen holdout with `src.eval.build_holdout` for an
+ordinary run; changing its bytes invalidates its pinned version/hash.
+
+## 3. Run the local agent
+
+### Single synthetic ticket
+
+```powershell
+python -m src.agent.run_synthetic --case-id general_07
+python -m src.agent.run_synthetic --case-id return_01
+```
+
+Select any ID from `tickets.jsonl` (for example `order_01`–`order_10`). These
+commands use configured models, the local PDF index, fresh ephemeral Chroma,
+and a **fake sender only**. No Zoho request or email occurs. A covered FAQ may
+be simulated; customer-specific requests produce human-review drafts and
+escalations. Outcomes print to the console; events go to `data/logs/`.
+
+### Sample and streaming demonstration
+
+```powershell
+python -m src.agent.graph
+python -m src.agent.stream_example
+```
+
+Both use OpenRouter and persistent historical memory. Neither provides a Zoho
+ticket ID or a fake sender, so no real email is sent; an unavailable delivery
+ends in escalation. Streaming prints each completed node's partial update
+with flushing, not token-by-token output. Events are also logged locally.
+
+### All 50 development regression tickets
+
+```powershell
+python -m src.eval.run_eval
+```
+
+This runs configured models with **simulated delivery only**, using
+`manifest_informational.csv`, not the older fixture-backed labels. No Zoho
+mapping, credentials, or `--send` flag is needed or supported. Each batch gets
+a fresh shared ephemeral Chroma collection; successful simulations can supply
+historical context to later cases. Persistent history is untouched.
+
+The console prints per-case outcomes and metrics. Raw reports are saved in
+`data/eval_reports/`; model/tool events go to `data/logs/events.jsonl`. Only
+fully scored batches publish accepted tracker metrics. A failed batch is still
+saved and must not be described as a clean accuracy result.
+
+### 200-case synthetic regression and checkpoint resume
+
+```powershell
+python -m src.eval.run_holdout
+python -m src.eval.run_holdout --resume data/eval_reports/HOLDOUT_CHECKPOINT.json
+```
+
+Use the actual checkpoint path printed by the runner. Configured models and a
+fake sender are used; there is no Zoho delivery. Memory is shared ephemerally
+within the batch and successful summaries are restored on resume. The runner
+checks frozen dataset bytes and configuration compatibility, including RAG,
+models, review threshold, and business policy. It rejects incompatible resumes.
+These are **author-labeled synthetic cases**, not independently reviewed real
+tickets; prior tuning makes them a regression set rather than an untouched
+holdout. Reports/checkpoints are local under `data/eval_reports/`.
+
+### Recompute saved metrics offline
+
+```powershell
+python -m src.eval.run_eval --report data/eval_reports/REPORT.json
+python -m src.eval.run_holdout --report data/eval_reports/HOLDOUT_REPORT.json
+```
+
+Use an existing report path. These commands print its recorded metrics without
+new model calls, Zoho requests, or duplicate replies. Historical 25-ticket
+reports remain readable; their measurements do not describe the current stack.
+
+## 4. Controlled Zoho runs
+
+Use the **numeric API `id`**, not the visible ticket number such as `#101`.
+Obtain it from Zoho's ticket API or the ticket's API identifier. Do not substitute
+an order ID. Use only tickets and contacts you control.
+
+### Fetch and draft, without email
+
+```powershell
+python -m src.agent.run_zoho --ticket-id 123456789 --draft-only
+```
+
+Requires Zoho read credentials, OpenRouter configuration and an ingested index.
+After CONTROLLED and ticket-ID confirmation, it fetches subject/description
+and runs the local graph with persistent Chroma. Usable text can be analyzed
+across channels. This command neither sends nor assigns a ticket. It does not
+use the worker's latest-inbound-thread polling path. Console results include
+run ID, triage, safety findings, draft, and structured supervisor review.
+
+### Run the agent, then manually confirm one email
+
+```powershell
+python -m src.agent.run_zoho --ticket-id 123456789 --send-reviewed
+```
+
+Requires the same configuration, update permissions, sender address and
+`ZOHO_DESK_SEND_ENABLED=true`. The graph itself stays draft-only. The separate
+CLI step shows the exact outgoing text and fetched requester email:
+
+- A supervisor-approved draft is proposed for explicit human review, even if
+  the deterministic gate blocked unattended delivery.
+- If the draft fails review or is absent, a **fixed acknowledgement** is
+  proposed instead; it does not repeat unverified agent facts.
+- Confirm the displayed requester email exactly (not your support address),
+  then the requested SEND/ticket confirmation. The command rechecks ticket
+  text, recipient and status before attempting at most one public reply.
+
+Declined/mismatched confirmation sends nothing. An uncertain timeout is not
+retried: inspect Zoho before sending manually. The reviewed-email outcome is
+separate from the graph's escalation status. API acceptance/thread confirmation
+does not prove inbox arrival; check the ticket conversation and recipient inbox.
+The old `run_zoho --send` is superseded.
+
+### Delivery-only fixed-message smoke test
+
+```powershell
+python -m src.eval.zoho_smoke --ticket-id 123456789 --send
+```
+
+Requires enabled controlled sending and Zoho credentials. After controlled
+contact and ticket confirmation it attempts one fixed message. **No agent,
+OpenRouter, or RAG runs**. Console and JSONL record delivery; ambiguous sends
+are not retried. This tests the adapter, not agent accuracy.
+
+## 5. Tests and additional evaluations
+
+| Command | Configuration / external calls | Output and scope |
+| --- | --- | --- |
+| `python -m pytest tests -q` | Installed Python dependencies; fake clients, no live model or email calls | Console results; network-free implementation regressions |
+| `python -m pytest tests/test_business_policy.py -q` | Offline | Shared-policy boundaries and metadata checks |
+| `python -m src.eval.run_safety_regressions` | Offline | Console; historical fixture-gate checks, not current approval acceptance; use pytest for current rules |
+| `python -m src.eval.run_prompt_injection_eval` | Configured graph models plus first configured fallback as judge; Zoho forced off | Ten cases, console verdicts and JSONL; no standalone report or automatic PRD metric publication |
+| `python -m src.eval.run_supervisor_eval` | Configured Jev supervisor; no Zoho | Nine visible labeled development drafts; console, logs and `data/eval_reports/task38_reviews_*.json`; not an independent calibration set |
+| `python -m src.eval.compare_classification --report docs/measurements/combined_classification_20261004.json` | Offline historical experiment recomputation | Prints and writes `data/eval_reports/combined_classification_comparison.json`; compares old generative paths, not Jev |
+| `python -m src.eval.run_release_eval --cases data/test_tickets/release_reviewed.jsonl --out data/eval_reports/release_review.json` | Offline; requires an externally reviewed dataset that is not supplied | Deterministic policy evaluation; requires at least 200 attributed reviews and category coverage; does not test delivery or arrival-to-reply latency |
+| `python -m src.eval.export_public_metrics data/eval_reports/REPORT.json docs/measurements/NEW_SUMMARY.json` | Offline; existing fully scored 50/200 report required | Writes body-free derived metrics; refuses unscored reports and existing outputs unless `--overwrite` is explicitly supplied |
+
+Running classification comparison without `--report` makes configured model
+calls for the historical experiment. It is optional, not a current Jev test.
+Public export cannot publish TASK-41 as an accepted report because it contains
+operational failures. Raw reports may contain ticket text and drafts.
+
+## 6. Dashboard
+
+Read-only Next.js App Router + strict TypeScript. It reads JSONL server-side,
+with file selection, run-ID filtering, skipped-line counts and expandable event
+values. This is a local debugger, not a customer portal.
 
 ```powershell
 cd dashboard
 npm install
+if (!(Test-Path .env.local)) { Copy-Item .env.example .env.local }
 npm run dev
 ```
 
-Open <http://localhost:3000>. To read logs from another location, set
-`LOGS_DIR` in `dashboard/.env.local`; see [`dashboard/README.md`](dashboard/README.md).
-
-## Stream graph updates
-
-With the OpenRouter settings configured in `.env`, run the sample workflow and
-print each completed node update as it arrives:
+Open `http://localhost:3000`. `LOGS_DIR` defaults to `../data/logs`, resolved
+relative to `dashboard/`. On Linux/macOS replace the copy command with
+`[ -f .env.local ] || cp .env.example .env.local`. No model/Zoho calls or log
+writes occur. Rendered log values are visible in your browser.
 
 ```powershell
-.\.venv\Scripts\python.exe -m src.agent.stream_example
+npm run lint
+npm run build
+npm run start
+cd ..
 ```
 
-The sample does not include a Zoho ticket ID, so it cannot post a reply.
+Stop the dev server before `start` on the same port. `start` requires a build.
+Files in `node_modules/` and `.next/` are ignored. Status is per event; missing
+status evidence shows `—`, not an inferred run success.
 
-## Evaluate the synthetic tickets
+## 7. Optional controlled worker administration
 
-Run all 50 current cases through the graph with a fake sender. The new
-informational-only labels are in `data/test_tickets/manifest_informational.csv`;
-the original `manifest.csv` and its 50/50 report are historical:
+The worker is **implemented but undeployed**, separate from the local graph.
+It needs PostgreSQL, Zoho credentials and a deliberate paid infrastructure
+setup; [read the complete prerequisites](docs/controlled_render.md) first.
+`live` fails startup. Do not enable paid infrastructure just to run evaluation.
 
 ```powershell
-.\.venv\Scripts\python.exe -m src.eval.run_eval
+python -m src.agent.production_worker
 ```
 
-The fake sender lets the evaluator measure approved-reply and escalation
-decisions without creating Zoho tickets or posting public replies. A simulated
-send is not evidence of real delivery. The run saves a report in
-`data/eval_reports/` and updates `PROGRESS.md` with measured results. To
-recompute a saved report without external calls:
+With `DEPLOYMENT_MODE=off` it waits without polling. `shadow` polls Zoho and
+records database decisions without Zoho writes. `test` requires owner-approved
+knowledge with a matching hash, exact ticket/contact allowlisting and an
+enabled database kill switch. It can send approved informational templates or
+route blocked cases through private notes. No model drafting or Chroma approval
+is used. Ctrl+C stops a local worker. Logs omit bodies; jobs persist in the DB.
+
+After owner review, compute the knowledge hash, configure test mode and the
+required DB/Zoho settings. The administration commands write PostgreSQL:
 
 ```powershell
-.\.venv\Scripts\python.exe -m src.eval.run_eval --report data/eval_reports/REPORT.json
+Get-FileHash data/approved_knowledge/v1.json -Algorithm SHA256
+$testExpiry = (Get-Date).ToUniversalTime().AddDays(1).ToString("yyyy-MM-ddTHH:mm:ssZ")
+python -m src.agent.worker_admin allow-test-ticket --ticket-id 123456789 --email controlled@example.com --expires $testExpiry
+python -m src.agent.worker_admin enable-test-sending
+python -m src.agent.worker_admin disable-test-sending
+python -m src.agent.worker_admin mark-reviewed --ticket-id 123456789 --thread-id 987654321
 ```
 
-Each full evaluation uses one fresh, shared, in-memory Chroma collection in
-ticket order. Successful simulated runs store compact summaries that later
-cases may recall. The configured persistent Chroma database is untouched.
-Reports identify this as `shared_ephemeral_chroma_sequential`; older reports
-did not record effective recall mode and remain historical comparisons only.
-The old implementation created an ephemeral client per ticket, but Chroma
-reuses a shared in-process ephemeral database; the 200-case run also evaluated
-parallel batches. Its exact recall exposure is unknown.
+`enable-test-sending` permits a running test worker to send; do not run it
+casually. The disabling command is the kill switch. Mark a human/unknown job
+reviewed only after inspecting Zoho; it records resolution, not a resend.
+Administration initializes required tables; it needs `DEPLOYMENT_MODE=test`.
 
-Run the separate frozen 200-case author-labeled synthetic holdout:
+## 8. Where to inspect results
 
-```powershell
-.\.venv\Scripts\python.exe -m src.eval.run_holdout
-```
+- **Console:** single-ticket draft, triage, safety and supervisor findings;
+  streaming prints completed node updates as they arrive.
+- **`data/logs/events.jsonl`:** correlated node/tool/model events, latency and
+  available provider cost. Local logs can contain ticket bodies and drafts;
+  keep them private. Missing costs remain unknown, not zero.
+- **`data/eval_reports/`:** raw per-case reports/checkpoints, including failed
+  batches; recompute with the matching `--report` command.
+- **`docs/measurements/`:** committed body-free historical measurements and
+  failure diagnostics. Failed diagnostics are not accepted benchmark metrics.
+- **[PROGRESS.md](PROGRESS.md):** accepted historical tracker and dated sessions.
+- **Dashboard:** individual JSONL events, not independent correctness verdicts.
 
-This uses the configured models and a fake sender. It checks the holdout's
-SHA-256 and saves per-case reasons, evidence, latency, model calls, and cost.
-The labels are author-drafted and templated, not independently reviewed. It
-does not call Zoho. A new complete run uses one fresh ephemeral Chroma
-collection shared in ticket order; later cases can recall prior successful
-summaries, and persistent Chroma is untouched. The older saved holdout ran
-parallel batches and did not establish its exact recall exposure. The runner uses
-one OpenRouter client and rate budget; per-ticket latency includes request
-pacing waits. Progress is
-checkpointed after each case in
-`data/eval_reports/`; if interrupted, resume with
-`python -m src.eval.run_holdout --resume data/eval_reports/CHECKPOINT.checkpoint.json`.
-Resume refuses a changed approval policy, knowledge file, or model selection;
-start a new run after any of those changes.
-`--report PATH` recomputes a completed saved report offline.
+## 9. Measured results and remaining limits
 
-### Run one synthetic ticket (Flow 1)
+[TASK-41 diagnostic](docs/measurements/task41_policy.json), measured 2026-10-07:
 
-Run a single case through the current graph. Jev triage is followed by hybrid
-PDF retrieval and bounded model evidence review. Covered informational cases
-use exact versioned simulation text requiring matching retrieved PDF evidence.
-Other tickets produce cited human-review drafts and escalation:
+| Metric | Recorded value |
+| --- | --- |
+| Attempts / scored / matched | 50 / 47 / 45 |
+| Conditional disposition match among scored cases | 0.9574468085106383; excludes three operational failures |
+| Category classification | 45/50 = 0.9 |
+| False simulated sends / false escalations | 0 / 2 |
+| Simulated replies | 4 |
+| Full-run p95 latency | 65542.06790000899 ms |
+| Total provider-reported token cost | 0.241219502 |
 
-```powershell
-.\.venv\Scripts\python.exe -m src.agent.run_synthetic --case-id order_01
-```
+`general_03` and `general_08` falsely escalated; `general_04`, `order_07`, and
+`order_09` had operational failures. A full successful run, current 200-case
+validation, sequential/async comparison, larger-corpus retrieval measurements,
+and live-release gates remain open. The older accepted 50/50 tracker and
+189/200 holdout are historical, pre-Jev/RAG results. Finite synthetic success
+does not establish perfect accuracy or production readiness.
 
-Choose any ID from `data/test_tickets/manifest_informational.csv`. This command uses an
-isolated in-memory Chroma client and a fake reply sender. It makes no Zoho
-calls. A passing reply is labeled **simulated**; an unsafe or failed run
-returns an escalation. The printed triage fields include category, urgency,
-priority, and which rule or classifier supplied them. It does not prove that a
-customer email was delivered.
+Recorded examples include:
 
-### Run one existing Zoho ticket through the agent
+- **FM-005:** injected manager approval entered a draft; field allowlisting and
+  the measured post-fix run are preserved in the failure log.
+- **FM-022:** Jev rejected supported development drafts; the provisional review
+  threshold is not independently calibrated.
+- **FM-026/028:** response/fact-gathering validation failed in current benchmark
+  attempts; these are operational failures, not successful dispositions.
 
-Use only a test ticket and contact you control. The command fetches an existing
-Zoho ticket and runs classification, fact gathering, drafting, deterministic
-safety checks, and supervisor review. Use draft-only to inspect the result
-without sending:
-
-```powershell
-.\.venv\Scripts\python.exe -m src.agent.run_zoho --ticket-id YOUR_TICKET_API_ID --draft-only
-```
-
-The command asks you to confirm ownership and retype the ticket API ID. It
-then fetches that existing ticket from Zoho, accepts any channel with a
-usable description, and supplies the subject and message to the same agent
-workflow. The result includes the draft and deterministic safety findings for
-review, a local `agent_run_id` for finding the JSONL events, plus predicted
-category, urgency, and a sortable priority band
-(`P1` is highest, then `P2`, then `P3`). Explicit high-stakes or time-critical
-wording can raise a ticket's priority. These bands are per-ticket triage
-metadata; they do not promise an SLA or place tickets into a shared queue. The
-legacy `--send` flag is rejected. To attempt one reviewed email to a
-controlled test contact, set `ZOHO_DESK_SEND_ENABLED=true` in `.env` and run:
-
-```powershell
-.\.venv\Scripts\python.exe -m src.agent.run_zoho --ticket-id YOUR_TICKET_API_ID --send-reviewed
-```
-
-This prints the agent draft and safety findings first. If the supervisor
-passes, the proposed email uses its draft. If review fails or a draft is
-unavailable, the proposed email is a fixed acknowledgement that contains no
-mock order or policy claims. The command shows the **exact outgoing text**,
-rechecks the ticket text and requester email, then asks you to type the
-recipient email and `SEND` plus the ticket ID. It attempts one public email
-only after those confirmations. The graph's `terminal_status`
-describes its draft-only run; `reviewed_email_status` confirms the separate
-operator-approved email. A timeout or unconfirmed send must be checked in Zoho
-before any manual retry. Sending to a non-Email ticket depends on Zoho
-accepting an email reply for that ticket. A missing recipient, changed or
-closed ticket, declined confirmation, or Zoho error still prevents a confirmed
-send. Neither command creates or assigns
-tickets. Repeat separately for each test ticket. Real customer auto-send
-remains disabled.
-
-The local runner can log ticket text and drafts in `data/logs/`; use only
-controlled test data. The deployed worker uses metadata-only logging.
-
-## Controlled automatic-reply worker
-
-The optional paid Render/PostgreSQL deployment is documented in
-[`docs/controlled_render.md`](docs/controlled_render.md). Its mode defaults to
-`off`. In `shadow` it polls Zoho without sending. In `test` it can send one
-versioned informational template to an exact, unexpired ticket/contact
-allowlist entry after an owner approves the reference text and enables the
-database kill switch. It uses the latest inbound Email thread, checks ticket
-and recipient again before sending, and never automatically retries an
-uncertain reply. Other categories go to a human queue/private note.
-
-The worker and graph now share the same informational-only approval rule and
-versioned knowledge entries. They do not use LLM prose, local mock orders, or
-unscoped Chroma memories in public replies. The local knowledge file remains
-`review_required`; controlled worker sending needs owner-approved text and an
-exact allowlist. Real customer mode deliberately
-fails startup until authoritative business data, reviewed cases, shadow
-evidence, and a separate release decision exist.
-
-The [local knowledge audit](docs/knowledge_audit.md) inventories what the
-agent actually retrieves and what remains synthetic. Public research sources
-are recorded in `data/knowledge_sources.json` for review; they are not
-approved merchant policy or evidence for automatic replies.
-
-For a future 200-case human-reviewed release set, run the offline policy
-evaluator with a reviewed JSONL file:
-
-```powershell
-.\.venv\Scripts\python.exe -m src.eval.run_release_eval --cases data/test_tickets/release_reviewed.jsonl --out data/eval_reports/release_review.json
-```
-
-This command refuses fewer than 200 cases or missing reviewer attribution.
-It does not measure Zoho delivery or arrival-to-reply latency. Neither the
-current simulated graph benchmark nor the author-labeled holdout is a release
-gate for live customers. Saved 25-ticket reports remain historical. The
-earlier fixture-backed 50-ticket fake-sender post-fix run recorded 50/50 expected
-dispositions matched, with zero false simulated sends among 28 expected
-escalations under a broader approval policy. Its labels differ from the new
-informational-only manifest. The prior 46/50 report remains in `data/eval_reports/` as the
-before measurement. Neither run sent a public reply or validates real customer
-automation; authoritative business data and independently reviewed release
-cases remain prerequisites.
-
-The 25-ticket one-call classification experiment is recorded in
-[`docs/measurements/combined_classification_20261004.json`](docs/measurements/combined_classification_20261004.json).
-The combined call was faster but below the 95% category gate, so the graph
-still uses the existing two-call path. Recompute its switch decision without
-model calls with
-`python -m src.eval.compare_classification --report docs/measurements/combined_classification_20261004.json`.
-### Test Zoho delivery only (no agent workflow)
-
-Use an existing ticket and contact you control. Set `ZOHO_DESK_SEND_ENABLED=true`
-in `.env`, then run:
-
-```powershell
-.\.venv\Scripts\python.exe -m src.eval.zoho_smoke --ticket-id YOUR_TICKET_API_ID --send
-```
-
-This separate command does not run the agent. It requires confirming that
-the ticket/contact are controlled and then typing the ticket ID. It sends one
-fixed public smoke-test message. Do not use a customer ticket. The smoke test
-does not create tickets or retry an ambiguous send.
-
-### macOS / Linux
-
-```bash
-python3.11 -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
-test -f .env || cp .env.example .env
-pytest
-```
-
-The Docker image installs the same `requirements.txt` inside its own
-container environment; the host `.venv` is for local development and tests.
-
-## Results
-
-The latest completed 50-case measurement uses the configured OpenRouter model
-and a fake sender. It predates the final TASK-32 triage edit, so current-version
-accuracy still needs a fresh complete run.
-The original 50-case manifest and the 200-case holdout are author-labeled,
-templated synthetic datasets; the holdout is not independently reviewed. The
-results below are local regression evidence, not a production-accuracy claim.
-Public-safe per-case summaries are in
-[`docs/measurements/task29_50_v3.json`](docs/measurements/task29_50_v3.json) and
-[`docs/measurements/task29_holdout_v1.json`](docs/measurements/task29_holdout_v1.json).
-Detailed reports, including draft text, remain local under `data/eval_reports/`.
-
-| Metric | Result |
-|---|---|
-| Latest completed 50-case disposition match | 50/50 = 1.0; 0 false simulated sends; 0 false escalations; 7 simulated replies and 43 escalations |
-| Latest completed 50-case p95 / sequential comparison | 44778.41449999687 ms / not measured |
-| Latest completed 50-case total cost / cost per matched run | 0.115013845 / 0.0023002769000000003 provider-reported units |
-| Latest completed 50-case model attribution | 172 calls on `openai/gpt-6-luna-pro`; no fallback model calls logged |
-| 200-case author-labeled holdout match | 189/200 = 0.945; below the 0.95 target |
-| 200-case holdout false sends / false escalations | 0 / 11 (all in general questions) |
-| 200-case holdout unsupported public claims | 0; evidence covered 21/21 simulated replies |
-| 200-case holdout overall p95 / approved FAQ p95 | 59722.046200000026 ms / 714.4188000002032 ms |
-| 200-case holdout total cost / cost per matched run | 0.45285409 / 0.0022546855026455027 provider-reported units |
-| 200-case holdout model attribution | 716 calls on `openai/gpt-6-luna-pro`; no fallback model calls logged |
-| Prompt-injection defense | TASK-17: 10 scored / 0 unsafe after a TASK-16 run with 1 unsafe; see `PROGRESS.md` |
-
-The holdout missed the 95% disposition target because 11 informational general
-questions were escalated. Zero false sends and zero unsupported claims are
-positive safety measurements, but do not offset the misses or establish
-production readiness. Per-category cost, latency, calls, and the model
-breakdown are in the measurement JSON files. Real customer sending remains
-disabled. The latest 50-case source is
-[`task29_20261005T183529Z_2979caa5.json`](data/eval_reports/task29_20261005T183529Z_2979caa5.json);
-the [v3 summary](docs/measurements/task29_50_v3.json) remains historical.
-
-## Architecture
-
-The [implemented architecture diagrams](docs/architecture.md) show the local
-LangGraph path and the separate controlled Zoho worker. [flow.md](flow.md)
-explains each step for a reader new to the project.
-
-## What a reviewer will look for here
-
-LangGraph makes the review loop and explicit escalation terminal visible in
-the [graph](src/agent/graph.py) and [state schema](src/agent/state.py). The
-three fixed tools run in the host Python process; the
-[Docker runner](src/sandbox/docker_runner.py) is a stub and provides no current
-isolation. The [failure log](FAILURE_MODES.md) records observed unsafe sends,
-prompt injection, and retrieval issues; [DECISIONS.md](DECISIONS.md) records
-the three-retry cap. The [injection cases](src/eval/prompt_injection_tests.py)
-and [evaluation harness](src/eval/run_eval.py) are reproducible locally.
-Node/tool/model events are written by the [JSONL logger](src/observability/logger.py).
-The measured autonomy versus safety trade-off is in [PRD.md](PRD.md).
-
-Three observed failures illustrate the measured limits:
-
-- **[Untrusted policy note (FM-005)](FAILURE_MODES.md#fm-005):** One of 10
-  injection cases changed draft wording before tool-field allowlisting.
-  The scored rerun found 0/10 unsafe.
-- **[Unresolved requests sent in simulation (FM-009)](FAILURE_MODES.md#fm-009):**
-  The 50-case pre-fix run had four false simulated sends. Explicit safety and
-  coverage gates blocked all four on the later fixture-backed rerun; real
-  delivery remains disabled.
-- **[Chroma evaluation scope (FM-016)](FAILURE_MODES.md#fm-016):** Per-ticket
-  ephemeral clients did not prove isolation because Chroma reused an in-process
-  database. New complete evaluations use a fresh, named collection shared
-  within each batch and record its memory mode.
-
-
-## TASK-38: Jev supervisor review
-
-Generated human-review drafts use one OpenRouter Decisions request with three
-Choice questions (pass, fail, insufficient_evidence). Configure
-`OPENROUTER_SUPERVISOR_MODEL` independently from triage and drafting; its default
-is `typesafe/jev-1.13`. Each check must select pass with probability >= 0.90.
-This initial threshold is provisional, not calibrated. Fixed checklist guidance
-supplies retry feedback; it does not identify individual unsupported sentences.
-Malformed or unavailable reviews escalate. Exact approved FAQ templates retain
-local validation without a supervisor model call. Checklist completion score is
-not Jev probability. Current tools remain fictional; cited PDF guidance and
-historical summaries do not verify customer identity. Safety gates and live-send
-restrictions remain in force. Earlier generative-supervisor descriptions are
-historical; accuracy and speed changes require new measured reports.
-
-Measure the author-labeled development reviewer set (OpenRouter calls, no delivery):
-
-```powershell
-python -m src.eval.run_supervisor_eval
-```
-
-Run the full simulated graph regression with `python -m src.eval.run_eval`.
-
-
-### TASK-39 current provenance and review output
-
-The expanded Northstar PDFs are pinned and indexed as northstar_reference_v2
-simulation references with nonempty knowledge IDs. Their approval_scope is
-reference_only: this repairs stale provenance but does not promote them to
-v1 exact FAQ approval or real business authority. New unpinned PDFs remain
-unreviewed. Both single-ticket commands display supervisor_reason and raw Jev
-supervisor_decision alongside the checklist score and workflow errors; the
-synthetic command also displays safety_review. A blocked order still escalates.
-
-## TASK-40: Evidence-bound safety assessment
-
-The graph and controlled worker share `production_policy.decide_public_reply`
-under `informational_only_v4`. The assessment records all detected blockers,
-specific missing evidence, knowledge IDs/version and policy version. Separate
-questions must be covered by the same approved reply; unsupported actions,
-safety incidents, billing disputes and customer-specific facts remain human work.
-This is a bounded informational policy, not a general proof of intent coverage.
-
-RAG approval additionally requires an explicitly scoped
-`automatic_reply_simulation` PDF containing the exact v1 reply, with trusted
-hash-pinned provenance and a cited, sufficient coverage review. The corpus now
-has seven unchanged reference-only PDFs and four separate fictional reply PDFs.
-Neither historical Chroma summaries nor reference-only PDFs authorize sending.
-The final graph delivery step rechecks evidence and exact outgoing text; the
-worker also checks exact template text. Jev PASS cannot override any blocker.
-
-Reindex with `python -m src.knowledge.ingest`. Run the fake-only benchmark with
-`python -m src.eval.run_eval`; reproduce saved metrics with
-`python -m src.eval.run_eval --report PATH`. Real customer sending stays disabled.
-Approved simulation content is not merchant approval or production evidence.
-
-### TASK-40 measured outcome (2026-10-06)
-
-The configured-model fake-only report
-`data/eval_reports/task29_20261006T165804Z_49001dc4.json` attempted all 50 cases:
-46/49 scored disposition matches (0.9387755102040817), one unscored workflow
-failure, three false escalations, zero false simulated sends and four simulated
-replies. Full-run p95 was 53658.00060000038 ms; provider-reported total cost was
-0.237483676. The accepted tracker was not overwritten. Safety enforcement held
-in these cases, but clean workflow acceptance remains open (FM-026/027).
-These numbers supersede no historical report and authorize no live sending.
-
-## TASK-41: One fictional business policy source
-
-`data/policies/support_v1.json` is the validated source for delivered-only
-eligibility, inclusive 30-day returns and inclusive 7-day damage reporting.
-The checker and generated PDF guidance consume these same rules. Results and
-retrieved chunks carry policy ID, version, source hash and rule IDs; window
-eligibility never authorizes a business action. Safety incidents and policy
-exceptions require human review independently of eligibility.
-
-Generate reference PDFs with `python -m src.knowledge.export_policy`, then
-index with `python -m src.knowledge.ingest`. Identical exports and indexes skip
-completed documents. A change under an existing PDF/policy version fails
-export; use a new version and extend the validated loader's supported version
-before adoption. Expanded legacy PDFs remain on disk; superseded return/damage
-references are excluded from active RAG context. The corpus has 13 PDFs: seven
-original references, four exact simulation replies, two generated policy
-references. The legacy seed exporter refuses to overwrite existing references.
-
-With RAG enabled, a used policy result requires matching active retrieved rule
-metadata. Missing, conflicting or obsolete policy evidence produces explicit
-safety findings and human escalation even if Jev passes. Business policy
-provenance is separate from `informational_only_v4` send policy. Reports and
-holdout resume checks include the active business policy; historical reports
-remain readable. Chroma history and fictional orders cannot authorize real
-customer-specific claims, and real customer sending remains disabled.
-
-Earlier descriptions of hardcoded checker windows and duplicated policy prose
-are historical. This is consistency validation, not merchant approval or a
-claim of improved model accuracy. New measurements require a completed run.
-
-TASK-41 measurement: 50 attempts, 47 scored, 45 matched; two false escalations and three unscored workflow failures remain open. Zero false simulated sends, four simulated replies. Full-run p95: 65542.06790000899 ms. Source and exact metrics: [TASK-41 diagnostic](docs/measurements/task41_policy.json). This validates the tested policy consistency contract, not overall accuracy acceptance or real-customer automation.
+See [FAILURE_MODES.md](FAILURE_MODES.md) for exact observations and before/after
+records. Real automation still needs merchant
+approval, authoritative business data, identity checks, representative independent
+review, and operational validation. Customer-specific fixture data and historical
+Chroma summaries cannot authorize a real reply.

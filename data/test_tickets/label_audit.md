@@ -1,3 +1,9 @@
+# Historical label audit
+
+This preserves the TASK-25 fixture-backed label review. Current runs use
+`manifest_informational.csv`; these former criteria do not authorize
+customer-specific automatic replies. See [current dataset instructions](README.md).
+
 # TASK-25 benchmark label and failure audit
 
 This audit uses the saved baseline report

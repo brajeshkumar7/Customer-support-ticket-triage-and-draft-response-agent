@@ -21,7 +21,8 @@ pull from PROGRESS.md's metrics tracker where relevant)
 
 FM-018–FM-020 retain three early Zoho and send-gate observations whose original
 FM-007–FM-009 numbers collided with later entries. The observations and
-before/after measurements are unchanged.
+before/after measurements are unchanged. The later controlled reviewed-send
+record formerly also labeled FM-018 is now FM-029; its observation is unchanged.
 
 ## FM-001 — Manual OpenRouter run blocked by network access
 
@@ -484,7 +485,7 @@ offline replay of the saved pre-fix model outputs now selects exactly the four
 known category corrections and leaves the vague `general_05` category intact;
 this replay is a regression diagnostic, not a new accuracy measurement.
 
-## FM-018 - Controlled reviewed-send command stopped on a failed agent draft
+## FM-029 - Controlled reviewed-send command stopped on a failed agent draft
 
 **Observed behavior:** On controlled Zoho ticket `279251000000372001`, the
 agent classified an order-status request and drafted a response from local
@@ -542,7 +543,7 @@ counting its human escalation as a successful disposition. This task changes
 the supervisor; it does not silently repair or omit draft-generation failures.
 
 
-## FM-024 ? PDF provenance mismatch blocked informational simulations
+## FM-024 - PDF provenance mismatch blocked informational simulations
 
 **Observed:** The completed TASK-38 report
 `data/eval_reports/task29_20261006T144218Z_8f3a4f3b.json` has seven false
@@ -628,6 +629,6 @@ The logged node/type do not establish the precise malformed field or prove a
 policy-consistency fault. Retain this as an open workflow failure and exclude
 it from scored accuracy. The complete saved report preserves its run ID.
 
-### TASK-41 final measurement ? FM-026, FM-027 and FM-028
+### TASK-41 final measurement - FM-026, FM-027 and FM-028
 
 Report: `data/eval_reports/task29_20261006T184220Z_b48293f6.json`. All 50 attempted; 47 scored, 45 matched. FM-026: general_04 respond ValueError. FM-028: order_07 and order_09 gather_facts ValueError. FM-027: general_03 and general_08 false escalations due to retrieval/coverage. Zero false simulated sends; four simulated replies. These failures remain open. The policy consistency tests pass, but do not establish corrected retrieval, model-output validation or deployment readiness.

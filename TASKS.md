@@ -82,7 +82,7 @@ place; don't delete completed items, so the history stays visible.
       independently human-reviewed release set.
 - [x] Rerun the 25-ticket graph benchmark with simulated delivery only; update
       measured metrics from the fully scored 2026-10-04 saved report. The
-      latest run matched 25/25 dispositions; p95 was 48374.99450001633 ms.
+      historical 25-case run matched 25/25 dispositions; p95 was 48374.99450001633 ms.
 - [x] Keep real commerce, billing, authoritative policy, automatic Zoho
       intake/deduplication, durable runs, protected logs, and human routing as
       separate deployment work until providers and requirements are selected.
@@ -189,6 +189,10 @@ Revisit only after Phase 6 is done.)*
       200-case rerun is still pending.
 
 ### TASK-32 — Complete per-ticket category and priority triage
+
+Historical category overrides below were superseded by TASK-36 Jev triage.
+Priority metadata/floors remain active; the no-model FAQ path requires RAG off.
+
 - [x] Return category, urgency, priority band, numeric sort rank, and the basis
       for classification/urgency in graph state and the synthetic/Zoho draft
       command output.
@@ -201,9 +205,9 @@ Revisit only after Phase 6 is done.)*
       basis visible. Do not treat a bare "today" mention as P1 urgency.
 - [x] Require a named item/product or explicit damage/defect wording before a
       deterministic malfunction category override; preserve vague complaints.
-- [ ] Run a fresh configured-model classification evaluation and review its
-      category accuracy and urgency labels; these measures do not authorize
-      live replies.
+- [x] Record current Jev category accuracy from TASK-41 (45/50 = 0.9).
+- [ ] Validate urgency labels independently; current disposition acceptance
+      and calibration remain open and do not authorize live replies.
 - [ ] Decide separately whether a multi-ticket queue or SLA routing is needed;
       current priority metadata ranks one ticket but does not create a queue.
 
@@ -214,6 +218,9 @@ Revisit only after Phase 6 is done.)*
       Zoho reply. The controlled worker's Email-only send boundary is unchanged.
 
 ### TASK-34 — Send one manually reviewed agent draft to a controlled Zoho contact
+
+Original draft-only send condition below was extended by TASK-35 acknowledgement fallback.
+
 - [x] Add `run_zoho --send-reviewed`: run the graph without automatic delivery,
       display the exact draft and safety findings, and require supervisor PASS
       plus explicit recipient and ticket confirmation before one public email.
@@ -231,7 +238,8 @@ Revisit only after Phase 6 is done.)*
 
 ### TASK-36 — Use Jev typed Decisions for triage
 - [x] Review OpenRouter/TypeSafe contracts and replace generative category/
-      urgency classification with one Jev request outside the covered FAQ path.
+      urgency classification with one Jev request; all RAG-enabled tickets use it (the FAQ shortcut is
+      retained only with RAG disabled).
 - [x] Configure the triage model separately, validate typed Choice answers and
       preserve probabilities/model provenance; unclear decisions escalate.
 - [x] Share client pacing, timeout, bounded API retries, and provider-cost
@@ -239,8 +247,10 @@ Revisit only after Phase 6 is done.)*
       category regex overrides.
 - [x] Verify the API contract and graph/evaluator behavior offline; one live
       Jev request succeeded using the configured OpenRouter key.
-- [ ] Run a fresh 50-case simulated benchmark to measure Jev category accuracy,
-      urgency, latency and cost against the historical generative classifier.
+- [x] Document configured-model 50-case Jev/RAG attempts: TASK-41 measured
+      45/50 correct categories; three workflow failures prevent clean acceptance.
+- [ ] Calibrate urgency and establish comparative accuracy/speed; historical
+      generative measurements do not prove an improvement.
 
 ### TASK-37 - Incremental PDF ingestion and bounded hybrid RAG
 - [x] Store seven actual local simulation PDFs and hash-pinned provenance in
@@ -253,11 +263,13 @@ Revisit only after Phase 6 is done.)*
       Jev triage; require retrieved PDF evidence for exact FAQ simulations.
 - [x] Run offline regressions, index/reindex the seven PDFs, and verify one
       configured-model fake-delivery case; document the observed review failure.
-- [ ] Measure complete 50/200-case RAG accuracy, citations, latency and cost.
+- [x] Document all 50 TASK-41 attempts, including latency/cost and failures.
+- [ ] Obtain a fully scored current-stack 50-case report and validate all 200
+      cases; citation validity alone does not establish answer correctness.
 - [ ] Measure larger-corpus retrieval; no 1,000-document performance claim yet.
 
 
-### TASK-38 ? Jev supervisor Decisions
+### TASK-38 - Jev supervisor Decisions
 - [x] Replace generated checklist review with typed Jev choices and fixed feedback.
 - [x] Preserve exact FAQ validation, safety gates, logging and bounded retries.
 - [x] Verify offline regressions and measure nine labeled development reviews;
@@ -292,3 +304,13 @@ Revisit only after Phase 6 is done.)*
 - [x] Finish offline verification (317 tests) and all 50 fake-only benchmark attempts; three operational failures remain open.
 - [x] Accept the tested consistency contract; document two false escalations and three unscored failures without claiming overall accuracy acceptance.
 - [ ] Resolve workflow/retrieval failures and meet broader accuracy and latency gates.
+
+
+### TASK-42 - Align documentation and consolidate run commands
+- [x] Read all 19 project-owned Markdown files and compare current claims with
+      implementation, configuration, command parsers and saved measurements.
+- [x] Consolidate setup, knowledge, graph/evaluation, Zoho, dashboard and optional
+      worker commands in README; preserve historical records and delivery gates.
+- [x] Correct policy/corpus counts, exporter behavior, measurement provenance,
+      encoding and duplicate failure identifiers; check links and final diff.
+- [x] Documentation only; no new live evaluation, deployment or email send.

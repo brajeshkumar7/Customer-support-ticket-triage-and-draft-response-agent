@@ -51,8 +51,9 @@ separate persistent Chroma collection, and sparse BM25 term-frequency vectors
 and the ingestion ledger in SQLite. Fuse ranked candidates with reciprocal
 rank fusion. Local Chroma's hybrid Search API is not available; this sidecar
 keeps retrieval local without silently requiring Chroma Cloud.
-Hash the entire PDF, pipeline version and review metadata rather than its
-first 200 words. Commit the ledger only after all dense chunks are written;
+**Historical initial skip-key design (superseded by the ledger update above):**
+Hash the entire PDF, pipeline version and review metadata rather than its first
+200 words. Commit the ledger only after all dense chunks are written;
 query only committed generations so interrupted updates cannot expose a mixed
 document version. Changed/deleted documents invalidate their old evidence.
 Allow bounded model-selected search queries across the whole corpus, independent
@@ -67,7 +68,9 @@ This supersedes the graph's unconditional approved-FAQ shortcut when RAG is
 enabled, not the independent controlled worker's approved-template policy.
 **Source:** [Chroma Search API availability](https://docs.trychroma.com/cloud/search-api/overview).
 **Status:** implemented with offline checks and one configured-model simulated
-reply; full benchmark and larger-corpus retrieval measures remain open.
+reply; subsequent 50-case attempts are documented under TASK-38/40/41.
+Clean current-workflow acceptance, current 200-case validation and larger-corpus
+retrieval measures remain open.
 
 ## [2026-10-06] Use Jev typed decisions for ticket triage (TASK-36)
 
@@ -96,7 +99,9 @@ claimed without a labeled Jev run. Existing benchmark numbers are historical.
 [TypeSafe API contract](https://docs.typesafe.ai/api),
 [confidence guidance](https://docs.typesafe.ai/confidence).
 **Status:** active; mocked contract/regression checks and one live Jev call
-verified. Full configured-model benchmark measurement remains pending.
+verified. TASK-41 later measured 45/50 correct categories (0.9), with three
+workflow failures across the complete attempt. Comparative speed improvement
+and urgency calibration are not established; current 200-case validation is open.
 
 ## [2026-10-06] Send a neutral acknowledgement after a failed controlled draft review
 
@@ -172,7 +177,9 @@ workflow has no multi-ticket queue, owner-defined SLA, or business routing
 service. Keep the safe FAQ fast path and use deterministic urgency overrides
 for explicit urgency/high-impact language. Do not claim measured classifier
 accuracy until a fresh labeled evaluation is run.
-**Status:** active.
+**Status:** priority bands/floors remain active. The model-free FAQ category
+path applies only with RAG disabled; TASK-36/37 require Jev for every
+RAG-enabled ticket.
 
 ## [2026-10-05] Apply high-precision intent overrides after model categorization
 
@@ -191,7 +198,9 @@ Three return cases and one billing case were misclassified, while ordinary
 tracking text mentioning an update "today" was over-prioritized. Narrow intent
 signals target clear semantics; the frozen run remains the before measurement
 and does not become a post-fix accuracy claim.
-**Status:** active.
+**Status:** historical category overrides, superseded by TASK-36 Jev triage.
+Explicit urgency/priority floors remain active; these category rules do not
+replace current Jev answers.
 
 ## [2026-10-06] Require item-specific evidence for malfunction overrides
 
@@ -204,7 +213,9 @@ remove deterministic damage overrides entirely.
 the generic `general_05` complaint would be changed from general question to
 damaged item. Product-specific evidence preserves the correction for explicit
 items without converting ambiguous complaints into fabricated category facts.
-**Status:** active.
+**Status:** historical category overrides, superseded by TASK-36 Jev triage.
+Explicit urgency/priority floors remain active; these category rules do not
+replace current Jev answers.
 
 ## [2026-10-05] Version the FAQ completeness guard
 
@@ -444,7 +455,9 @@ order IDs are accepted only when explicitly present in the ticket.
 
 ## [2026-09-23] Long-term memory graph wiring
 **Decision:** Recall related facts from local Chroma before classification and
-store a compact summary after a draft is produced. Chroma failures are
+store a compact summary after a draft is produced (the original TASK-08
+contract). TASK-10/11 and the current simulation-only path supersede that
+write condition: remember only after confirmed simulated success. Chroma failures are
 non-fatal and are returned in graph state; recalled facts are historical,
 untrusted context and cannot validate order IDs or override current tool data.
 **Alternatives considered:** Fail the ticket run when Chroma is unavailable;
@@ -625,7 +638,7 @@ must not be described as isolated-memory measurements.
 ## [2026-09-30] Separate synthetic and Zoho single-ticket runners
 **Decision:** Provide one command for a single synthetic case that injects an
 isolated in-memory Chroma client and a fake sender, plus a separate command
-that fetches one existing Zoho Email ticket and invokes the same graph. The
+that originally fetched one existing Zoho Email ticket and invoked the graph.
 The original Zoho command required explicit send mode and two interactive
 confirmations; it once allowed a supervisor PASS to authorize one public reply.
 **Alternatives considered:** Use one command with optional delivery modes;
@@ -643,7 +656,7 @@ the local graph cannot send public replies.
 
 ## [2026-10-06] Shared evidence-bound safety assessment (TASK-40)
 
-Implement the approved safety plan under PRD Section 4 and Section 5. Preserve informational-only authority, collect simultaneous blocking findings, require explicit simulation reply scope for PDF approval, and revalidate exact outgoing text. Add separate v1 simulation template PDFs without altering reference PDFs. No real customer approval or new provider is enabled. Policy v4 supersedes v3; existing benchmark numbers remain historical until a complete configured-model run.
+Implement the approved safety plan under PRD Section 4 and Section 5. Preserve informational-only authority, collect simultaneous blocking findings, require explicit simulation reply scope for PDF approval, and revalidate exact outgoing text. Add separate v1 simulation template PDFs without altering reference PDFs. No real customer approval or new provider is enabled. Policy v4 supersedes v3; later TASK-40/41 configured-model attempts remain diagnostics because operational failures prevented accepted tracker publication.
 
 ## [2026-10-07] Shared business policy source (TASK-41)
 
@@ -656,3 +669,18 @@ Record source and PDF hashes and rule IDs, exclude obsolete policy references,
 and block mismatched or missing policy evidence. Business policy provenance is
 separate from informational send-policy version. Run offline regressions then
 one configured-model 50-case fake-only benchmark; real delivery stays blocked.
+
+
+## [2026-10-07] Consolidate verified documentation and commands (TASK-42)
+**Decision:** Use the root README as the current command entry point, with
+configuration, external-call/delivery effects and output locations. Correct
+current sections in place while preserving dated decisions, failure observations
+and measured reports as historical evidence. No architecture or delivery gate
+changes. This satisfies PRD Sections 4/5/6 and the documentation deliverables.
+**Reasoning:** Historical 50/50 results and superseded prompts must not describe
+the current Jev/RAG/shared-policy stack. TASK-41 is a diagnostic attempt: 50
+attempted, 47 scored, 45 matched, two false escalations, three operational
+failures and zero false simulated sends; failed batches do not overwrite the
+accepted historical tracker.
+**Status:** active; documentation only. Workflow/retrieval failures, current
+200-case validation, sequential comparison, scale and live-release gates remain open.

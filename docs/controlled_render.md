@@ -24,13 +24,15 @@ informational reply only when all of these hold:
 authoritative commerce/billing providers and a separate release decision are
 implemented. `ZOHO_DESK_SEND_ENABLED` does not override these gates.
 
-## Prepare and deploy
+## Optional preparation and deployment (not performed)
 
 `render.yaml` describes **paid** Render resources: one worker and one private
 PostgreSQL database. Review the plan and cost in Render before syncing it.
 Fill its Zoho OAuth secrets in the Render secret settings. The database URL is
-injected by the Blueprint; never commit credentials. Begin with
-`DEPLOYMENT_MODE=shadow`. Monitor worker logs and the PostgreSQL job ledger.
+injected by the Blueprint; never commit credentials. Begin with `DEPLOYMENT_MODE=shadow`. After supplying PostgreSQL and Zoho
+configuration, run `python -m src.agent.production_worker` from the repository
+root. Monitor worker logs and the job ledger. `off` waits without polling;
+no deployment or worker start is required for local graph evaluation.
 Rotate any Zoho client secret or refresh token previously pasted into chat or
 shared files before using this deployment.
 Zoho API credentials need ticket read/update permissions and a private-note
@@ -93,8 +95,10 @@ drafts. Audit access to Zoho and the database separately.
 
 ## Release gate still outstanding
 
-The saved 25-case simulated benchmark predates this controlled worker. It is
-not proof of safe customer sending. The release evaluator requires at least
+The graph benchmarks are separate from worker validation. The current TASK-41
+attempt had 50 attempts, 47 scored and 45 matched, with three operational
+failures; it does not validate Zoho polling, identity, reconciliation or customer
+delivery. Older 25/50/200-case measurements remain historical. The release evaluator requires at least
 200 cases with explicit human reviewer attribution and coverage across all
 five categories. It measures the offline deterministic decision only; wrong
 recipient attempts, duplicates, source staleness, and arrival-to-reply time

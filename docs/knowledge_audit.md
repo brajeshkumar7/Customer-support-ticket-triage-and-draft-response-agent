@@ -2,9 +2,9 @@
 
 ## What the agent can actually use
 
-**2026-10-06 update (TASK-37):** The local graph additionally searches seven
-actual simulation PDFs in `knowledgebase/` using dense MiniLM + sparse BM25
-and RRF. Citations contain source hash, page and chunk ID. These PDFs reproduce
+**Current state (TASK-41):** The graph searches 13 simulation PDFs: seven
+expanded references, four exact simulation replies and two generated policy
+references, using dense MiniLM + sparse BM25 and RRF. Citations contain source hash, page and chunk ID. These PDFs reproduce
 local example guidance, not real merchant knowledge. New PDFs are unreviewed;
 existing simulation templates require matching hash-pinned retrieved evidence.
 The keyword coverage figures below are historical pre-RAG observations.
@@ -12,7 +12,7 @@ The keyword coverage figures below are historical pre-RAG observations.
 | Source | Current content | Role in the graph | Limit |
 | --- | --- | --- | --- |
 | `data/mock_orders.json` | Six invented orders | Order lookup and policy input | No live order, shipment, requester, or billing verification |
-| `src/tools/policy_checker.py` | Fixed 30-day return and 7-day damage rules | Computes fixture eligibility | No approved merchant policy, warranty, exception, or jurisdiction logic |
+| `data/policies/support_v1.json` via validated loader/checker | Shared fictional delivered-only, inclusive 30-day return and 7-day damage rules | Computes fixture eligibility and supplies generated policy references; ID/version/hash/rules must agree | Simulation policy, not approved merchant authority; eligibility does not permit an action |
 | `src/tools/faq_search.py` | Six hardcoded answers, retrieved by keyword overlap | General support context | A keyword hit does not establish relevance or factual authority |
 | Local Chroma | Summaries produced by past runs | Historical recall in ordinary graph runs | Prior agent output is not a verified business source; complete 50/200-case batches use a fresh shared ephemeral collection, with sequential 50-case ticket order |
 | `data/approved_knowledge/v1.json` | Versioned FAQ templates with local simulation provenance; top-level `review_required` | The graph uses exact templates for simulated informational replies; the controlled worker requires separate owner approval | Example merchant content, not authorized for real customer delivery |
@@ -112,7 +112,7 @@ templated 200-case synthetic set, not an independently reviewed release set.
 Public guidance in `data/knowledge_sources.json` remains a research reference,
 not merchant policy or customer-specific evidence.
 
-## TASK-29 measured 50-case regression
+## Historical TASK-29 measured 50-case regression
 
 The saved fake-sender report is
 `data/eval_reports/task27_20261004T184541Z_e77207d7.json`; a versionable
@@ -134,7 +134,7 @@ known zero token cost, not missing cost. These are local full-run timings and
 author-drafted labels; neither establishes real customer accuracy or
 arrival-to-reply latency.
 
-## TASK-29 v3 and 200-case synthetic regression (2026-10-05)
+## Historical TASK-29 v3 and 200-case synthetic regression (2026-10-05)
 
 The historical v3 50-case regression is saved at
 `data/eval_reports/task29_20261005T062249Z_c30b0b20.json`; its public-safe
@@ -160,7 +160,7 @@ returns 160 / 0.101812, damaged item 160 / 0.1056493, billing dispute 160 /
 responses were attributed by the log's response model to
 `openai/gpt-6-luna-pro`; no fallback model calls were recorded.
 
-## Latest completed 50-case regression and recall scope
+## Historical completed 50-case regression and recall scope
 
 The later completed report
 `data/eval_reports/task29_20261005T183529Z_2979caa5.json` records

@@ -22,11 +22,12 @@ pick this back up cold
 
 ## Metrics tracker (update as you measure — mirrors PRD.md Section 5)
 
-**Current metrics provenance:** Complete 50-ticket simulated graph run under informational-only labels, saved as `data/eval_reports/task29_20261005T183529Z_2979caa5.json` and recorded on 2026-10-06. It predates the final TASK-32 triage edit; a fresh complete run is still needed. Earlier fixture-backed and v3 reports remain historical. The interrupted OpenRouter run produced no complete report or new accuracy measurement.
+**Accepted historical tracker provenance:** Complete 50-ticket simulated graph run under informational-only labels, saved as `data/eval_reports/task29_20261005T183529Z_2979caa5.json` and recorded on 2026-10-06. It predates the final TASK-32 triage edit; a fresh complete run is still needed. Earlier fixture-backed and v3 reports remain historical. The interrupted OpenRouter run produced no complete report or new accuracy measurement.
 
-These tracker values also predate TASK-36's Jev triage and TASK-37's PDF RAG. No complete
-50- or 200-case Jev benchmark has been measured; the single connectivity check
-below must not be used as classifier accuracy or a benchmark p95.
+These tracker values predate Jev triage/supervision, PDF RAG and shared policy.
+They are retained because subsequent batches contained operational failures.
+The latest TASK-41 attempt recorded 50 attempted, 47 scored, 45 matched, two false escalations, three operational failures, and zero false simulated sends. Its scored-only match rate is 0.9574468085106383; failures are excluded from that denominator, not counted as successes. See [the diagnostic](docs/measurements/task41_policy.json). Failed batches retain saved reports but do not overwrite the accepted tracker.
+Current-stack 200-case validation and the sequential/async comparison remain open.
 
 | Metric | Value | Date measured |
 |---|---|---|
@@ -59,7 +60,7 @@ The earlier v3 report (`task29_20261005T062249Z_c30b0b20.json`) remains
 available for historical comparison. Its 0.110459985 total cost and
 42986.12800000001 ms p95 must not be mixed into the latest tracker.
 
-### TASK-29 frozen 200-case local regression (2026-10-05)
+### Historical TASK-29 frozen 200-case local regression (2026-10-05)
 
 Report: `data/eval_reports/holdout_v1_20261005T064737Z_9b17b234.json`.
 Public-safe per-case report: `docs/measurements/task29_holdout_v1.json`.
@@ -91,6 +92,9 @@ report for all per-case outcomes and per-category latency/call/cost details.
 ---
 
 ## Session log
+
+Entries below are dated observations. Earlier "pending" and "current" statements
+describe their session, not the latest implementation; see TASKS.md for open work.
 
 ## [2026-10-06] TASK-36 Jev typed triage
 
@@ -1175,3 +1179,41 @@ Exact harness metrics, without rounding:
   }
 }
 ```
+
+
+## [2026-10-07] TASK-42 documentation audit and command consolidation
+
+**Worked on:** PRD Sections 4, 5 and 6 and documentation deliverables. Read all
+19 project-owned Markdown files, including nested dashboard instructions;
+excluded dependencies, environments, caches and temporary test directories.
+
+**Completed:** Updated 17 Markdown files. Preserved the two framework-maintained
+dashboard instruction files. Root README now covers setup, configuration,
+knowledge export/index/search, all single/batch/streamed runs, holdout resume,
+offline recomputation, additional evaluations, controlled Zoho delivery,
+dashboard operations and optional worker administration. Corrected current
+architecture, the 13-PDF corpus, shared business-policy provenance, exporter
+non-overwrite behavior, acknowledgement fallback, dated measurement claims and
+duplicate failure IDs. Historical metric tables remain unchanged.
+
+**Verification:** Cross-checked commands with entrypoints and argument parsers;
+ten side-effect-free CLI help checks passed. The policy exporter has no help
+parser: its local preflight skipped both already-completed PDFs and changed no
+artifact. Validated local Markdown link targets/anchors and unique failure IDs;
+confirmed all changes are Markdown only, protected instruction blocks are
+unchanged, and `git diff --check` passes. No paid evaluation, deployment, email
+send, application-code change or evaluation-data/report change occurred.
+
+**Metrics measured this session:** None. Documentation quotes the existing
+TASK-41 diagnostic exactly: 50 attempted, 47 scored, 45 matched, two false
+escalations, three operational failures and zero false simulated sends. Failed
+batches keep their local reports without overwriting the accepted historical
+tracker. The three operational failures are not removed from the narrative or
+counted as successful results.
+
+**Blocked/open questions:** Operational/retrieval failures, clean current-stack
+50-case acceptance, current 200-case validation, sequential latency comparison,
+larger-corpus performance and all live-release gates remain open.
+
+**Next session should start with:** Diagnose the saved TASK-41 failures before
+claiming current full-workflow accuracy; use README for verified run commands.
