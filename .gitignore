@@ -7,6 +7,9 @@ data/logs/*.jsonl
 data/eval_reports/
 data/test_tickets/zoho_ticket_map.csv
 chroma_data/
+data/rag_index/
+tmp/pdfs/
 .pytest_cache/
 node_modules/
 .next/
+.tmp/

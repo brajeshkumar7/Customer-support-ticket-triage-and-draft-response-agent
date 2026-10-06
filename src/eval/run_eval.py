@@ -8,6 +8,8 @@ offline without calling models or external services.
 
 from __future__ import annotations
 
+from src.agent.supervisor import supervisor_configuration
+
 import argparse
 import asyncio
 import csv
@@ -24,11 +26,13 @@ from uuid import uuid4
 from dotenv import load_dotenv
 
 from src.agent.graph import SUPERVISOR_RETRY_CAP, build_graph
+from src.agent.jev_triage import DEFAULT_TRIAGE_MODEL, TRIAGE_QUESTIONS_VERSION
 from src.agent.production_policy import APPROVAL_POLICY_VERSION, KNOWLEDGE_PATH
 from src.agent.reply_sender import ReplySender, SimulationOnlyReplySender
 from src.memory.long_term import LongTermMemory
 from src.memory.short_term import ShortTermMemory
 from src.openrouter_client import OpenRouterClient
+from src.knowledge.store import rag_configuration
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 TICKETS_PATH = REPOSITORY_ROOT / "data" / "test_tickets" / "tickets.jsonl"
@@ -506,8 +510,8 @@ def print_report(report: dict[str, Any]) -> None:
         match = "yes" if row.get("matches_expected") else "no"
         cost = "unknown" if row.get("total_cost") is None else repr(row["total_cost"])
         print(
-            f"| {row['ticket_id']} | {row.get('category')} | {row.get('predicted_category') or '—'} "
-            f"| {row.get('urgency') or '—'} | {row.get('priority') or '—'} "
+            f"| {row['ticket_id']} | {row.get('category')} | {row.get('predicted_category') or 'â€”'} "
+            f"| {row.get('urgency') or 'â€”'} | {row.get('priority') or 'â€”'} "
             f"| {row['expected_outcome']} | {row['observed_outcome']} "
             f"| {match} | {row.get('retry_count', 0)} | {row.get('latency_ms')} "
             f"| {cost} | {row.get('calls_missing_cost', 0)} |"
@@ -596,6 +600,7 @@ async def _run_graphs(
         for case in cases
     }
     results: list[dict[str, Any]] = []
+    corpus_configuration = rag_configuration()
     llm_client = shared_client or OpenRouterClient()
     # One fresh in-memory Chroma store is shared by this evaluation batch.
     # It allows each later ticket to recall summaries written by earlier
@@ -613,6 +618,8 @@ async def _run_graphs(
         graph_result: dict[str, Any] = {}
         run_error: str | None = None
         try:
+            if rag_configuration() != corpus_configuration:
+                raise EvaluationDataError("PDF corpus changed during evaluation; start a new batch.")
             graph = build_graph(
                 short_term_memory=ShortTermMemory(run_id),
                 long_term_memory=memory,
@@ -628,6 +635,8 @@ async def _run_graphs(
                     "zoho_ticket_id": simulated_ticket_id,
                 }
             )
+            if rag_configuration() != corpus_configuration:
+                raise EvaluationDataError("PDF corpus changed during this ticket run.")
         except Exception as error:
             run_error = type(error).__name__
             print(f"  Graph run failed: {run_error}: {error}", flush=True)
@@ -663,6 +672,11 @@ async def _run_graphs(
                 "classification_basis": graph_result.get("classification_basis"),
                 "category_basis": graph_result.get("category_basis"),
                 "urgency_basis": graph_result.get("urgency_basis"),
+                "triage_decision": graph_result.get("triage_decision"),
+                "rag_review": graph_result.get("rag_review"),
+                "rag_search_count": graph_result.get("rag_search_count"),
+                "retrieved_evidence": graph_result.get("retrieved_evidence", []),
+                "draft_evidence_ids": graph_result.get("draft_evidence_ids", []),
                 "expected_outcome": case["expected_outcome"],
                 "observed_outcome": observed_outcome,
                 "matches_expected": (
@@ -673,6 +687,7 @@ async def _run_graphs(
                 "retry_count": graph_result.get("retry_count", 0),
                 "supervisor_status": graph_result.get("supervisor_status"),
                 "supervisor_reason": graph_result.get("supervisor_reason"),
+                "supervisor_decision": graph_result.get("supervisor_decision"),
                 "failed_attempts": graph_result.get("failed_attempts", []),
                 "draft_response": graph_result.get("draft_response"),
                 "safety_review": graph_result.get("safety_review"),
@@ -917,9 +932,13 @@ def main(argv: list[str] | None = None) -> int:
         "knowledge_sha256": hashlib.sha256(KNOWLEDGE_PATH.read_bytes()).hexdigest(),
         "label_file": str(MANIFEST_PATH.relative_to(REPOSITORY_ROOT)),
         "primary_model": os.getenv("OPENROUTER_PRIMARY_MODEL", ""),
+        "triage_model": os.getenv("OPENROUTER_TRIAGE_MODEL", DEFAULT_TRIAGE_MODEL),
+        "triage_questions_version": TRIAGE_QUESTIONS_VERSION,
+                  "supervisor_configuration": supervisor_configuration(),
         "fallback_models": [item.strip() for item in os.getenv("OPENROUTER_MODELS", "").split(",") if item.strip()],
         "delivery_adapter": "fake",
         "memory_mode": "shared_ephemeral_chroma_sequential",
+        "rag_configuration": rag_configuration(),
         "simulated_reply_count": len(fake_sender.calls),
         "measured_at": datetime.now().astimezone().isoformat(),
         "ticket_count": len(cases),

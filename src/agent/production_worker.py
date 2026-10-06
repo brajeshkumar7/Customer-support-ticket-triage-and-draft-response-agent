@@ -21,7 +21,7 @@ from dotenv import load_dotenv
 
 from src.agent.deployment import DeploymentConfig
 from src.agent.job_store import JobStore
-from src.agent.production_policy import approved_knowledge, decide_public_reply
+from src.agent.production_policy import approved_knowledge, decide_public_reply, validate_outgoing_reply
 from src.agent.run_zoho import _plain_text
 from src.observability.logger import purge_deployment_logs
 from zoho_desk_client import ZohoDeskClient, ZohoDeskDeliveryError
@@ -203,7 +203,7 @@ class ProductionWorker:
                                       reason=f"{decision.kind}:{decision.reason}")
                 return
             decision = decide_public_reply(ticket_text, knowledge=self.knowledge)
-            if decision.kind != "informational" or not decision.body:
+            if not validate_outgoing_reply(decision, decision.body or ""):
                 await handoff(decision.reason)
                 return
             if not self.store.test_sending_enabled(org) or not self.store.allowed(org, ticket_id, email):

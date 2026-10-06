@@ -1,0 +1,139 @@
+{
+  "graph_report": "data/eval_reports/task29_20261006T144218Z_8f3a4f3b.json",
+  "supervisor_configuration": {
+    "model": "typesafe/jev-1.13",
+    "questions_version": "supervisor_choice_v1",
+    "pass_probability": 0.9
+  },
+  "graph_metrics": {
+    "ticket_count": 50,
+    "scored_ticket_count": 48,
+    "unscored_count": 2,
+    "matched_count": 41,
+    "task_completion_rate": 0.8541666666666666,
+    "category_classification": {
+      "measured_count": 50,
+      "correct_count": 47,
+      "accuracy": 0.94,
+      "urgency_distribution": {
+        "high": 6,
+        "medium": 22,
+        "low": 22
+      },
+      "priority_distribution": {
+        "P1": 6,
+        "P2": 22,
+        "P3": 22
+      }
+    },
+    "expected_auto_resolve_count": 7,
+    "auto_resolve_incorrect_escalation_count": 7,
+    "auto_resolve_incorrect_escalation_rate": 1.0,
+    "expected_escalate_count": 41,
+    "expected_escalate_correct_count": 41,
+    "escalation_recall": 1.0,
+    "expected_escalate_incorrect_send_count": 0,
+    "expected_escalate_incorrect_send_rate": 0.0,
+    "false_send_count": 0,
+    "missed_escalation_count": 0,
+    "false_escalation_count": 7,
+    "unsupported_claim_review_count": 24,
+    "safety_gate_violation_count": 0,
+    "by_category": {
+      "billing_dispute": {
+        "ticket_count": 10,
+        "llm_calls": 62,
+        "reported_cost": 0.054699299,
+        "calls_missing_cost": 0,
+        "false_sends": 0,
+        "missed_escalations": 0,
+        "false_escalations": 0,
+        "unsupported_claim_reviews": 1,
+        "safety_gate_violations": 0
+      },
+      "damaged_item": {
+        "ticket_count": 10,
+        "llm_calls": 60,
+        "reported_cost": 0.054825803,
+        "calls_missing_cost": 0,
+        "false_sends": 0,
+        "missed_escalations": 0,
+        "false_escalations": 0,
+        "unsupported_claim_reviews": 5,
+        "safety_gate_violations": 0
+      },
+      "general_question": {
+        "ticket_count": 10,
+        "llm_calls": 48,
+        "reported_cost": 0.042191169,
+        "calls_missing_cost": 0,
+        "false_sends": 0,
+        "missed_escalations": 1,
+        "false_escalations": 7,
+        "unsupported_claim_reviews": 6,
+        "safety_gate_violations": 0
+      },
+      "order_status": {
+        "ticket_count": 10,
+        "llm_calls": 61,
+        "reported_cost": 0.050105620999999996,
+        "calls_missing_cost": 0,
+        "false_sends": 0,
+        "missed_escalations": 0,
+        "false_escalations": 0,
+        "unsupported_claim_reviews": 5,
+        "safety_gate_violations": 0
+      },
+      "returns": {
+        "ticket_count": 10,
+        "llm_calls": 58,
+        "reported_cost": 0.050154635,
+        "calls_missing_cost": 0,
+        "false_sends": 0,
+        "missed_escalations": 1,
+        "false_escalations": 0,
+        "unsupported_claim_reviews": 7,
+        "safety_gate_violations": 0
+      }
+    },
+    "mean_retries_to_success": 0.0,
+    "failure_after_cap_count": 0,
+    "failure_after_cap_rate": 0.0,
+    "p95_latency_ms": 67079.16410001053,
+    "total_reported_token_cost": 0.251976527,
+    "llm_calls_total": 289,
+    "zero_model_call_tickets": 0,
+    "tickets_with_missing_token_cost": 0,
+    "cost_per_successful_run": 0.0052969018048780485,
+    "by_model": {
+      "openai/gpt-6-luna-pro": {
+        "llm_calls": 191,
+        "reported_cost": 0.2395295750000001,
+        "calls_missing_cost": 0
+      },
+      "typesafe/jev-1.13-20260917": {
+        "llm_calls": 98,
+        "reported_cost": 0.012446952000000002,
+        "calls_missing_cost": 0
+      }
+    }
+  },
+  "graph_simulated_reply_count": 0,
+  "review_report": "data/eval_reports/task38_reviews_20261006T145230Z_170013e8.json",
+  "review_metrics": {
+    "scored": 9,
+    "total": 9,
+    "accuracy": 0.6666666666666666,
+    "false_acceptances": 0,
+    "false_rejections": 3,
+    "p95_latency_ms": 621.037000004435,
+    "provider_reported_cost": 0.00035393400000000003,
+    "total_cost": 0.00035393400000000003
+  },
+  "limitations": [
+    "visible author-labeled review set",
+    "two unscored workflows",
+    "PDF manifest hash mismatch",
+    "no live sends"
+  ]
+}

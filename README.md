@@ -1,4 +1,4 @@
-# Support Ticket Triage Agent — Multi-Step Runtime Safety
+# Support Ticket Triage Agent â€” Multi-Step Runtime Safety
 
 > Status: in progress. See `TASKS.md` for current phase, `PROGRESS.md` for the
 > latest session log.
@@ -11,11 +11,11 @@ allowlisted test contacts. Real customer auto-send is disabled.
 
 ## Project files (read in this order)
 
-1. `AGENTS.md` — instructions for AI coding tools (Codex, Cursor, Antigravity all read this)
-2. `PRD.md` — full spec: goals, architecture, success metrics
-3. `TASKS.md` — current task breakdown by phase
-4. `DECISIONS.md` — architecture decisions and why they were made
-5. `PROGRESS.md` — session-by-session log and measured metrics
+1. `AGENTS.md` â€” instructions for AI coding tools (Codex, Cursor, Antigravity all read this)
+2. `PRD.md` â€” full spec: goals, architecture, success metrics
+3. `TASKS.md` â€” current task breakdown by phase
+4. `DECISIONS.md` â€” architecture decisions and why they were made
+5. `PROGRESS.md` â€” session-by-session log and measured metrics
 
 ## Setup
 
@@ -35,20 +35,73 @@ python -m pytest
 ```
 
 Fill in `.env` with the required local settings and API credentials before
-running the graph manually. The Zoho agent workflow is currently draft-only:
-it cannot send a public reply even if `ZOHO_DESK_SEND_ENABLED=true`. The
-separate `zoho_smoke` command remains a delivery-only test requiring explicit
-confirmation. Zoho is the current replaceable reply adapter.
+running the graph manually. The Zoho agent graph remains draft-only. For a
+ticket and contact you control, `run_zoho --send-reviewed` can send its exact
+supervisor-approved draft after you review it and confirm the recipient and
+ticket. The separate `zoho_smoke` command tests a fixed message without
+running the agent. Zoho is the current replaceable reply adapter.
 Configure the Zoho API and Accounts domains,
 organization ID, a configured support sender email, OAuth client ID/secret,
 and refresh token; the OAuth app needs `Desk.tickets.READ` and
-`Desk.tickets.UPDATE` scopes. The draft-only Zoho command takes a numeric
+`Desk.tickets.UPDATE` scopes. The Zoho commands take a numeric
 Zoho API ticket ID. Tests use mocked clients and never send live replies. If PowerShell
 blocks activation scripts, use
 `.venv\Scripts\python.exe -m pip install -r requirements.txt` and
 `.venv\Scripts\python.exe -m pytest` without activating the environment.
 
-## Run-history dashboard
+Ticket triage uses **Jev via OpenRouter's Decisions API**. The local `.env`
+and `.env.example` contain:
+
+```dotenv
+OPENROUTER_TRIAGE_MODEL=typesafe/jev-1.13
+```
+
+Jev answers category and low/medium/high urgency in one typed request. The
+printed `triage_decision` contains its probabilities and served model; explicit
+safety signals can raise the final priority. With PDF RAG enabled, covered FAQ
+tickets also run Jev and evidence review. The legacy shortcut requires
+`RAG_ENABLED=false`. Drafting and
+extraction still use `OPENROUTER_PRIMARY_MODEL` and its chat
+fallbacks. Both APIs share request pacing and bounded retries. Jev uses no
+chat fallback; a failed or unclear decision escalates. See the
+[OpenRouter examples](https://openrouter.ai/blog/insights/what-is-jev/) and
+[TypeSafe contract](https://docs.typesafe.ai/api). Earlier benchmark scores
+predate this classifier change; its full-suite accuracy and speed are unmeasured.
+
+## PDF knowledge ingestion and hybrid RAG
+
+Seven actual seed PDFs live in [knowledgebase/](knowledgebase/README.md).
+They contain fictional merchant guidance. Add text-layer PDFs, then run:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m src.knowledge.ingest
+.\.venv\Scripts\python.exe -m src.knowledge.search "What payment methods are available?"
+.\.venv\Scripts\python.exe -m src.agent.run_synthetic --case-id general_07
+```
+
+`RAG_ENABLED=true` is the default. `RAG_INDEX_DIR=./data/rag_index` stores the
+separate PDF Chroma collection, sparse BM25 vectors and ledger. Skip identity
+is SHA-256 of the relative filename and first 150 extracted words. Immutable
+PDFs are assumed; revisions must use new filenames because later edits are
+not detected. Full-content provenance hashing happens only when indexing.
+The first ingestion after the ledger-version update rebuilds existing PDFs
+once; later runs skip completed documents. Removed PDFs are excluded. The first dense
+embedding call may download MiniLM; later calls use its cache. No embedding
+API key is needed. Scanned/encrypted PDFs report an error rather than silent OCR.
+
+Jev triage precedes corpus-wide hybrid search. The model can request up to
+two additional searches via the allowlisted tool, reviews evidence, and drafts
+with validated chunk citations. Category does not select a document. Existing
+safe FAQ simulations retain exact text and require retrieved hash-pinned
+evidence. New unreviewed PDFs support human drafts only. This does not loosen
+real-delivery restrictions or replace authoritative order APIs. The independent
+controlled worker remains on its approved JSON templates.
+
+Full 50/200-case RAG accuracy, latency, costs and 1,000-document performance
+remain unmeasured. See TASK-37 verification in PROGRESS.md.
+
+## Run-history dashboard setup
 
 The local read-only dashboard uses Next.js and TypeScript and reads the agent's
 JSONL files from `data/logs/` on the server. From the repository root, start it
@@ -127,9 +180,10 @@ start a new run after any of those changes.
 
 ### Run one synthetic ticket (Flow 1)
 
-Run a single case through the current graph. Covered general FAQ questions
-use an exact versioned reply without model or mock business-tool calls;
-other tickets can produce a human-review draft and escalation:
+Run a single case through the current graph. Jev triage is followed by hybrid
+PDF retrieval and bounded model evidence review. Covered informational cases
+use exact versioned simulation text requiring matching retrieved PDF evidence.
+Other tickets produce cited human-review drafts and escalation:
 
 ```powershell
 .\.venv\Scripts\python.exe -m src.agent.run_synthetic --case-id order_01
@@ -142,28 +196,48 @@ returns an escalation. The printed triage fields include category, urgency,
 priority, and which rule or classifier supplied them. It does not prove that a
 customer email was delivered.
 
-### Run one existing Zoho ticket through the agent (draft-only)
+### Run one existing Zoho ticket through the agent
 
 Use only a test ticket and contact you control. The command fetches an existing
 Zoho ticket and runs classification, fact gathering, drafting, deterministic
-safety checks, and supervisor review. It cannot send, even when the environment
-setting enables sending:
+safety checks, and supervisor review. Use draft-only to inspect the result
+without sending:
 
 ```powershell
 .\.venv\Scripts\python.exe -m src.agent.run_zoho --ticket-id YOUR_TICKET_API_ID --draft-only
 ```
 
 The command asks you to confirm ownership and retype the ticket API ID. It
-then fetches that existing ticket from Zoho, accepts Email tickets with a
+then fetches that existing ticket from Zoho, accepts any channel with a
 usable description, and supplies the subject and message to the same agent
 workflow. The result includes the draft and deterministic safety findings for
-review, plus predicted category, urgency, and a sortable priority band
+review, a local `agent_run_id` for finding the JSONL events, plus predicted
+category, urgency, and a sortable priority band
 (`P1` is highest, then `P2`, then `P3`). Explicit high-stakes or time-critical
 wording can raise a ticket's priority. These bands are per-ticket triage
 metadata; they do not promise an SLA or place tickets into a shared queue. The
-legacy `--send` flag is rejected. This command never creates
-tickets or posts public replies. Repeat it separately for each controlled
-test ticket.
+legacy `--send` flag is rejected. To attempt one reviewed email to a
+controlled test contact, set `ZOHO_DESK_SEND_ENABLED=true` in `.env` and run:
+
+```powershell
+.\.venv\Scripts\python.exe -m src.agent.run_zoho --ticket-id YOUR_TICKET_API_ID --send-reviewed
+```
+
+This prints the agent draft and safety findings first. If the supervisor
+passes, the proposed email uses its draft. If review fails or a draft is
+unavailable, the proposed email is a fixed acknowledgement that contains no
+mock order or policy claims. The command shows the **exact outgoing text**,
+rechecks the ticket text and requester email, then asks you to type the
+recipient email and `SEND` plus the ticket ID. It attempts one public email
+only after those confirmations. The graph's `terminal_status`
+describes its draft-only run; `reviewed_email_status` confirms the separate
+operator-approved email. A timeout or unconfirmed send must be checked in Zoho
+before any manual retry. Sending to a non-Email ticket depends on Zoho
+accepting an email reply for that ticket. A missing recipient, changed or
+closed ticket, declined confirmation, or Zoho error still prevents a confirmed
+send. Neither command creates or assigns
+tickets. Repeat separately for each test ticket. Real customer auto-send
+remains disabled.
 
 The local runner can log ticket text and drafts in `data/logs/`; use only
 controlled test data. The deployed worker uses metadata-only logging.
@@ -313,3 +387,71 @@ Three observed failures illustrate the measured limits:
   ephemeral clients did not prove isolation because Chroma reused an in-process
   database. New complete evaluations use a fresh, named collection shared
   within each batch and record its memory mode.
+
+
+## TASK-38: Jev supervisor review
+
+Generated human-review drafts use one OpenRouter Decisions request with three
+Choice questions (pass, fail, insufficient_evidence). Configure
+`OPENROUTER_SUPERVISOR_MODEL` independently from triage and drafting; its default
+is `typesafe/jev-1.13`. Each check must select pass with probability >= 0.90.
+This initial threshold is provisional, not calibrated. Fixed checklist guidance
+supplies retry feedback; it does not identify individual unsupported sentences.
+Malformed or unavailable reviews escalate. Exact approved FAQ templates retain
+local validation without a supervisor model call. Checklist completion score is
+not Jev probability. Current tools remain fictional; cited PDF guidance and
+historical summaries do not verify customer identity. Safety gates and live-send
+restrictions remain in force. Earlier generative-supervisor descriptions are
+historical; accuracy and speed changes require new measured reports.
+
+Measure the author-labeled development reviewer set (OpenRouter calls, no delivery):
+
+```powershell
+python -m src.eval.run_supervisor_eval
+```
+
+Run the full simulated graph regression with `python -m src.eval.run_eval`.
+
+
+### TASK-39 current provenance and review output
+
+The expanded Northstar PDFs are pinned and indexed as northstar_reference_v2
+simulation references with nonempty knowledge IDs. Their approval_scope is
+reference_only: this repairs stale provenance but does not promote them to
+v1 exact FAQ approval or real business authority. New unpinned PDFs remain
+unreviewed. Both single-ticket commands display supervisor_reason and raw Jev
+supervisor_decision alongside the checklist score and workflow errors; the
+synthetic command also displays safety_review. A blocked order still escalates.
+
+## TASK-40: Evidence-bound safety assessment
+
+The graph and controlled worker share `production_policy.decide_public_reply`
+under `informational_only_v4`. The assessment records all detected blockers,
+specific missing evidence, knowledge IDs/version and policy version. Separate
+questions must be covered by the same approved reply; unsupported actions,
+safety incidents, billing disputes and customer-specific facts remain human work.
+This is a bounded informational policy, not a general proof of intent coverage.
+
+RAG approval additionally requires an explicitly scoped
+`automatic_reply_simulation` PDF containing the exact v1 reply, with trusted
+hash-pinned provenance and a cited, sufficient coverage review. The corpus now
+has seven unchanged reference-only PDFs and four separate fictional reply PDFs.
+Neither historical Chroma summaries nor reference-only PDFs authorize sending.
+The final graph delivery step rechecks evidence and exact outgoing text; the
+worker also checks exact template text. Jev PASS cannot override any blocker.
+
+Reindex with `python -m src.knowledge.ingest`. Run the fake-only benchmark with
+`python -m src.eval.run_eval`; reproduce saved metrics with
+`python -m src.eval.run_eval --report PATH`. Real customer sending stays disabled.
+Approved simulation content is not merchant approval or production evidence.
+
+### TASK-40 measured outcome (2026-10-06)
+
+The configured-model fake-only report
+`data/eval_reports/task29_20261006T165804Z_49001dc4.json` attempted all 50 cases:
+46/49 scored disposition matches (0.9387755102040817), one unscored workflow
+failure, three false escalations, zero false simulated sends and four simulated
+replies. Full-run p95 was 53658.00060000038 ms; provider-reported total cost was
+0.237483676. The accepted tracker was not overwritten. Safety enforcement held
+in these cases, but clean workflow acceptance remains open (FM-026/027).
+These numbers supersede no historical report and authorize no live sending.

@@ -123,6 +123,51 @@ async def test_controlled_reply_rechecks_recipient_and_latest_thread(change):
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("changed_field", ["recipient", "status"])
+async def test_reviewed_reply_rechecks_ticket_before_post(changed_field):
+    requests = []
+
+    def opener(request, *, timeout):
+        requests.append(request)
+        path = urlsplit(request.full_url).path
+        if path.endswith("/oauth/v2/token"):
+            return FakeResponse({"access_token": "token"})
+        if request.get_method() == "GET":
+            return FakeResponse({"email": "other@example.com" if changed_field == "recipient"
+                                 else "owned@example.com",
+                                 "status": "Closed" if changed_field == "status" else "Open"})
+        return FakeResponse({"id": "reply-1"})
+
+    with pytest.raises(ZohoDeskDeliveryError):
+        await make_client(opener).send_reviewed_reply(
+            "12345", "Reviewed reply", expected_email="owned@example.com")
+    assert not any(request.get_method() == "POST" and
+        urlsplit(request.full_url).path.endswith("/sendReply") for request in requests)
+
+
+@pytest.mark.asyncio
+async def test_reviewed_reply_can_send_one_email_to_confirmed_web_ticket():
+    requests = []
+
+    def opener(request, *, timeout):
+        requests.append(request)
+        if urlsplit(request.full_url).path.endswith("/oauth/v2/token"):
+            return FakeResponse({"access_token": "token"})
+        if request.get_method() == "GET":
+            return FakeResponse({"id": "12345", "channel": "Web", "status": "Open",
+                                 "email": "owned@example.com"})
+        return FakeResponse({"id": "reply-1"})
+
+    result = await make_client(opener).send_reviewed_reply(
+        "12345", "Reviewed reply", expected_email="owned@example.com")
+    reply_requests = [request for request in requests if request.get_method() == "POST" and
+                      urlsplit(request.full_url).path.endswith("/sendReply")]
+    assert len(reply_requests) == 1
+    assert json.loads(reply_requests[0].data)["to"] == "owned@example.com"
+    assert result["thread_id"] == "reply-1"
+
+
+@pytest.mark.asyncio
 async def test_reuses_access_token_for_subsequent_ticket_replies():
     requests = []
 

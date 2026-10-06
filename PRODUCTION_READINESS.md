@@ -1,5 +1,19 @@
 # Production-readiness follow-ups
 
+## Local PDF RAG (TASK-37)
+
+The graph now uses actual simulation PDFs, dense Chroma + sparse BM25 retrieval
+and bounded evidence review. The worker remains on its independently approved
+templates. Before broadening automatic replies, review document ownership,
+authority, conflicting policies, freshness, access control and citation
+entailment. Measure retrieval on a larger labeled corpus; RRF similarity is
+not confidence. Add OCR/table-aware extraction only with its own measured
+acceptance checks. The seven reference PDFs and four simulation reply PDFs are fictional, not merchant approval.
+PDFs are assumed immutable. The skip ledger uses relative filename + first 150
+words, so later edits are not detected; revisions must use new filenames.
+Re-ingestion invalidates prefix-changed/removed sources; schedule that explicitly in
+any future deployment. No RAG benchmark or new real-send release is claimed.
+
 ## Controlled deployment status (reviewed 2026-10-06)
 
 Code now defines a paid Render worker and PostgreSQL ledger for controlled
@@ -41,9 +55,10 @@ matched 189/200, below its 95% target. Neither validates real customer sending.
 **Current state:** TASK-25 adds a deterministic gate for billing disputes with
 no transaction source, missing/unknown/unavailable order data, unavailable
 policy data, customer injury/product danger, explicit manager requests, policy
-exceptions, and ambiguous intent. The LLM supervisor remains an independent
+exceptions, and ambiguous intent. The Jev supervisor remains an independent
 review signal. The Zoho agent runner passes `allow_delivery=False`, so it is
-draft-only even if `.env` enables sending. The standalone controlled
+draft-only inside the graph even if `.env` enables sending. TASK-34 added a
+separate operator-reviewed controlled email mode. The standalone controlled
 `zoho_smoke` command remains separate. Fourteen new offline rule regressions
 specify evidence and acceptable drafts/dispositions.
 
@@ -224,7 +239,9 @@ billing APIs remains required before real customer release.
 
 **Current state:** Agent-initiated public replies are blocked by TASK-25's
 `allow_delivery=False` override in the Zoho runner, even if the environment
-flag is true. The 50-case informational benchmark and frozen 200-case holdout
+flag is true. The separate `--send-reviewed` CLI path requires explicit human
+approval of the draft and recipient on a controlled test ticket. The 50-case
+informational benchmark and frozen 200-case holdout
 use a fake sender and never send live replies. The standalone Zoho smoke command
 targets one existing ticket and contact controlled by the operator; it sends
 one fixed public message only after explicit CLI and interactive confirmation.
@@ -252,9 +269,86 @@ enough context to review without exposing credentials in logs.
 new polling, allowlist, note, restart, and reconciliation paths remain
 unvalidated against the live Zoho API; test-mode delivery stays gated.
 
+`run_zoho --send-reviewed` now permits one human-approved email to a
+controlled ticket/contact after showing the agent draft and safety findings. It
+rechecks the requester and status before posting and makes no automatic retry
+after an uncertain result. This is an operator test path, not automatic
+customer delivery or evidence that local mock order data is authoritative.
+After a failed draft review, this command proposes only a fixed neutral
+acknowledgement; the failed draft is never used as public email content.
+
 ## Recording future follow-ups
+
+Jev triage (TASK-36) now uses typed decisions and records option probabilities
+and distribution confidence. Before choosing a confidence cutoff or claiming
+an accuracy/speed improvement, evaluate the versioned category/urgency rubric
+against labeled tickets and review uncertain, multi-intent, and adversarial
+cases. The single verified API call proves connectivity and contract support;
+it does not measure full-suite performance. Prior generative-classifier
+reports remain historical. Holdout checkpoints from the old triage model
+cannot be resumed into the new model/rubric run.
 
 For each implementation step, record production-readiness considerations here
 when the step reveals a relevant improvement. State whether each item is
 implemented now or deferred, and link it to its related TASKS.md phase where
 possible. If no relevant follow-up exists, do not add filler.
+
+
+## TASK-38: Jev supervisor review
+
+Generated human-review drafts use one OpenRouter Decisions request with three
+Choice questions (pass, fail, insufficient_evidence). Configure
+`OPENROUTER_SUPERVISOR_MODEL` independently from triage and drafting; its default
+is `typesafe/jev-1.13`. Each check must select pass with probability >= 0.90.
+This initial threshold is provisional, not calibrated. Fixed checklist guidance
+supplies retry feedback; it does not identify individual unsupported sentences.
+Malformed or unavailable reviews escalate. Exact approved FAQ templates retain
+local validation without a supervisor model call. Checklist completion score is
+not Jev probability. Current tools remain fictional; cited PDF guidance and
+historical summaries do not verify customer identity. Safety gates and live-send
+restrictions remain in force. Earlier generative-supervisor descriptions are
+historical; accuracy and speed changes require new measured reports.
+
+
+### TASK-39 current provenance and review output
+
+The expanded Northstar PDFs are pinned and indexed as northstar_reference_v2
+simulation references with nonempty knowledge IDs. Their approval_scope is
+reference_only: this repairs stale provenance but does not promote them to
+v1 exact FAQ approval or real business authority. New unpinned PDFs remain
+unreviewed. Both single-ticket commands display supervisor_reason and raw Jev
+supervisor_decision alongside the checklist score and workflow errors; the
+synthetic command also displays safety_review. A blocked order still escalates.
+
+## TASK-40: Evidence-bound safety assessment
+
+The graph and controlled worker share `production_policy.decide_public_reply`
+under `informational_only_v4`. The assessment records all detected blockers,
+specific missing evidence, knowledge IDs/version and policy version. Separate
+questions must be covered by the same approved reply; unsupported actions,
+safety incidents, billing disputes and customer-specific facts remain human work.
+This is a bounded informational policy, not a general proof of intent coverage.
+
+RAG approval additionally requires an explicitly scoped
+`automatic_reply_simulation` PDF containing the exact v1 reply, with trusted
+hash-pinned provenance and a cited, sufficient coverage review. The corpus now
+has seven unchanged reference-only PDFs and four separate fictional reply PDFs.
+Neither historical Chroma summaries nor reference-only PDFs authorize sending.
+The final graph delivery step rechecks evidence and exact outgoing text; the
+worker also checks exact template text. Jev PASS cannot override any blocker.
+
+Reindex with `python -m src.knowledge.ingest`. Run the fake-only benchmark with
+`python -m src.eval.run_eval`; reproduce saved metrics with
+`python -m src.eval.run_eval --report PATH`. Real customer sending stays disabled.
+Approved simulation content is not merchant approval or production evidence.
+
+### TASK-40 measured outcome (2026-10-06)
+
+The configured-model fake-only report
+`data/eval_reports/task29_20261006T165804Z_49001dc4.json` attempted all 50 cases:
+46/49 scored disposition matches (0.9387755102040817), one unscored workflow
+failure, three false escalations, zero false simulated sends and four simulated
+replies. Full-run p95 was 53658.00060000038 ms; provider-reported total cost was
+0.237483676. The accepted tracker was not overwritten. Safety enforcement held
+in these cases, but clean workflow acceptance remains open (FM-026/027).
+These numbers supersede no historical report and authorize no live sending.

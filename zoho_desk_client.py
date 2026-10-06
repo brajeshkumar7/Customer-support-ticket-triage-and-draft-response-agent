@@ -180,6 +180,14 @@ class ZohoDeskClient:
             expected_inbound_thread_id,
         )
 
+    async def send_reviewed_reply(
+        self, ticket_id: str, body: str, *, expected_email: str,
+    ) -> dict[str, Any]:
+        """Send one operator-reviewed reply after rechecking its recipient."""
+        return await asyncio.to_thread(
+            self._send_public_reply, ticket_id, body, expected_email,
+        )
+
     async def fetch_ticket(self, ticket_id: str) -> dict[str, Any]:
         """Fetch the limited ticket fields needed to run the agent, without sending."""
         started = time.perf_counter()
@@ -462,6 +470,8 @@ class ZohoDeskClient:
             )
         if expected_email is not None and recipient.strip().casefold() != expected_email.casefold():
             raise ZohoDeskDeliveryError("Requester changed before send; no reply was attempted.", delivery_status="failed")
+        if expected_email is not None and str(ticket.get("status", "")).casefold() in {"closed", "spam", "deleted"}:
+            raise ZohoDeskDeliveryError("Ticket status changed; no reply was attempted.", delivery_status="failed")
         if expected_inbound_thread_id is not None:
             if str(ticket.get("channel", "")).casefold() != "email" or str(ticket.get("status", "")).casefold() in {"closed", "spam", "deleted"}:
                 raise ZohoDeskDeliveryError("Ticket channel or status changed; no reply was attempted.", delivery_status="failed")

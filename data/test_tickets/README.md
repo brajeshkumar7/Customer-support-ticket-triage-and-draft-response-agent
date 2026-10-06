@@ -1,5 +1,11 @@
 # Test Tickets
 
+Current graph runs use PDF hybrid RAG by default. First run
+`python -m src.knowledge.ingest`; see `knowledgebase/README.md`. Full evaluation
+reports retain the RAG pipeline/corpus hash, evidence review and citations.
+Historical pre-RAG scores do not measure this pipeline. Ticket-history memory
+remains a fresh shared ephemeral collection; the PDF index is separate.
+
 50 synthetic support tickets for the eval (TASKS.md TASK-18 and TASK-27), with expected
 outcomes recorded in `manifest.csv` and ticket text in `tickets.jsonl` so
 the evaluator can score runs against a fixed set. The original 25 are unchanged;

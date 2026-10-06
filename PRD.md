@@ -1,15 +1,15 @@
-# PRD — Support Ticket Triage Agent with Runtime Safety
+# PRD â€” Support Ticket Triage Agent with Runtime Safety
 
 ## 1. Problem Statement
 Most portfolio "agent" projects are a single LLM call wrapped in a loop with no
 memory, no recovery from failure, and no sandboxing. The goal here is to build a
-**multi-step, stateful agent** that can fail safely and recover — the behavior
+**multi-step, stateful agent** that can fail safely and recover â€” the behavior
 companies actually need before putting an agent into production.
 
 ## 2. Goal
 Build an agent that completes a real multi-step task (e.g., "research a topic
 across 3 sources, reconcile conflicting facts, and produce a cited summary" or
-"triage and resolve a batch of support tickets using 2–3 tools") with:
+"triage and resolve a batch of support tickets using 2â€“3 tools") with:
 - Persistent state across steps (not just chat history)
 - Fixed tool calls; model-generated code and shell commands are never executed.
   The existing Docker runner is a stub, not an enforced production boundary.
@@ -29,20 +29,33 @@ request, damaged item, billing dispute, general question), the agent:
    before any delivery. Billing disputes without transaction evidence, missing
    or unknown orders, safety reports, explicit manager requests, policy
    exceptions, and unresolved intent must not be auto-sent. During TASK-25,
-   agent-initiated Zoho delivery is blocked; the separate controlled delivery
-   smoke test remains available.
+   agent-initiated Zoho delivery is blocked. A separate, manually reviewed
+   command may send either the approved draft or a fixed acknowledgement to
+   an explicitly confirmed controlled contact; it is not automatic customer
+   delivery. The controlled delivery smoke test remains available.
 
 For the TASK-29 local benchmark, the graph and controlled worker share an
 informational-only approval rule. An exact versioned FAQ reply may be simulated
-without LLM drafting or mock business tools. Other tickets are drafts or
+without LLM drafting or mock business tools. With TASK-37 RAG enabled, Jev
+and PDF evidence review still run before that exact reply can be simulated.
+Other tickets are drafts or
 escalations for human review; mock order data does not authorize delivery.
 
 ## 3. Non-Goals
-- Not building a general-purpose agent framework — pick one real, narrow task
-- Not optimizing for maximum autonomy — optimize for *predictable* failure
+- Not building a general-purpose agent framework â€” pick one real, narrow task
+- Not optimizing for maximum autonomy â€” optimize for *predictable* failure
 
 ## 4. Architecture
-- **Orchestration:** LangGraph (or an equivalent graph/state-machine framework) —
+- **PDF RAG (TASK-37):** The owner selected corpus-wide hybrid fact retrieval.
+  Actual PDFs live in `knowledgebase/`. One incremental CLI chunks and indexes
+  dense MiniLM embeddings in local Chroma plus sparse BM25 vectors in SQLite,
+  using relative-filename + first-150-word ledger hashes and committed
+  generations. PDFs are immutable; revisions require new filenames. After Jev triage, a bounded
+  allowlisted agent reviews evidence; generated human drafts cite chunk IDs.
+  Safety decisions require hash-pinned retrieved evidence for existing exact
+  informational simulation replies. Unreviewed PDFs cannot grant authority.
+  Controlled worker and real-delivery restrictions remain unchanged.
+- **Orchestration:** LangGraph (or an equivalent graph/state-machine framework) â€”
   chosen specifically because it models cycles and state explicitly, unlike a
   simple prompt-chaining script
 - **Tool execution:** fixed, application-owned Python tools run in the host
@@ -55,12 +68,19 @@ escalations for human review; mock order data does not authorize delivery.
   checklist; on failure, retries with feedback injected into the next attempt,
   capped at N retries before failing loudly (not silently)
 - **Deterministic send-safety gate:** explicit application rules can block
-  delivery even when the LLM supervisor passes. An LLM verdict alone is not a
+  delivery even when the Jev supervisor passes. An LLM verdict alone is not a
   send authorization.
 - **Ticket triage:** each run exposes category, urgency, a priority band and
   sort rank, plus the basis used. Explicit safety/high-stakes/time-critical
   wording can raise priority deterministically. The single-ticket graph does
   not implement multi-ticket queue ordering or SLA routing.
+  With PDF RAG enabled, all tickets use one Jev Decisions call
+  with separate Choice questions for category and urgency. The state preserves
+  the selected labels, all option probabilities, distribution confidence, and
+  served model. Unclear or invalid answers fail into human escalation. Jev
+  confidence is distinct from supervisor checklist confidence and does not
+  authorize delivery. The prior generative classifier's measurements remain
+  historical until a full Jev benchmark is run.
 - **Controlled Zoho deployment:** a single Render worker polls Zoho and uses
   PostgreSQL for unique inbound-thread jobs, a cursor, exact test allowlists,
   a kill switch, and delivery status. `off` is the default; `shadow` never
@@ -156,3 +176,52 @@ remains blocked pending authoritative sources and independent review.
 - [ ] Public repo status is unverified; the README links the architecture diagram
 - [x] README documents real failure modes and the failure log
 - [x] README includes a report-backed metrics table
+
+
+## TASK-38: Jev supervisor review
+
+Generated human-review drafts use one OpenRouter Decisions request with three
+Choice questions (pass, fail, insufficient_evidence). Configure
+`OPENROUTER_SUPERVISOR_MODEL` independently from triage and drafting; its default
+is `typesafe/jev-1.13`. Each check must select pass with probability >= 0.90.
+This initial threshold is provisional, not calibrated. Fixed checklist guidance
+supplies retry feedback; it does not identify individual unsupported sentences.
+Malformed or unavailable reviews escalate. Exact approved FAQ templates retain
+local validation without a supervisor model call. Checklist completion score is
+not Jev probability. Current tools remain fictional; cited PDF guidance and
+historical summaries do not verify customer identity. Safety gates and live-send
+restrictions remain in force. Earlier generative-supervisor descriptions are
+historical; accuracy and speed changes require new measured reports.
+
+## TASK-40: Evidence-bound safety assessment
+
+The graph and controlled worker share `production_policy.decide_public_reply`
+under `informational_only_v4`. The assessment records all detected blockers,
+specific missing evidence, knowledge IDs/version and policy version. Separate
+questions must be covered by the same approved reply; unsupported actions,
+safety incidents, billing disputes and customer-specific facts remain human work.
+This is a bounded informational policy, not a general proof of intent coverage.
+
+RAG approval additionally requires an explicitly scoped
+`automatic_reply_simulation` PDF containing the exact v1 reply, with trusted
+hash-pinned provenance and a cited, sufficient coverage review. The corpus now
+has seven unchanged reference-only PDFs and four separate fictional reply PDFs.
+Neither historical Chroma summaries nor reference-only PDFs authorize sending.
+The final graph delivery step rechecks evidence and exact outgoing text; the
+worker also checks exact template text. Jev PASS cannot override any blocker.
+
+Reindex with `python -m src.knowledge.ingest`. Run the fake-only benchmark with
+`python -m src.eval.run_eval`; reproduce saved metrics with
+`python -m src.eval.run_eval --report PATH`. Real customer sending stays disabled.
+Approved simulation content is not merchant approval or production evidence.
+
+### TASK-40 measured outcome (2026-10-06)
+
+The configured-model fake-only report
+`data/eval_reports/task29_20261006T165804Z_49001dc4.json` attempted all 50 cases:
+46/49 scored disposition matches (0.9387755102040817), one unscored workflow
+failure, three false escalations, zero false simulated sends and four simulated
+replies. Full-run p95 was 53658.00060000038 ms; provider-reported total cost was
+0.237483676. The accepted tracker was not overwritten. Safety enforcement held
+in these cases, but clean workflow acceptance remains open (FM-026/027).
+These numbers supersede no historical report and authorize no live sending.

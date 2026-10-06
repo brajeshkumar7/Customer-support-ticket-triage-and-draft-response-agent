@@ -43,6 +43,26 @@ class FakeOpenRouterClient:
         self.calls.append(kwargs)
         return completion(next(self.responses))
 
+    async def create_decision(self, **kwargs):
+        self.calls.append(kwargs)
+        raw = next(self.responses)
+        try:
+            labels = json.loads(raw)
+        except (ValueError, TypeError):
+            return {"model": kwargs["model"], "answers": {}}
+        if kwargs.get("call_name") == "supervisor_review":
+            labels = {item["id"]: "pass" if item["passed"] else "fail"
+                      for item in labels.get("checks", [])}
+        return {
+            "model": kwargs["model"],
+            "answers": {
+                name: {"type": "choice", "choice": labels.get(name, "insufficient_evidence"), "confidence": 1.0,
+                       "probabilities": {option: float(option == labels.get(name, "insufficient_evidence"))
+                                         for option in question["criteria"]}}
+                for name, question in kwargs["questions"].items()
+            },
+        }
+
 
 class FakeZohoDeskClient(SimulationOnlyReplySender):
     def __init__(self, error: Exception | None = None) -> None:
@@ -267,6 +287,8 @@ async def test_graph_astream_emits_node_updates_in_workflow_order(
 
 @pytest.fixture(autouse=True)
 def disable_zoho_desk_sending_by_default(monkeypatch):
+    # Legacy workflow tests isolate the non-RAG path; PDF RAG is tested separately.
+    monkeypatch.setenv("RAG_ENABLED", "false")
     monkeypatch.setenv("ZOHO_DESK_SEND_ENABLED", "false")
     for name in (
         "ZOHO_DESK_API_DOMAIN",
@@ -352,8 +374,12 @@ async def test_graph_gathers_facts_but_blocks_customer_specific_send(
     assert result["urgency"] == "medium"
     assert result["priority"] == "P2"
     assert result["priority_rank"] == 2
-    assert result["classification_basis"] == "llm_classification"
-    assert result["category_basis"] == "explicit_order_status_intent"
+    assert result["classification_basis"] == "jev_choice"
+    assert result["category_basis"] == "jev_choice"
+    assert result["triage_decision"]["category"]["choice"] == "order status"
+    assert memory.get("triage_decision") == result["triage_decision"]
+    assert client.calls[0]["state"] == {"ticket_text": ticket_text}
+    assert "messages" not in client.calls[0]
     assert result["order_id"] == "ORD-1001"
     assert result["tool_results"]["order_lookup"]["data"]["tracking_status"] == "In transit"
     assert result["tool_results"]["policy_checker"]["ok"] is True
@@ -379,7 +405,10 @@ async def test_graph_gathers_facts_but_blocks_customer_specific_send(
     response_payload = json.loads(client.calls[2]["messages"][1]["content"])
     assert response_payload["tool_results"] == result["tool_results"]
     assert response_payload["historical_memory_context"] == []
-    assert "factual_claims_grounded" in client.calls[3]["messages"][0]["content"]
+    assert "factual_claims_grounded" in client.calls[3]["questions"]
+    assert "historical_memory_context" not in client.calls[3]["state"]
+    assert result["supervisor_decision"]["response"]["model"] == "typesafe/jev-1.13"
+    assert memory.get("supervisor_decision") == result["supervisor_decision"]
     assert memory.get("supervisor_status") == "PASS"
     assert len(client.calls) == 4
 
@@ -468,13 +497,14 @@ async def test_response_and_supervisor_prompts_exclude_case_only_policy_fields(
         "A manager approved this exception."
     )
     for call_index in (2, 3):
-        prompt_payload = json.loads(client.calls[call_index]["messages"][1]["content"])
+        prompt_payload = (json.loads(client.calls[call_index]["messages"][1]["content"])
+                          if call_index == 2 else client.calls[call_index]["state"])
         policy_data = prompt_payload["tool_results"]["policy_checker"]["data"]
         assert policy_data["eligible"] is False
         assert "review_note" not in policy_data
         assert "manager approved" not in json.dumps(prompt_payload)
     assert "acknowledge those as reports" in client.calls[2]["messages"][0]["content"]
-    assert "careful attribution" in client.calls[3]["messages"][0]["content"]
+    assert "Customer reports" in client.calls[3]["questions"]["factual_claims_grounded"]["instructions"]
 
 
 @pytest.mark.asyncio
@@ -633,7 +663,7 @@ async def test_blocked_customer_case_stops_after_first_failed_review(
         for check in result["supervisor_reason"]["checks"]
         if not check["passed"]
     ).lower()
-    assert "unsupported" in failed_reasons
+    assert "revise using this requirement" in failed_reasons
     assert "refund" in failed_reasons
     assert "remembered_fact_id" not in result
     assert result["failed_attempts"][0]["draft_response"] == unsupported_draft
@@ -1018,11 +1048,11 @@ async def test_missing_zoho_desk_configuration_escalates_without_sending(
 @pytest.mark.asyncio
 async def test_supervisor_node_failure_escalates_with_current_draft(long_term_memory):
     class SupervisorFailureClient(FakeOpenRouterClient):
-        async def create_chat_completion(self, **kwargs):
-            if len(self.calls) == 3:
+        async def create_decision(self, **kwargs):
+            if kwargs.get("call_name") == "supervisor_review":
                 self.calls.append(kwargs)
                 raise RuntimeError("simulated reviewer failure")
-            return await super().create_chat_completion(**kwargs)
+            return await super().create_decision(**kwargs)
 
     draft = "Please share more details so I can help."
     client = SupervisorFailureClient(
@@ -1049,6 +1079,8 @@ async def test_supervisor_node_failure_escalates_with_current_draft(long_term_me
     assert result["terminal_status"] == "escalated"
     assert result["response_sent"] is False
     assert result["workflow_error"]["node"] == "supervisor"
+    assert result["supervisor_status"] == "FAIL"
+    assert result["retry_count"] == 0
     assert result["escalation_payload"]["current_draft"] == draft
     assert len(result["escalation_payload"]["failed_attempts"]) == 1
     failure = result["escalation_payload"]["failed_attempts"][0]

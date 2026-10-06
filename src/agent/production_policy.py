@@ -18,7 +18,7 @@ from src.agent.safety import (
 )
 
 KNOWLEDGE_PATH = Path(__file__).resolve().parents[2] / "data" / "approved_knowledge" / "v1.json"
-APPROVAL_POLICY_VERSION = "informational_only_v3"
+APPROVAL_POLICY_VERSION = "informational_only_v4"
 HIGH_STAKES = re.compile(r"\b(?:lawsuit|lawyer|legal action|regulator|fraud|chargeback|police|emergency|threaten|hacked|compromised|stolen|unauthorized)\b", re.I)
 SENSITIVE_REQUEST = re.compile(r"\b(?:cvv|full card|credit card number|password|api key|bank account|identity document)\b", re.I)
 UNSUPPORTED_ACTION = re.compile(
@@ -54,6 +54,8 @@ class ReplyDecision:
     reason_code: str = ""
     evidence_ids: tuple[str, ...] = ()
     policy_version: str = APPROVAL_POLICY_VERSION
+    findings: tuple[tuple[str, str], ...] = ()
+    required_evidence: tuple[str, ...] = ()
 
 
 def approved_knowledge(path: Path = KNOWLEDGE_PATH) -> dict:
@@ -76,7 +78,7 @@ def simulation_knowledge(path: Path = KNOWLEDGE_PATH) -> dict:
     return data
 
 
-def decide_public_reply(ticket_text: str, *, knowledge: dict) -> ReplyDecision:
+def _candidate_reply(ticket_text: str, *, knowledge: dict) -> ReplyDecision:
     """Allow only narrow informational requests; return no LLM prose for sending."""
     text = ticket_text.casefold()
     def human(code: str, reason: str) -> ReplyDecision:
@@ -160,3 +162,86 @@ def decide_public_reply(ticket_text: str, *, knowledge: dict) -> ReplyDecision:
         "informational", reply_type, body, knowledge.get("version"),
         "supported_faq", (reply_type,),
     )
+
+
+REQUIREMENTS = {
+    "customer_facts_unverified": ("authoritative customer-specific record", "verified requester-to-record identity", "fresh conflict-free source"),
+    "billing_data_unavailable": ("authoritative billing ledger", "verified requester identity", "human billing review"),
+    "safety_incident": ("human safety review",),
+    "manager_requested": ("human manager handoff",),
+    "policy_exception": ("authorized human policy decision",),
+    "business_action_unavailable": ("authorized action capability", "human action review"),
+}
+
+
+def decide_public_reply(ticket_text: str, *, knowledge: dict) -> ReplyDecision:
+    """Shared fail-closed assessment; collect independent blockers without granting authority."""
+    from dataclasses import replace
+    candidate = _candidate_reply(ticket_text, knowledge=knowledge)
+    findings = []
+    text = ticket_text.casefold()
+    checks = (
+        (SAFETY_PATTERN, "safety_incident", "A safety incident requires human assessment."),
+        (MANAGER_PATTERN, "manager_requested", "The requested manager handoff remains unresolved."),
+        (POLICY_EXCEPTION_PATTERN, "policy_exception", "A policy exception requires an authorized human decision."),
+        (BILLING_DISPUTE_PATTERN, "billing_data_unavailable", "No authoritative billing ledger is available."),
+        (HIGH_STAKES, "high_stakes_or_sensitive", "High-stakes concerns require human review."),
+        (SENSITIVE_REQUEST, "high_stakes_or_sensitive", "Sensitive credentials must not be requested or exposed."),
+        (UNSUPPORTED_ACTION, "business_action_unavailable", "The requested action cannot be performed by this agent."),
+    )
+    for pattern, code, reason in checks:
+        if pattern.search(text) and not any(item[0] == code for item in findings):
+            findings.append((code, reason))
+    if re.search(r"\b(?:ord-\d+|my (?:order|package|parcel|shipment|address|payment|card))\b", text):
+        findings.append(("customer_facts_unverified", "Customer-specific facts lack authoritative source and identity verification."))
+    if candidate.kind == "informational" and ticket_text.count("?") > 1:
+        questions = [part.strip() for part in ticket_text.split("?") if part.strip()]
+        if any(_candidate_reply(part, knowledge=knowledge).kind != "informational"
+               or _candidate_reply(part, knowledge=knowledge).evidence_ids != candidate.evidence_ids
+               for part in questions):
+            findings.append(("multi_intent_uncovered", "Every separate question must be covered by the same approved reply."))
+    if candidate.kind != "informational" and not any(code == candidate.reason_code for code, _ in findings):
+        findings.append((candidate.reason_code, candidate.reason))
+    if findings:
+        required = tuple(dict.fromkeys(requirement for code, _ in findings
+                                      for requirement in REQUIREMENTS.get(code, ("human request assessment",))))
+        # Preserve existing primary reasons for compatibility; all findings are exposed.
+        primary = candidate if candidate.kind == "human" else ReplyDecision(
+            "human", findings[0][1], reason_code=findings[0][0])
+        return replace(primary, findings=tuple(findings), required_evidence=required)
+    return replace(candidate, required_evidence=("versioned FAQ entry", "exact approved reply text"))
+
+
+def assess_reply_evidence(approval: ReplyDecision, *, review: dict, evidence: list[dict]) -> ReplyDecision:
+    """Model coverage is necessary but cannot grant document authority."""
+    from dataclasses import replace
+    if approval.kind != "informational":
+        return approval
+    code, reason = "", ""
+    if review.get("sufficient") is not True:
+        code, reason = "rag_coverage_missing", "Retrieved guidance does not cover the entire request."
+    else:
+        selected = set(review.get("evidence_ids", []))
+        body = " ".join((approval.body or "").split())
+        matches = [item for item in evidence if item.get("chunk_id") in selected
+                   and item.get("knowledge_id") in approval.evidence_ids
+                   and item.get("review_status") == "simulation"
+                   and item.get("approval_scope") == "automatic_reply_simulation"
+                   and item.get("knowledge_version") == approval.knowledge_version
+                   and isinstance(item.get("source"), str) and item["source"].strip()
+                   and body and body in " ".join(item.get("text", "").split())]
+        if not matches:
+            code, reason = "rag_approval_evidence_missing", "No retrieved simulation-approved PDF contains the exact versioned reply."
+    required = approval.required_evidence + ("retrieved hash-pinned simulation reply", "complete question coverage")
+    if code:
+        return replace(approval, kind="human", body=None, reason=reason, reason_code=code,
+                       findings=((code, reason),), required_evidence=required)
+    return replace(approval, required_evidence=required)
+
+
+def validate_outgoing_reply(decision: ReplyDecision, body: str) -> bool:
+    """Final exact-content check; a supervisor verdict cannot bypass the decision."""
+    return (decision.kind == "informational" and not decision.findings
+            and bool(decision.evidence_ids) and bool(decision.knowledge_version)
+            and bool(decision.body) and body == decision.body
+            and decision.policy_version == APPROVAL_POLICY_VERSION)

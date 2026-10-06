@@ -1,0 +1,108 @@
+{
+  "tracking_link.pdf": {
+    "sha256": "ad1b9de7e38ffe1f8d316b75baa5feac739ee6f6c85c95d4c628a9b96f6485dc",
+    "knowledge_id": "tracking_link",
+    "knowledge_version": "northstar_reference_v2",
+    "review_status": "simulation",
+    "source": "repository Northstar Commerce fictional support reference",
+    "approval_scope": "reference_only",
+    "reviewed_at": "2026-10-06",
+    "review_notes": "Reviewed as synthetic reference only; does not authorize business actions or v1 exact FAQ replies."
+  },
+  "carrier_delay.pdf": {
+    "sha256": "0f1f78eb4d5fcbd6611b198e0050c250e472a228c6789fbe5753797c134050c6",
+    "knowledge_id": "carrier_delay",
+    "knowledge_version": "northstar_reference_v2",
+    "review_status": "simulation",
+    "source": "repository Northstar Commerce fictional support reference",
+    "approval_scope": "reference_only",
+    "reviewed_at": "2026-10-06",
+    "review_notes": "Reviewed as synthetic reference only; does not authorize business actions or v1 exact FAQ replies."
+  },
+  "refund_timing.pdf": {
+    "sha256": "5fc331dc9163bad0a6bcf7c5299173fb9b1e85cc9de232d3c9be8f1287da6981",
+    "knowledge_id": "refund_timing",
+    "knowledge_version": "northstar_reference_v2",
+    "review_status": "simulation",
+    "source": "repository Northstar Commerce fictional support reference",
+    "approval_scope": "reference_only",
+    "reviewed_at": "2026-10-06",
+    "review_notes": "Reviewed as synthetic reference only; does not authorize business actions or v1 exact FAQ replies."
+  },
+  "payment_methods.pdf": {
+    "sha256": "b7e599e0da814962fde1b5a25fabd3ff728c370fb88baeaddf5af88b0067ea91",
+    "knowledge_id": "payment_methods",
+    "knowledge_version": "northstar_reference_v2",
+    "review_status": "simulation",
+    "source": "repository Northstar Commerce fictional support reference",
+    "approval_scope": "reference_only",
+    "reviewed_at": "2026-10-06",
+    "review_notes": "Reviewed as synthetic reference only; does not authorize business actions or v1 exact FAQ replies."
+  },
+  "returns.pdf": {
+    "sha256": "be47c54e26d107b17d449d4bc797dd9c01290c8f062900998c98f96273b94799",
+    "knowledge_id": "returns",
+    "knowledge_version": "northstar_reference_v2",
+    "review_status": "simulation",
+    "source": "repository Northstar Commerce fictional support reference",
+    "approval_scope": "reference_only",
+    "reviewed_at": "2026-10-06",
+    "review_notes": "Reviewed as synthetic reference only; does not authorize business actions or v1 exact FAQ replies."
+  },
+  "damage.pdf": {
+    "sha256": "fb4ba7cc11ed1bb5afefb555bde880d2f1e4948774f36a5075a3ba9ce0dc9ae9",
+    "knowledge_id": "damage",
+    "knowledge_version": "northstar_reference_v2",
+    "review_status": "simulation",
+    "source": "repository Northstar Commerce fictional support reference",
+    "approval_scope": "reference_only",
+    "reviewed_at": "2026-10-06",
+    "review_notes": "Reviewed as synthetic reference only; does not authorize business actions or v1 exact FAQ replies."
+  },
+  "data_boundaries.pdf": {
+    "sha256": "672d472db6c5ce265e840110174f24368044a6d3c26e6682a03a81ae0e816914",
+    "knowledge_id": "data_boundaries",
+    "knowledge_version": "northstar_reference_v2",
+    "review_status": "simulation",
+    "source": "repository Northstar Commerce fictional support reference",
+    "approval_scope": "reference_only",
+    "reviewed_at": "2026-10-06",
+    "review_notes": "Reviewed as synthetic reference only; does not authorize business actions or v1 exact FAQ replies."
+  },
+  "simulation_reply_v1_tracking_link.pdf": {
+    "sha256": "3ee2f072b48a880f42819d35b66a103dfd7b0714525ee30c1e9056bf02201c91",
+    "knowledge_id": "tracking_link",
+    "knowledge_version": "v1",
+    "review_status": "simulation",
+    "source": "data/approved_knowledge/v1.json fictional reply collection",
+    "approval_scope": "automatic_reply_simulation",
+    "reviewed_at": "2026-10-06"
+  },
+  "simulation_reply_v1_carrier_delay.pdf": {
+    "sha256": "7507b781ec1d26b23f8a5e2df3737ea2bf05d371318afd7f4a7013205f69034e",
+    "knowledge_id": "carrier_delay",
+    "knowledge_version": "v1",
+    "review_status": "simulation",
+    "source": "data/approved_knowledge/v1.json fictional reply collection",
+    "approval_scope": "automatic_reply_simulation",
+    "reviewed_at": "2026-10-06"
+  },
+  "simulation_reply_v1_refund_timing.pdf": {
+    "sha256": "83010e0923c97fb0174e4f3348a342d6673e49b673d00defbe9f29e6abdae9b1",
+    "knowledge_id": "refund_timing",
+    "knowledge_version": "v1",
+    "review_status": "simulation",
+    "source": "data/approved_knowledge/v1.json fictional reply collection",
+    "approval_scope": "automatic_reply_simulation",
+    "reviewed_at": "2026-10-06"
+  },
+  "simulation_reply_v1_payment_methods.pdf": {
+    "sha256": "374b729a10109e4dc048565022659d137953471625382ebbcd7a4f90051b2667",
+    "knowledge_id": "payment_methods",
+    "knowledge_version": "v1",
+    "review_status": "simulation",
+    "source": "data/approved_knowledge/v1.json fictional reply collection",
+    "approval_scope": "automatic_reply_simulation",
+    "reviewed_at": "2026-10-06"
+  }
+}

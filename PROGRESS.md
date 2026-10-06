@@ -24,6 +24,10 @@ pick this back up cold
 
 **Current metrics provenance:** Complete 50-ticket simulated graph run under informational-only labels, saved as `data/eval_reports/task29_20261005T183529Z_2979caa5.json` and recorded on 2026-10-06. It predates the final TASK-32 triage edit; a fresh complete run is still needed. Earlier fixture-backed and v3 reports remain historical. The interrupted OpenRouter run produced no complete report or new accuracy measurement.
 
+These tracker values also predate TASK-36's Jev triage and TASK-37's PDF RAG. No complete
+50- or 200-case Jev benchmark has been measured; the single connectivity check
+below must not be used as classifier accuracy or a benchmark p95.
+
 | Metric | Value | Date measured |
 |---|---|---|
 | Category classification accuracy | 50/50 = 1.0 | 2026-10-06 |
@@ -87,6 +91,90 @@ report for all per-case outcomes and per-category latency/call/cost details.
 ---
 
 ## Session log
+
+## [2026-10-06] TASK-36 Jev typed triage
+
+**Worked on:** Reviewed OpenRouter's Jev examples and TypeSafe's typed API and
+confidence guidance; replaced the current generative classification path with
+one Decisions request for category and urgency.
+**Completed:** Added a versioned rubric, strict Choice/probability validation,
+explicit unclear-category escalation, model/probability state and CLI output,
+shared pacing/retry/timeout/cost logging, and Jev provenance in new evaluation
+reports. Existing FAQ shortcuts and safety priority floors remain. Old holdout
+checkpoints cannot mix their classifier with the new Jev model/rubric. Added
+`OPENROUTER_TRIAGE_MODEL=typesafe/jev-1.13` to the ignored local `.env` and the
+example configuration. No dependencies were added. The focused offline suite
+passed 150 checks; after adding explicit failure reasons and distinguishing
+valid unclear handoffs from malformed API answers, the Jev/graph/policy subset
+passed 73 checks. An unclear decision remains a scored escalation and retains
+its probability distribution; it is not reported as an API outage or excluded
+from classification accuracy. No Zoho send occurred.
+**Verification:** One actual OpenRouter Decisions call succeeded under run ID
+`jev-triage-smoke-3b098dd978` in `data/logs/events.jsonl`. Served model:
+`typesafe/jev-1.13-20260917`; sample category `order status`, urgency `low`.
+The logged request latency was 986.92 ms and provider cost was 3.5448e-05.
+This is a single contract/connectivity measurement, not a full-graph latency
+or classifier accuracy result. Initial sandbox attempts hit temporary-directory
+permissions/API connectivity restrictions; verification succeeded with the
+appropriate tool access.
+**Blocked/open questions:** Category accuracy, urgency calibration, total
+cost, and end-to-end latency require a fresh full simulated benchmark. Jev
+distribution confidence is not a delivery authorization or measured correctness.
+**Next session should start with:** Run the 50-case fake-sender evaluation and
+compare its saved Jev report with the historical generative-classifier report.
+
+## [2026-10-06] TASK-35 controlled acknowledgement after failed review
+
+**Worked on:** Investigated the owner's controlled Zoho run of ticket
+`279251000000372001`. The graph escalated because mock order facts lacked
+authoritative verification; the supervisor returned FAIL, so the reviewed
+command correctly sent no email under its prior rule.
+**Completed:** The reviewed command now proposes a fixed human-review
+acknowledgement when there is no supervisor-approved draft. It displays the
+exact outgoing text and still requires recipient and ticket confirmation
+before one Zoho attempt. Failed agent prose remains unsent; automatic graph
+and worker gates are unchanged. No live send or new accuracy measurement was
+performed in this session.
+**Blocked/open questions:** Zoho may reject email replies on the owner's
+non-Email ticket. A confirmed delivery can only be established by an actual
+controlled send and returned Zoho thread ID; unknown outcomes require manual
+inspection before any retry.
+**Metrics measured this session:** None.
+**Next session should start with:** Run `run_zoho --send-reviewed` on the
+controlled ticket, inspect the acknowledgement and recipient, and confirm if
+the wording is appropriate.
+
+## [2026-10-06] TASK-34 controlled reviewed agent reply
+
+**Worked on:** Added an optional, manually reviewed Zoho email after a local
+agent run on a controlled ticket.
+**Completed:** The CLI shows the full draft, safety findings, and recipient;
+requires supervisor PASS and explicit email and ticket confirmation; then
+attempts one public email through the existing Zoho adapter. The graph itself
+still cannot send. Focused network-free command and adapter tests passed
+(27 passed). No live Zoho send was performed in this session.
+**Blocked/open questions:** Zoho acceptance of an email reply on the owner's
+non-Email ticket has not been confirmed. A real controlled run is needed to
+observe the result; any uncertain send requires manual Zoho inspection.
+**Metrics measured this session:** No agent accuracy or latency measurement.
+**Next session should start with:** Run `run_zoho --send-reviewed` on one
+controlled ticket, review the exact draft and safety findings, then confirm
+only if the email and wording are correct.
+
+## [2026-10-06] TASK-33 controlled Zoho draft runs
+
+**Worked on:** Clarified the fixed-message smoke test versus the LangGraph
+runner and removed the Email-channel restriction from read-only analysis.
+**Completed:** `run_zoho --draft-only` accepts a controlled ticket with usable
+description from any Zoho channel and prints its local agent run ID. Direct
+customer delivery remains disabled; the controlled worker's Email send checks
+remain unchanged.
+**Blocked/open questions:** A live run on the owner's two tickets is still
+needed to observe their actual returned ticket text and agent outputs. The
+command does not create a Zoho assignment or a public reply.
+**Metrics measured this session:** None.
+**Next session should start with:** Run the draft-only command for each
+controlled ticket and inspect the printed draft and local JSONL events.
 
 ## [2026-10-06] Documentation alignment (TASK-21–23)
 
@@ -328,6 +416,42 @@ delivery based on the offline rule suite alone.
 **Blocked/open questions:** Sequential latency remains unmeasured until TASK-20. 0 tickets had at least one missing provider-reported token cost; those costs are not estimated.
 **Metrics measured this session:** See the tracker above and the saved report `data\eval_reports\task19_20261004T074219Z_b7d0d175.json`.
 **Next session should start with:** Review per-category errors and the zero-false-send gate; keep live Zoho delivery blocked.
+
+## [2026-10-06] TASK-37 PDF hybrid RAG
+
+**Subsequent owner-requested ledger change:** Skip identity now hashes the
+relative filename and first 150 extracted words under an immutable-PDF
+assumption. Full SHA-256 remains an index-time provenance check, not a repeated
+skip check. Pipeline version v2 causes a one-time rebuild of existing PDFs.
+Revisions require new filenames; later changes are deliberately undetected.
+Updated the existing regression expectation and current documentation. No new
+tests, live ingestion, model runs or performance measurements were run for
+this ledger-only change; the test results below precede it.
+
+**Completed:** Added seven actual simulation PDFs, page/paragraph-aware bounded
+chunking, dense MiniLM Chroma embeddings, persisted sparse BM25 vectors,
+reciprocal-rank fusion and a full-file hash ledger. Graph retrieval is now
+corpus-wide with at most three searches, model evidence review and validated
+draft citations. Exact simulation templates require retrieved hash-pinned PDF
+evidence. Updated commands, architecture, task and knowledge records. Historical
+ticket recall and controlled-worker send policy remain separate.
+**Verification:** The first ingestion indexed all seven documents; the next
+run skipped all seven. A real dense+sparse preview ranked `payment_methods.pdf`
+first for the payment-method query. Rendered and visually checked all seed PDFs.
+The initial offline RAG/graph/Jev/policy/command suite passed 104 tests.
+Expanded RAG/graph/Jev/policy/command/evaluator/injection-runner regression passed
+151 tests in 12.82 seconds in the final run, including customer-data and retrieval-failure
+handoffs; compilation and `git diff --check` also passed.
+**Real observation:** `synthetic-general_07-a50d1d8764` retrieved correct evidence
+but falsely escalated by confusing simulation labels with missing coverage.
+After separating coverage from send authority, `synthetic-general_07-1d3b30d33b`
+returned sufficient coverage, cited the payment chunk and made exactly one
+fake send of the local template. Both runs are in `data/logs/events.jsonl`;
+see FM-021. No Zoho request occurred.
+**Metrics:** No new full-suite accuracy, p95 or total-cost measurement. Current
+50/200-case tracker values predate PDF RAG and must remain historical.
+**Next:** Run the full fake-delivery benchmark and evaluate citation entailment,
+retrieval relevance and larger-corpus latency before broadening approval.
 
 ## [2026-10-06] TASK-32 per-ticket category and priority triage
 **Worked on:** TASK-32 classification and urgency-based priority metadata.
@@ -579,3 +703,336 @@ mode.
 **Blocked/open questions:** Sequential latency remains unmeasured until TASK-20. 0 tickets had at least one missing provider-reported token cost; those costs are not estimated.
 **Metrics measured this session:** See the tracker above and the saved report `data\eval_reports\task29_20261005T183529Z_2979caa5.json`.
 **Next session should start with:** Review per-category errors and the zero-false-send gate; keep live Zoho delivery blocked.
+
+
+## TASK-38 Jev supervisor integration ? 2026-10-06
+
+The generative reviewer is replaced with three typed Jev Choice checks using
+separately configurable model selection. Probabilities and served model are
+retained, fixed checklist feedback is used, and the provisional pass-probability
+threshold is 0.90. Exact FAQ validation and delivery gates are unchanged.
+Offline suite: 269 passed; final cited-evidence and explicit API-failure
+assertions passed in a further 61-test targeted run. Restricted pytest temp access required rerunning outside the sandbox.
+The first restricted live batch was interrupted after repeated APIConnectionError;
+it produced no complete benchmark and is not an accuracy measurement.
+
+Reviewer report: `data/eval_reports/task38_reviews_20261006T145230Z_170013e8.json`.
+Nine visible author-labeled development drafts were scored: agreement
+0.6666666666666666, false acceptances 0, false rejections 3, nearest-rank p95
+621.037000004435 ms, provider-reported total cost 0.00035393400000000003.
+This small set is not independently reviewed. FM-022 remains open; faster typed
+responses do not establish better accuracy. The full 50-case attempt completed; its failed-workflow measurements are recorded below.
+
+
+### TASK-38 full graph measurement (not an accepted clean benchmark)
+
+Source: `data/eval_reports/task29_20261006T144218Z_8f3a4f3b.json`. All 50 cases were attempted with fake
+delivery and shared ephemeral Chroma. The harness refused to update the current
+metrics tracker because two workflows failed. Earlier accepted metrics remain historical.
+
+```json
+{
+  "ticket_count": 50,
+  "scored_ticket_count": 48,
+  "unscored_count": 2,
+  "matched_count": 41,
+  "task_completion_rate": 0.8541666666666666,
+  "category_classification": {
+    "measured_count": 50,
+    "correct_count": 47,
+    "accuracy": 0.94,
+    "urgency_distribution": {
+      "high": 6,
+      "medium": 22,
+      "low": 22
+    },
+    "priority_distribution": {
+      "P1": 6,
+      "P2": 22,
+      "P3": 22
+    }
+  },
+  "expected_auto_resolve_count": 7,
+  "auto_resolve_incorrect_escalation_count": 7,
+  "auto_resolve_incorrect_escalation_rate": 1.0,
+  "expected_escalate_count": 41,
+  "expected_escalate_correct_count": 41,
+  "escalation_recall": 1.0,
+  "expected_escalate_incorrect_send_count": 0,
+  "expected_escalate_incorrect_send_rate": 0.0,
+  "false_send_count": 0,
+  "missed_escalation_count": 0,
+  "false_escalation_count": 7,
+  "unsupported_claim_review_count": 24,
+  "safety_gate_violation_count": 0,
+  "by_category": {
+    "billing_dispute": {
+      "ticket_count": 10,
+      "llm_calls": 62,
+      "reported_cost": 0.054699299,
+      "calls_missing_cost": 0,
+      "false_sends": 0,
+      "missed_escalations": 0,
+      "false_escalations": 0,
+      "unsupported_claim_reviews": 1,
+      "safety_gate_violations": 0
+    },
+    "damaged_item": {
+      "ticket_count": 10,
+      "llm_calls": 60,
+      "reported_cost": 0.054825803,
+      "calls_missing_cost": 0,
+      "false_sends": 0,
+      "missed_escalations": 0,
+      "false_escalations": 0,
+      "unsupported_claim_reviews": 5,
+      "safety_gate_violations": 0
+    },
+    "general_question": {
+      "ticket_count": 10,
+      "llm_calls": 48,
+      "reported_cost": 0.042191169,
+      "calls_missing_cost": 0,
+      "false_sends": 0,
+      "missed_escalations": 1,
+      "false_escalations": 7,
+      "unsupported_claim_reviews": 6,
+      "safety_gate_violations": 0
+    },
+    "order_status": {
+      "ticket_count": 10,
+      "llm_calls": 61,
+      "reported_cost": 0.050105620999999996,
+      "calls_missing_cost": 0,
+      "false_sends": 0,
+      "missed_escalations": 0,
+      "false_escalations": 0,
+      "unsupported_claim_reviews": 5,
+      "safety_gate_violations": 0
+    },
+    "returns": {
+      "ticket_count": 10,
+      "llm_calls": 58,
+      "reported_cost": 0.050154635,
+      "calls_missing_cost": 0,
+      "false_sends": 0,
+      "missed_escalations": 1,
+      "false_escalations": 0,
+      "unsupported_claim_reviews": 7,
+      "safety_gate_violations": 0
+    }
+  },
+  "mean_retries_to_success": 0.0,
+  "failure_after_cap_count": 0,
+  "failure_after_cap_rate": 0.0,
+  "p95_latency_ms": 67079.16410001053,
+  "total_reported_token_cost": 0.251976527,
+  "llm_calls_total": 289,
+  "zero_model_call_tickets": 0,
+  "tickets_with_missing_token_cost": 0,
+  "cost_per_successful_run": 0.0052969018048780485,
+  "by_model": {
+    "openai/gpt-6-luna-pro": {
+      "llm_calls": 191,
+      "reported_cost": 0.2395295750000001,
+      "calls_missing_cost": 0
+    },
+    "typesafe/jev-1.13-20260917": {
+      "llm_calls": 98,
+      "reported_cost": 0.012446952000000002,
+      "calls_missing_cost": 0
+    }
+  }
+}
+```
+
+No simulated reply was sent. Seven answerable questions escalated, and two
+workflow failures were unscored. Reviewer flags are model assessments, not
+independently confirmed unsupported claims. The saved report reproduces these
+measurements; it does not demonstrate a reviewer accuracy improvement.
+
+Inspection after the run found all seven PDF files differ from their manifest
+SHA-256 pins. Retrieved records have unreviewed status and empty knowledge IDs
+and versions, so the exact-template approval gate correctly refuses them.
+This corpus/provenance problem is separate from Jev review (FM-024). No PDFs or
+manifest pins were changed or approved in this task.
+
+
+## TASK-39 - Repair PDF provenance and visible review details (2026-10-06)
+
+Read the expanded seven Northstar PDFs and preserved their bytes. Updated the
+manifest to pin the current files as `northstar_reference_v2`, with original
+knowledge IDs, simulation review status, and explicit reference-only approval
+scope. These PDFs differ from v1 exact FAQ guidance, including refund issuance
+versus approval; they do not authorize automatic replies or business actions.
+The send gate explicitly excludes reference-only evidence.
+
+The actual ingestion command indexed all seven with no errors. Repeating it
+skipped all seven with no errors. A local hybrid payment-method query returned
+payment_methods chunks with populated knowledge ID/version, simulation review
+status, and reference_only scope. No PDF export or replacement occurred.
+
+Synthetic and Zoho single-ticket output now includes supervisor_reason,
+supervisor_decision, confidence_score and workflow_error; synthetic output also
+includes safety_review. This makes checklist failures and probability metadata
+visible separately from the deterministic block. Changed Python files parse.
+No tests or configured-model evaluation were run in this task; historical
+accuracy measurements are unchanged. FM-024's stale provenance is repaired;
+coverage and automated-answer eligibility are separate unresolved questions.
+
+## 2026-10-06 - TASK-40 safety implementation
+
+Implemented shared multi-finding assessment, evidence requirements, explicit PDF
+approval scope and final outgoing-text validation. Preserved references and live
+send restrictions. Four separate simulation reply PDFs rendered and exact text
+checked; ingestion indexed four then skipped all eleven without errors. Initial
+full offline suite: 286 passed; final focused suite after the separate-question
+coverage check: 67 passed. Configured-model fake-only benchmark is running;
+restricted network attempt was interrupted and is excluded from accuracy claims.
+
+TASK-40 final offline verification: 289 tests passed in 24.19s. The separate
+policy-only report `docs/measurements/task40_offline_safety.json` records 50
+assessments and seven eligible informational controls; it is not full-graph
+accuracy. All four new PDFs were rendered and visually inspected, with exact
+reply text verified by extraction. `git diff --check` passed.
+
+The policy-only report measured maximum assessment latency
+2.692699999897741 ms and mean 0.4469539996352978 ms across 50 local assessments.
+These measurements exclude model calls, retrieval and drafting; they are not
+end-to-end performance claims.
+
+## 2026-10-06 - TASK-40 completed measurement; acceptance remains open
+
+Source: `data/eval_reports/task29_20261006T165804Z_49001dc4.json`, policy
+`informational_only_v4`, configured models, fake sender only. Shared ephemeral
+Chroma was used. All 50 cases were attempted; one workflow failure is unscored.
+The harness refused replacement of the accepted tracker because of that error.
+The public metrics exporter also refused this failed batch. A separate labeled
+failure diagnostic is in `docs/measurements/task40_safety.json`; it is not an
+accepted public accuracy measurement.
+
+Four simulated replies, three false escalations (`general_03`, `general_04`,
+`general_08`), zero false simulated sends. `billing_01` failed in respond and
+escalated without delivery; it is not counted as a correct scored disposition.
+Jev unsupported-claim flags are review signals, not independent ground truth.
+FM-026 and FM-027 remain open. Full workflow accuracy/latency acceptance is not
+established. Real sending remains blocked. Full-run p95 is not a sequential
+comparison. The current authoritative tracker remains the earlier accepted run.
+
+Computed metrics copied directly from the saved report:
+
+```json
+{
+  "ticket_count": 50,
+  "scored_ticket_count": 49,
+  "unscored_count": 1,
+  "matched_count": 46,
+  "task_completion_rate": 0.9387755102040817,
+  "category_classification": {
+    "measured_count": 50,
+    "correct_count": 44,
+    "accuracy": 0.88,
+    "urgency_distribution": {
+      "high": 6,
+      "medium": 22,
+      "low": 22
+    },
+    "priority_distribution": {
+      "P1": 6,
+      "P2": 22,
+      "P3": 22
+    }
+  },
+  "expected_auto_resolve_count": 7,
+  "auto_resolve_incorrect_escalation_count": 3,
+  "auto_resolve_incorrect_escalation_rate": 0.42857142857142855,
+  "expected_escalate_count": 42,
+  "expected_escalate_correct_count": 42,
+  "escalation_recall": 1.0,
+  "expected_escalate_incorrect_send_count": 0,
+  "expected_escalate_incorrect_send_rate": 0.0,
+  "false_send_count": 0,
+  "missed_escalation_count": 0,
+  "false_escalation_count": 3,
+  "unsupported_claim_review_count": 22,
+  "safety_gate_violation_count": 0,
+  "by_category": {
+    "billing_dispute": {
+      "ticket_count": 10,
+      "llm_calls": 60,
+      "reported_cost": 0.054409764,
+      "calls_missing_cost": 0,
+      "false_sends": 0,
+      "missed_escalations": 1,
+      "false_escalations": 0,
+      "unsupported_claim_reviews": 1,
+      "safety_gate_violations": 0
+    },
+    "damaged_item": {
+      "ticket_count": 10,
+      "llm_calls": 55,
+      "reported_cost": 0.047106953,
+      "calls_missing_cost": 0,
+      "false_sends": 0,
+      "missed_escalations": 0,
+      "false_escalations": 0,
+      "unsupported_claim_reviews": 7,
+      "safety_gate_violations": 0
+    },
+    "general_question": {
+      "ticket_count": 10,
+      "llm_calls": 43,
+      "reported_cost": 0.039243894,
+      "calls_missing_cost": 0,
+      "false_sends": 0,
+      "missed_escalations": 0,
+      "false_escalations": 3,
+      "unsupported_claim_reviews": 1,
+      "safety_gate_violations": 0
+    },
+    "order_status": {
+      "ticket_count": 10,
+      "llm_calls": 60,
+      "reported_cost": 0.049113925999999995,
+      "calls_missing_cost": 0,
+      "false_sends": 0,
+      "missed_escalations": 0,
+      "false_escalations": 0,
+      "unsupported_claim_reviews": 5,
+      "safety_gate_violations": 0
+    },
+    "returns": {
+      "ticket_count": 10,
+      "llm_calls": 56,
+      "reported_cost": 0.047609139,
+      "calls_missing_cost": 0,
+      "false_sends": 0,
+      "missed_escalations": 0,
+      "false_escalations": 0,
+      "unsupported_claim_reviews": 8,
+      "safety_gate_violations": 0
+    }
+  },
+  "mean_retries_to_success": 0.0,
+  "failure_after_cap_count": 0,
+  "failure_after_cap_rate": 0.0,
+  "p95_latency_ms": 53658.00060000038,
+  "total_reported_token_cost": 0.237483676,
+  "llm_calls_total": 274,
+  "zero_model_call_tickets": 0,
+  "tickets_with_missing_token_cost": 0,
+  "cost_per_successful_run": 0.004679641695652174,
+  "by_model": {
+    "openai/gpt-6-luna-pro": {
+      "llm_calls": 179,
+      "reported_cost": 0.2255362299999999,
+      "calls_missing_cost": 0
+    },
+    "typesafe/jev-1.13-20260917": {
+      "llm_calls": 95,
+      "reported_cost": 0.011947446000000002,
+      "calls_missing_cost": 0
+    }
+  }
+}
+```

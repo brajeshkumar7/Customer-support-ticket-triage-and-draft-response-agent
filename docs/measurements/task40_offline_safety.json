@@ -1,0 +1,473 @@
+{
+  "kind": "offline_policy_only_not_graph_accuracy",
+  "policy": "informational_only_v4",
+  "measured_at": "2026-10-06",
+  "ticket_count": 50,
+  "results": [
+    {
+      "ticket_id": "order_01",
+      "disposition": "human",
+      "reason_code": "customer_facts_unverified",
+      "findings": [
+        "customer_facts_unverified"
+      ],
+      "latency_ms": 1.5093999973032624
+    },
+    {
+      "ticket_id": "order_02",
+      "disposition": "human",
+      "reason_code": "customer_facts_unverified",
+      "findings": [
+        "customer_facts_unverified"
+      ],
+      "latency_ms": 0.3601000062189996
+    },
+    {
+      "ticket_id": "order_03",
+      "disposition": "human",
+      "reason_code": "faq_coverage_missing",
+      "findings": [
+        "faq_coverage_missing"
+      ],
+      "latency_ms": 1.6720999992685392
+    },
+    {
+      "ticket_id": "order_04",
+      "disposition": "human",
+      "reason_code": "customer_facts_unverified",
+      "findings": [
+        "customer_facts_unverified"
+      ],
+      "latency_ms": 0.3566000086721033
+    },
+    {
+      "ticket_id": "order_05",
+      "disposition": "human",
+      "reason_code": "human_judgment_required",
+      "findings": [
+        "manager_requested",
+        "customer_facts_unverified",
+        "human_judgment_required"
+      ],
+      "latency_ms": 0.28649999876506627
+    },
+    {
+      "ticket_id": "return_01",
+      "disposition": "human",
+      "reason_code": "customer_facts_unverified",
+      "findings": [
+        "customer_facts_unverified"
+      ],
+      "latency_ms": 0.3628999984357506
+    },
+    {
+      "ticket_id": "return_02",
+      "disposition": "human",
+      "reason_code": "customer_facts_unverified",
+      "findings": [
+        "customer_facts_unverified"
+      ],
+      "latency_ms": 0.26259999140165746
+    },
+    {
+      "ticket_id": "return_03",
+      "disposition": "human",
+      "reason_code": "customer_facts_unverified",
+      "findings": [
+        "customer_facts_unverified"
+      ],
+      "latency_ms": 0.3730000025825575
+    },
+    {
+      "ticket_id": "return_04",
+      "disposition": "human",
+      "reason_code": "human_judgment_required",
+      "findings": [
+        "customer_facts_unverified",
+        "human_judgment_required"
+      ],
+      "latency_ms": 0.3563000063877553
+    },
+    {
+      "ticket_id": "return_05",
+      "disposition": "human",
+      "reason_code": "human_judgment_required",
+      "findings": [
+        "policy_exception",
+        "customer_facts_unverified",
+        "human_judgment_required"
+      ],
+      "latency_ms": 0.3825000021606684
+    },
+    {
+      "ticket_id": "damage_01",
+      "disposition": "human",
+      "reason_code": "customer_facts_unverified",
+      "findings": [
+        "customer_facts_unverified"
+      ],
+      "latency_ms": 0.3488000074867159
+    },
+    {
+      "ticket_id": "damage_02",
+      "disposition": "human",
+      "reason_code": "customer_facts_unverified",
+      "findings": [
+        "customer_facts_unverified"
+      ],
+      "latency_ms": 0.3470999945420772
+    },
+    {
+      "ticket_id": "damage_03",
+      "disposition": "human",
+      "reason_code": "human_judgment_required",
+      "findings": [
+        "policy_exception",
+        "customer_facts_unverified",
+        "human_judgment_required"
+      ],
+      "latency_ms": 0.3203999949619174
+    },
+    {
+      "ticket_id": "damage_04",
+      "disposition": "human",
+      "reason_code": "human_judgment_required",
+      "findings": [
+        "safety_incident",
+        "manager_requested",
+        "customer_facts_unverified",
+        "human_judgment_required"
+      ],
+      "latency_ms": 0.2158999996026978
+    },
+    {
+      "ticket_id": "damage_05",
+      "disposition": "human",
+      "reason_code": "customer_facts_unverified",
+      "findings": [
+        "customer_facts_unverified"
+      ],
+      "latency_ms": 0.30729999707546085
+    },
+    {
+      "ticket_id": "billing_01",
+      "disposition": "human",
+      "reason_code": "human_judgment_required",
+      "findings": [
+        "billing_data_unavailable",
+        "customer_facts_unverified",
+        "human_judgment_required"
+      ],
+      "latency_ms": 0.34159999631810933
+    },
+    {
+      "ticket_id": "billing_02",
+      "disposition": "human",
+      "reason_code": "human_judgment_required",
+      "findings": [
+        "billing_data_unavailable",
+        "business_action_unavailable",
+        "customer_facts_unverified",
+        "human_judgment_required"
+      ],
+      "latency_ms": 0.23489999875891954
+    },
+    {
+      "ticket_id": "billing_03",
+      "disposition": "human",
+      "reason_code": "customer_facts_unverified",
+      "findings": [
+        "customer_facts_unverified"
+      ],
+      "latency_ms": 0.2638000005390495
+    },
+    {
+      "ticket_id": "billing_04",
+      "disposition": "human",
+      "reason_code": "business_action_unavailable",
+      "findings": [
+        "business_action_unavailable",
+        "customer_facts_unverified"
+      ],
+      "latency_ms": 0.23580000561196357
+    },
+    {
+      "ticket_id": "billing_05",
+      "disposition": "human",
+      "reason_code": "business_action_unavailable",
+      "findings": [
+        "business_action_unavailable",
+        "customer_facts_unverified"
+      ],
+      "latency_ms": 0.27990000671707094
+    },
+    {
+      "ticket_id": "general_01",
+      "disposition": "informational",
+      "reason_code": "supported_faq",
+      "findings": [],
+      "latency_ms": 0.26720001187641174
+    },
+    {
+      "ticket_id": "general_02",
+      "disposition": "informational",
+      "reason_code": "supported_faq",
+      "findings": [],
+      "latency_ms": 0.4915000026812777
+    },
+    {
+      "ticket_id": "general_03",
+      "disposition": "informational",
+      "reason_code": "supported_faq",
+      "findings": [],
+      "latency_ms": 0.3268000000389293
+    },
+    {
+      "ticket_id": "general_04",
+      "disposition": "informational",
+      "reason_code": "supported_faq",
+      "findings": [],
+      "latency_ms": 0.7666000019526109
+    },
+    {
+      "ticket_id": "general_05",
+      "disposition": "human",
+      "reason_code": "human_judgment_required",
+      "findings": [
+        "human_judgment_required"
+      ],
+      "latency_ms": 0.25660000392235816
+    },
+    {
+      "ticket_id": "order_06",
+      "disposition": "human",
+      "reason_code": "customer_facts_unverified",
+      "findings": [
+        "customer_facts_unverified"
+      ],
+      "latency_ms": 0.27129999944008887
+    },
+    {
+      "ticket_id": "order_07",
+      "disposition": "human",
+      "reason_code": "customer_facts_unverified",
+      "findings": [
+        "customer_facts_unverified"
+      ],
+      "latency_ms": 0.17610000213608146
+    },
+    {
+      "ticket_id": "order_08",
+      "disposition": "human",
+      "reason_code": "business_action_unavailable",
+      "findings": [
+        "business_action_unavailable",
+        "customer_facts_unverified"
+      ],
+      "latency_ms": 0.24449999909847975
+    },
+    {
+      "ticket_id": "order_09",
+      "disposition": "human",
+      "reason_code": "business_action_unavailable",
+      "findings": [
+        "business_action_unavailable",
+        "customer_facts_unverified"
+      ],
+      "latency_ms": 0.21270000434014946
+    },
+    {
+      "ticket_id": "order_10",
+      "disposition": "human",
+      "reason_code": "business_action_unavailable",
+      "findings": [
+        "business_action_unavailable",
+        "customer_facts_unverified"
+      ],
+      "latency_ms": 0.1714999962132424
+    },
+    {
+      "ticket_id": "return_06",
+      "disposition": "human",
+      "reason_code": "customer_facts_unverified",
+      "findings": [
+        "customer_facts_unverified"
+      ],
+      "latency_ms": 0.2466000005370006
+    },
+    {
+      "ticket_id": "return_07",
+      "disposition": "human",
+      "reason_code": "customer_facts_unverified",
+      "findings": [
+        "customer_facts_unverified"
+      ],
+      "latency_ms": 0.2671999973244965
+    },
+    {
+      "ticket_id": "return_08",
+      "disposition": "human",
+      "reason_code": "customer_facts_unverified",
+      "findings": [
+        "customer_facts_unverified"
+      ],
+      "latency_ms": 0.4991999885533005
+    },
+    {
+      "ticket_id": "return_09",
+      "disposition": "human",
+      "reason_code": "human_judgment_required",
+      "findings": [
+        "policy_exception",
+        "customer_facts_unverified",
+        "human_judgment_required"
+      ],
+      "latency_ms": 0.2969999914057553
+    },
+    {
+      "ticket_id": "return_10",
+      "disposition": "human",
+      "reason_code": "faq_coverage_missing",
+      "findings": [
+        "faq_coverage_missing"
+      ],
+      "latency_ms": 0.3755999932764098
+    },
+    {
+      "ticket_id": "damage_06",
+      "disposition": "human",
+      "reason_code": "customer_facts_unverified",
+      "findings": [
+        "customer_facts_unverified"
+      ],
+      "latency_ms": 0.225800002226606
+    },
+    {
+      "ticket_id": "damage_07",
+      "disposition": "human",
+      "reason_code": "customer_facts_unverified",
+      "findings": [
+        "customer_facts_unverified"
+      ],
+      "latency_ms": 2.692699999897741
+    },
+    {
+      "ticket_id": "damage_08",
+      "disposition": "human",
+      "reason_code": "customer_facts_unverified",
+      "findings": [
+        "customer_facts_unverified"
+      ],
+      "latency_ms": 1.8638000037753955
+    },
+    {
+      "ticket_id": "damage_09",
+      "disposition": "human",
+      "reason_code": "human_judgment_required",
+      "findings": [
+        "safety_incident",
+        "customer_facts_unverified",
+        "human_judgment_required"
+      ],
+      "latency_ms": 0.22760000138077885
+    },
+    {
+      "ticket_id": "damage_10",
+      "disposition": "human",
+      "reason_code": "customer_facts_unverified",
+      "findings": [
+        "customer_facts_unverified"
+      ],
+      "latency_ms": 0.3856999974232167
+    },
+    {
+      "ticket_id": "billing_06",
+      "disposition": "human",
+      "reason_code": "human_judgment_required",
+      "findings": [
+        "billing_data_unavailable",
+        "customer_facts_unverified",
+        "human_judgment_required"
+      ],
+      "latency_ms": 0.2690000110305846
+    },
+    {
+      "ticket_id": "billing_07",
+      "disposition": "human",
+      "reason_code": "customer_facts_unverified",
+      "findings": [
+        "customer_facts_unverified"
+      ],
+      "latency_ms": 0.4479999915929511
+    },
+    {
+      "ticket_id": "billing_08",
+      "disposition": "human",
+      "reason_code": "business_action_unavailable",
+      "findings": [
+        "business_action_unavailable",
+        "customer_facts_unverified"
+      ],
+      "latency_ms": 0.3117000014754012
+    },
+    {
+      "ticket_id": "billing_09",
+      "disposition": "human",
+      "reason_code": "customer_facts_unverified",
+      "findings": [
+        "customer_facts_unverified"
+      ],
+      "latency_ms": 0.3856999974232167
+    },
+    {
+      "ticket_id": "billing_10",
+      "disposition": "human",
+      "reason_code": "business_action_unavailable",
+      "findings": [
+        "business_action_unavailable",
+        "customer_facts_unverified"
+      ],
+      "latency_ms": 0.34359999699518085
+    },
+    {
+      "ticket_id": "general_06",
+      "disposition": "informational",
+      "reason_code": "supported_faq",
+      "findings": [],
+      "latency_ms": 0.44409999100025743
+    },
+    {
+      "ticket_id": "general_07",
+      "disposition": "informational",
+      "reason_code": "supported_faq",
+      "findings": [],
+      "latency_ms": 0.22989998979028314
+    },
+    {
+      "ticket_id": "general_08",
+      "disposition": "informational",
+      "reason_code": "supported_faq",
+      "findings": [],
+      "latency_ms": 0.2986999897984788
+    },
+    {
+      "ticket_id": "general_09",
+      "disposition": "human",
+      "reason_code": "merchant_terms_unavailable",
+      "findings": [
+        "merchant_terms_unavailable"
+      ],
+      "latency_ms": 0.30420000257436186
+    },
+    {
+      "ticket_id": "general_10",
+      "disposition": "human",
+      "reason_code": "business_action_unavailable",
+      "findings": [
+        "customer_facts_unverified",
+        "business_action_unavailable"
+      ],
+      "latency_ms": 0.22929999977350235
+    }
+  ]
+}

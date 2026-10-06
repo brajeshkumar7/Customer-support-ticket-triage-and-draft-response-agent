@@ -18,6 +18,11 @@ from src.tools.base import ToolResult
 from src.tools.providers import CustomerOrderEvidence, verify_customer_order_evidence
 
 
+@pytest.fixture(autouse=True)
+def legacy_template_policy_without_rag(monkeypatch):
+    monkeypatch.setenv("RAG_ENABLED", "false")
+
+
 def test_holdout_is_frozen_balanced_and_author_labeled():
     rows = load_holdout()
     assert hashlib.sha256(HOLDOUT_PATH.read_bytes()).hexdigest() == FROZEN_SHA256
@@ -118,6 +123,7 @@ def test_future_customer_evidence_contract_fails_closed():
 
 @pytest.mark.asyncio
 async def test_graph_uses_no_models_or_business_tools_for_approved_faq(monkeypatch):
+    monkeypatch.setenv("RAG_ENABLED", "false")
     monkeypatch.setenv("ZOHO_DESK_SEND_ENABLED", "true")
 
     class NeverCalled:
@@ -176,6 +182,14 @@ async def test_customer_specific_fake_records_never_authorize_send(monkeypatch, 
         async def create_chat_completion(self, **_kwargs):
             from types import SimpleNamespace
             return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content=next(self.outputs)))])
+
+        async def create_decision(self, **kwargs):
+            import json
+            labels = json.loads(next(self.outputs))
+            return {"model": kwargs["model"], "answers": {
+                name: {"type": "choice", "choice": labels[name], "confidence": 1.0,
+                       "probabilities": {key: float(key == labels[name]) for key in question["criteria"]}}
+                for name, question in kwargs["questions"].items()}}
 
     class Snapshot:
         async def run(self, **_kwargs):

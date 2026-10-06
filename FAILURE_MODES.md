@@ -483,3 +483,130 @@ P1; it also guards against changing a vague malfunction into a damage category.
 offline replay of the saved pre-fix model outputs now selects exactly the four
 known category corrections and leaves the vague `general_05` category intact;
 this replay is a regression diagnostic, not a new accuracy measurement.
+
+## FM-018 - Controlled reviewed-send command stopped on a failed agent draft
+
+**Observed behavior:** On controlled Zoho ticket `279251000000372001`, the
+agent classified an order-status request and drafted a response from local
+mock order data. The deterministic gate escalated because the facts and
+requester identity were unverified; the supervisor returned FAIL. The
+`--send-reviewed` command printed “No email sent” and stopped.
+**Root cause:** TASK-34 allowed the command to propose only a supervisor-PASS
+draft. That was the correct safety boundary for the draft but did not meet the
+operator's goal of exercising an email on an escalated controlled test ticket.
+**Fix:** Propose a fixed, claim-free human-review acknowledgement when there is
+no approved draft. Show the exact text and require the same controlled
+recipient and ticket confirmation. Never email the failed draft or retry an
+uncertain Zoho request automatically.
+**Before -> After:** Before, the observed FAIL produced no send attempt. After
+the code change, the controlled command can attempt the neutral email after
+confirmation; no live post-change delivery has been observed yet.
+
+## FM-021 - RAG reviewer confused local coverage with real send approval
+
+**Observed:** On 2026-10-06, `synthetic-general_07-a50d1d8764` retrieved the
+payment-method PDF first but returned `sufficient:false`, solely because the
+document was correctly marked simulation-only. The fictional FAQ escalated.
+**Root cause:** Evidence review conflated content coverage with merchant authority.
+**Fix:** Identify the local simulation workflow and assess question coverage
+separately. Keep hash-pinned provenance, exact-template checks and real gates.
+**Before -> After:** The first live synthetic check escalated without sending.
+The post-fix `synthetic-general_07-1d3b30d33b` retrieved and cited the same
+payment PDF, returned sufficient coverage and made one simulated send of the
+exact local template. No Zoho call occurred. This is one case, not a benchmark.
+
+## FM-022 - Jev reviewer rejected supported simulation drafts
+
+**Observed:** `task38_reviews_20261006T145230Z_170013e8.json` scored nine
+author-labeled visible development drafts. All six unsupported/insufficient
+drafts were rejected, but all three supported, explicitly fixture-attributed
+status drafts were also rejected. Agreement was 0.6666666666666666.
+**Evidence:** For those three drafts, the factual-grounding Choice selected
+fail; other checks selected pass with probabilities below the provisional 0.90
+threshold. Jev supplies no written rationale, so a semantic root cause is not
+established by these outputs.
+**Status:** Open. The integration passes contract tests; this measurement does
+not establish better review accuracy. Do not lower the threshold or relax
+delivery gates just to improve this visible test score. Exact FAQ validation
+remains deterministic and real automatic delivery remains disabled.
+
+## FM-023 - Draft node failed during TASK-38 configured-model regression
+
+**Observed:** In batch `20261006T144218Z_8f3a4f3b`, `return_03` raised
+ValueError in respond and followed the operational escalation path. No draft
+was sent. The same completed batch also recorded ValueError in gather_facts
+for general_05. Both failures remained unscored. Node/LLM evidence is recorded under that run ID in events.jsonl.
+**Status:** Open. The error type alone does not establish the exact malformed
+field or model cause. Retain this as a failed workflow measurement rather than
+counting its human escalation as a successful disposition. This task changes
+the supervisor; it does not silently repair or omit draft-generation failures.
+
+
+## FM-024 ? PDF provenance mismatch blocked informational simulations
+
+**Observed:** The completed TASK-38 report
+`data/eval_reports/task29_20261006T144218Z_8f3a4f3b.json` has seven false
+escalations and no simulated sends. Five informational cases were blocked by
+`rag_approval_evidence_missing`; two by `rag_coverage_missing`. For general_07,
+the reviewer found coverage but cited an unreviewed chunk with empty knowledge
+ID/version. A read-only full-content hash check found all seven current PDFs
+differ from their manifest pins.
+**Cause:** Retrieved records lack the pinned simulation provenance required by
+the exact-template gate. Coverage failures also remain separate retrieval-review
+issues. This is not evidence that Jev caused the template gate failures.
+**Status:** Open. Review document content and provenance before explicitly
+repinning and reindexing; do not bypass the hash check or auto-approve changed
+PDFs. The current code correctly refuses unreviewed reference material.
+
+
+### FM-024 follow-up - TASK-39
+
+The seven expanded PDFs were reviewed as fictional reference material on
+2026-10-06, pinned under northstar_reference_v2, and reindexed successfully.
+Actual local retrieval now returns populated IDs/versions and simulation review
+status. Reference-only scope explicitly prevents use as automatic-reply
+approval. Stale provenance is repaired; template compatibility and question
+coverage were not remeasured, and earlier failed benchmark results remain intact.
+
+## FM-025 - Restricted benchmark could not reach OpenRouter (TASK-40)
+
+The first attempt (`20261006T165721Z_c8f44dd1`) produced repeated classify
+APIConnectionError results under restricted network execution and was stopped.
+It is not an accuracy measurement and did not update the metrics tracker.
+Restarted with authorized network access, fake delivery only, and a fresh batch
+ID. This does not change model or delivery configuration.
+
+### FM-024 follow-up - TASK-40
+
+Retained all seven reference PDFs and added four separate version-v1 exact reply
+PDFs scoped `automatic_reply_simulation`. The gate now requires that explicit
+scope, source, knowledge ID/version, cited coverage and exact reply content.
+Initial ingestion indexed four and skipped seven; repeated ingestion skipped
+all eleven with no errors. This repairs eligible simulation evidence without
+claiming merchant approval; full graph accuracy awaits the completed report.
+
+## FM-026 - TASK-40 benchmark draft parsing failed
+
+During fake-only batch `20261006T165804Z_49001dc4`, `billing_01` failed in
+respond with ValueError. The graph routed to explicit escalation without a
+simulated send. The run is unscored; do not treat this as a correct model
+assessment or publish a clean accuracy claim. This measurement remains open
+pending examination of the saved report and logged draft response.
+
+## FM-027 - Eligible simulation replies rejected during TASK-40 RAG evaluation
+
+In batch `20261006T165804Z_49001dc4`, `general_03` was blocked because the
+selected retrieved evidence did not contain the exact scoped reply; `general_04`
+was blocked by insufficient coverage. Both are expected informational cases,
+so these are false escalations, not successful dispositions. The gate did not
+relax document scope or accept a model verdict as authority. Full results and
+additional affected cases will be retained in the saved report. The new corpus
+repairs missing approval evidence but does not prove retrieval/review accuracy.
+
+### TASK-40 final measurement - FM-026 and FM-027
+
+Saved report: `data/eval_reports/task29_20261006T165804Z_49001dc4.json`.
+One unscored respond failure (`billing_01`); three false escalations
+(`general_03`, `general_04`, `general_08`); four simulated replies and zero false
+simulated sends. The harness kept the accepted tracker intact. Operational
+parsing and RAG retrieval/coverage failures remain open; no real-send release.

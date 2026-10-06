@@ -4,7 +4,7 @@ import os
 import pytest
 
 from src.agent.run_synthetic import SimulatedReplySender, main as synthetic_main
-from src.agent.run_zoho import main as zoho_main, process_ticket
+from src.agent.run_zoho import main as zoho_main, process_ticket, _send_reviewed_draft
 
 
 class FakeGraph:
@@ -112,21 +112,14 @@ def test_zoho_command_requires_draft_only_and_numeric_ticket_id(monkeypatch):
     assert client_calls == []
 
 
-@pytest.mark.parametrize(
-    ("ticket", "message"),
-    [
-        ({"channel": "Phone", "subject": "Help", "description": "Text"}, "Email tickets"),
-        ({"channel": "Email", "subject": "Help", "description": "<p> </p>"}, "no usable description"),
-    ],
-)
-def test_zoho_command_rejects_non_email_or_empty_ticket_before_graph(ticket, message):
+def test_zoho_command_rejects_empty_ticket_before_graph():
     graph_calls = []
 
     class Client:
         async def fetch_ticket(self, _ticket_id):
-            return ticket
+            return {"channel": "Email", "subject": "Help", "description": "<p> </p>"}
 
-    with pytest.raises(ValueError, match=message):
+    with pytest.raises(ValueError, match="no usable description"):
         asyncio.run(
             process_ticket(
                 "12345",
@@ -136,6 +129,29 @@ def test_zoho_command_rejects_non_email_or_empty_ticket_before_graph(ticket, mes
             )
         )
     assert graph_calls == []
+
+
+def test_zoho_command_analyzes_non_email_ticket_without_sending():
+    class Client:
+        async def fetch_ticket(self, _ticket_id):
+            return {"channel": "Web", "subject": "Package status", "description": "ORD-1001 is late"}
+
+    graph = None
+
+    def graph_builder(**kwargs):
+        nonlocal graph
+        assert kwargs["allow_delivery"] is False
+        graph = FakeGraph(terminal_status="escalated")
+        return graph
+
+    result = asyncio.run(process_ticket(
+        "12345", client=Client(), graph_builder=graph_builder,
+        memory_factory=lambda: object(),
+    ))
+
+    assert "ORD-1001 is late" in graph.input["ticket_text"]
+    assert result["terminal_status"] == "escalated"
+    assert graph.send_calls == []
 
 
 def test_zoho_command_fetches_ticket_and_passes_it_to_graph(monkeypatch, capsys):
@@ -207,3 +223,91 @@ def test_zoho_processes_one_ticket_and_does_not_send_after_graph_escalation():
     assert graph.send_calls == []
     assert graph.sender is None
     assert graph is not None
+
+
+def test_reviewed_command_runs_agent_then_sends_exact_approved_draft(monkeypatch, capsys):
+    monkeypatch.setenv("ZOHO_DESK_SEND_ENABLED", "true")
+    sends = []
+
+    class Client:
+        async def fetch_ticket(self, ticket_id):
+            return {"id": ticket_id, "channel": "Web", "status": "Open",
+                    "email": "owned@example.com", "subject": "Delivery",
+                    "description": "Where is my package?"}
+
+        async def send_reviewed_reply(self, ticket_id, body, *, expected_email):
+            sends.append((ticket_id, body, expected_email))
+            return {"http_status": 200, "thread_id": "reply-1"}
+
+    class Graph:
+        async def ainvoke(self, graph_input):
+            return {**graph_input, "supervisor_status": "PASS",
+                    "terminal_status": "escalated", "draft_response": "Please check the tracking link.",
+                    "safety_review": {"send_allowed": False}}
+
+    answers = iter(["CONTROLLED", "12345", "owned@example.com", "SEND 12345"])
+    assert zoho_main(
+        ["--ticket-id", "12345", "--send-reviewed"],
+        client_factory=Client, graph_builder=lambda **_kwargs: Graph(),
+        memory_factory=lambda: object(), confirm_input=lambda _prompt: next(answers),
+    ) == 0
+    assert sends == [("12345", "Please check the tracking link.", "owned@example.com")]
+    output = capsys.readouterr().out
+    assert '"draft_response": "Please check the tracking link."' in output
+    assert '"reviewed_email_status": "sent"' in output
+
+
+def test_reviewed_send_rejects_failed_review_changed_ticket_and_wrong_confirmation():
+    sends = []
+
+    class Client:
+        def __init__(self, description="Help"):
+            self.description = description
+
+        async def fetch_ticket(self, ticket_id):
+            return {"id": ticket_id, "subject": "Issue", "description": self.description,
+                    "email": "owned@example.com", "status": "Open"}
+
+        async def send_reviewed_reply(self, ticket_id, body, *, expected_email):
+            sends.append((ticket_id, body, expected_email))
+            return {"thread_id": "reply-1"}
+
+    result = {"ticket_id": "run-1", "ticket_text": "Subject: Issue\n\nHelp",
+              "supervisor_status": "PASS", "draft_response": "A reviewed draft."}
+    assert _send_reviewed_draft("12345", {**result, "supervisor_status": "FAIL"},
+                                client=Client(), confirm_input=lambda _prompt: "") == 2
+    assert _send_reviewed_draft("12345", result, client=Client("Changed"),
+                                confirm_input=lambda _prompt: "") == 1
+    assert _send_reviewed_draft("12345", result, client=Client(),
+                                confirm_input=lambda _prompt: "wrong@example.com") == 2
+    assert sends == []
+
+
+def test_reviewed_send_never_retries_an_uncertain_send(capsys):
+    calls = []
+
+    class Client:
+        async def fetch_ticket(self, ticket_id):
+            return {"id": ticket_id, "subject": "Issue", "description": "Help",
+                    "email": "owned@example.com", "status": "Open"}
+
+        async def send_reviewed_reply(self, ticket_id, body, *, expected_email):
+            calls.append(ticket_id)
+            raise TimeoutError("uncertain send")
+
+    result = {"ticket_id": "run-1", "ticket_text": "Subject: Issue\n\nHelp",
+              "supervisor_status": "PASS", "draft_response": "A reviewed draft."}
+    answers = iter(["owned@example.com", "SEND 12345"])
+    assert _send_reviewed_draft("12345", result, client=Client(),
+                                confirm_input=lambda _prompt: next(answers)) == 1
+    assert calls == ["12345"]
+    assert "Check the ticket before any retry" in capsys.readouterr().out
+
+
+def test_reviewed_command_requires_send_flag_before_fetch(monkeypatch):
+    monkeypatch.setenv("ZOHO_DESK_SEND_ENABLED", "false")
+    calls = []
+    with pytest.raises(SystemExit):
+        zoho_main(["--ticket-id", "12345", "--send-reviewed"],
+                  client_factory=lambda: calls.append("created"))
+    assert calls == []

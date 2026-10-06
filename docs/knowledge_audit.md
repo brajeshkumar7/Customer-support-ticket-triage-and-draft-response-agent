@@ -2,6 +2,13 @@
 
 ## What the agent can actually use
 
+**2026-10-06 update (TASK-37):** The local graph additionally searches seven
+actual simulation PDFs in `knowledgebase/` using dense MiniLM + sparse BM25
+and RRF. Citations contain source hash, page and chunk ID. These PDFs reproduce
+local example guidance, not real merchant knowledge. New PDFs are unreviewed;
+existing simulation templates require matching hash-pinned retrieved evidence.
+The keyword coverage figures below are historical pre-RAG observations.
+
 | Source | Current content | Role in the graph | Limit |
 | --- | --- | --- | --- |
 | `data/mock_orders.json` | Six invented orders | Order lookup and policy input | No live order, shipment, requester, or billing verification |
@@ -163,3 +170,42 @@ simulated FAQ replies, 43 escalations, zero false simulated sends, p95
 44778.41449999687 ms, and 0.115013845 provider-reported token cost. This
 run predates the final TASK-32 triage edit. The older 200-case report above
 did not prove the same effective recall scope; a comparable rerun is pending.
+
+## Public research versus authoritative business records (2026-10-06)
+
+Public reference documents can expand retrieval coverage, but cannot establish
+this merchant's order status, payment history, customer ownership, or approved
+policy. Indexing a document in Chroma does not make it authoritative. New
+downloaded PDFs must retain their provenance and unreviewed status; they cannot
+authorize a customer-specific reply.
+
+Official integration routes reviewed for this distinction:
+
+- [Shopify API overview](https://shopify.dev/docs/apps/build/apis): the Admin
+  API accesses a store's orders and customers through merchant-authorized app
+  credentials. The Customer Account API accesses buyer-specific information
+  through authenticated customer access. Public storefront content cannot
+  replace these protected sources.
+- [Zoho Inventory integration with Desk](https://help.zoho.com/portal/en/kb/desk/integrations-and-marketplace/finance/articles/setting-up-zoho-inventory-integration):
+  an associated Inventory organization can supply sales orders, invoices, and
+  shipment information. Having a Desk ticket alone does not establish that
+  those business records are connected or available.
+
+No commerce platform has been selected or connected as part of this research.
+The existing order data remains fictional. A coherent fictional merchant
+dataset could exercise order, shipment, billing, and identity boundaries
+locally, but its results must remain labeled simulation. Connecting actual
+business data requires the owner's chosen provider and authorized account;
+merchant policy approval and requester-to-order verification remain separate
+requirements.
+
+
+### TASK-39 current provenance and review output
+
+The expanded Northstar PDFs are pinned and indexed as northstar_reference_v2
+simulation references with nonempty knowledge IDs. Their approval_scope is
+reference_only: this repairs stale provenance but does not promote them to
+v1 exact FAQ approval or real business authority. New unpinned PDFs remain
+unreviewed. Both single-ticket commands display supervisor_reason and raw Jev
+supervisor_decision alongside the checklist score and workflow errors; the
+synthetic command also displays safety_review. A blocked order still escalates.

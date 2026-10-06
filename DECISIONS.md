@@ -1,5 +1,23 @@
 # DECISIONS.md — Architecture Decision Log
 
+## [2026-10-06] Review expanded PDF references and expose supervisor details (TASK-39)
+
+The owner requested repair of stale PDF provenance and missing CLI review
+reasons. After reading the seven expanded Northstar PDFs, pin their current
+bytes as `northstar_reference_v2`, retaining their existing knowledge IDs and
+fictional source. Review is for simulation reference only: these documents
+describe actions/providers that are not implemented, and differ from v1 FAQ
+templates (notably refund issuance versus approval). Set explicit
+`approval_scope: reference_only`; do not mark them as v1 template approval or
+real merchant policy. Preserve the PDF files, rebuild the index through the
+normal manifest-sensitive ingestion path, and keep unknown PDFs unreviewed.
+Carry approval scope into retrieved metadata and reject reference-only evidence
+from the exact-template send gate. Display structured supervisor reasons,
+decision probabilities, checklist score, safety review and workflow errors in
+both single-ticket commands. This satisfies PRD Section 4's evidence boundary
+and supervisor loop plus Section 6's inspectable outcomes. It supersedes the
+stale seed-document pins, not any live-send restriction.
+
 Every non-trivial choice gets one entry here, the moment it's made — not
 retroactively. This is what stops a coding agent (or you) from re-deciding the
 same thing differently in session 8 than it was decided in session 2.
@@ -15,6 +33,125 @@ Format for each entry:
 ```
 
 ---
+
+## [2026-10-06] Local PDF hybrid RAG (TASK-37)
+
+**Ledger update:** The owner superseded the full-document skip identity below
+with SHA-256 of the relative filename and first 150 extracted words, assuming
+immutable PDFs. Completed documents no longer undergo full-file hashing on
+each ingestion. Full SHA-256 is retained only when indexing for manifest
+provenance. Changes beyond the prefix are deliberately not detected; revised
+documents must use new filenames. Pipeline or manifest changes still rebuild.
+The ledger format version changes, so existing indexes rebuild once on the
+first ingestion after this update. This satisfies PRD Section 4 PDF ingestion.
+
+**Decision:** The owner explicitly expands PRD Section 4 fact gathering to PDF
+RAG. Store actual PDFs in `knowledgebase/`, dense MiniLM embeddings in a
+separate persistent Chroma collection, and sparse BM25 term-frequency vectors
+and the ingestion ledger in SQLite. Fuse ranked candidates with reciprocal
+rank fusion. Local Chroma's hybrid Search API is not available; this sidecar
+keeps retrieval local without silently requiring Chroma Cloud.
+Hash the entire PDF, pipeline version and review metadata rather than its
+first 200 words. Commit the ledger only after all dense chunks are written;
+query only committed generations so interrupted updates cannot expose a mixed
+document version. Changed/deleted documents invalidate their old evidence.
+Allow bounded model-selected search queries across the whole corpus, independent
+of the triage category. PDF text is untrusted; retrieved citations support
+human-review drafts but never authorize customer facts or business actions.
+Existing exact informational simulation replies additionally require matching
+retrieved, hash-pinned PDF evidence. Unreviewed new PDFs support drafts only.
+The controlled worker and real-delivery restrictions remain unchanged.
+**Trade-off:** SQLite is the sparse index, not Chroma's cloud sparse API.
+English text extraction requires text-layer PDFs; OCR is not silently applied.
+This supersedes the graph's unconditional approved-FAQ shortcut when RAG is
+enabled, not the independent controlled worker's approved-template policy.
+**Source:** [Chroma Search API availability](https://docs.trychroma.com/cloud/search-api/overview).
+**Status:** implemented with offline checks and one configured-model simulated
+reply; full benchmark and larger-corpus retrieval measures remain open.
+
+## [2026-10-06] Use Jev typed decisions for ticket triage (TASK-36)
+
+**Decision:** Replace the graph's generative classification call with one
+OpenRouter Decisions request containing two Choice questions: support category
+and low/medium/high review urgency. Configure `OPENROUTER_TRIAGE_MODEL`
+(default `typesafe/jev-1.13`) separately from the drafting/review model. Use
+`/api/alpha/decisions`, preserve full probabilities and distribution confidence,
+and reject malformed answers or an explicit unclear category into escalation.
+An unclear category is a valid abstention, retained in state and scored as a
+human handoff; malformed answers are operational failures.
+Keep the deterministic covered-FAQ shortcut and explicit safety priority
+floors; remove category regex corrections from the Jev graph path. This
+supersedes the earlier generative classifier and its category reconciliation
+decision for current graph runs. Legacy comparison code remains historical.
+**Reasoning:** PRD Sections 2 and 4 require category/urgency triage. The owner
+selected Jev for that decision. Its documented state/questions/answers contract
+avoids generated classification JSON and supports inspectable uncertainty.
+Use the existing client, rate budget, bounded 429 retries, timeout, and logged
+provider cost. Chat fallback models do not belong in the Decisions request;
+a failed decision escalates without silently falling back to a chat model.
+**Limits:** Confidence measures distribution concentration, not proof that a
+decision is correct. No confidence threshold or accuracy/speed improvement is
+claimed without a labeled Jev run. Existing benchmark numbers are historical.
+**Sources:** [OpenRouter Jev examples](https://openrouter.ai/blog/insights/what-is-jev/),
+[TypeSafe API contract](https://docs.typesafe.ai/api),
+[confidence guidance](https://docs.typesafe.ai/confidence).
+**Status:** active; mocked contract/regression checks and one live Jev call
+verified. Full configured-model benchmark measurement remains pending.
+
+## [2026-10-06] Send a neutral acknowledgement after a failed controlled draft review
+
+**Decision:** In `run_zoho --send-reviewed`, a supervisor FAIL or missing
+approved draft selects a fixed, neutral acknowledgement for the controlled
+contact. The CLI prints the exact outgoing text and requires the same explicit
+recipient and ticket confirmation. It does not send the failed agent draft or
+claim that local mock facts are verified. Ticket lookup and Zoho delivery can
+still fail; no automatic retry follows an uncertain outcome.
+**Alternatives considered:** Send the failed draft unchanged; silently stop
+without an email; bypass the deterministic safety gate for automatic delivery.
+**Reasoning:** The owner wants an email on controlled ticket runs, including
+escalated runs. A fixed acknowledgement exercises agent intake plus the Zoho
+email path without publishing unverified order or policy claims. This amends
+TASK-34's supervisor-PASS-only reviewed send rule for controlled tests. It
+does not enable unattended customer replies or change the graph/worker gates.
+**Status:** active for explicitly confirmed controlled tests only.
+
+## [2026-10-06] Permit one manually reviewed agent draft on a controlled Zoho ticket
+
+**Decision:** Add an explicit `run_zoho --send-reviewed` test mode. The local
+graph still runs with delivery disabled and returns a draft. Only after a
+supervisor PASS does the CLI show the complete draft, the deterministic safety
+findings, and the fetched requester email. The operator must confirm the exact
+recipient and ticket before the host-side Zoho adapter attempts one public
+email. The ticket and recipient are fetched again immediately before sending.
+An ambiguous send is never retried automatically. `--draft-only` remains the
+default safe workflow and the controlled worker is still the only path for
+unattended test delivery.
+**Alternatives considered:** Re-enable automatic graph delivery; keep the
+fixed-message smoke test as the only send path.
+**Reasoning:** The owner wants to exercise agent drafting and Zoho delivery
+together on tickets and contacts they control. Human approval of the exact
+draft permits a bounded integration test even when local mock facts would
+block an automatic reply. This is a deliberate exception to the earlier
+direct-delivery block, not a release of automatic customer sending or a
+claim that mock order data is authoritative.
+**Status:** amended by the neutral-acknowledgement decision above for failed
+supervisor reviews; the approved-draft path remains active.
+
+## [2026-10-06] Analyze controlled Zoho tickets across channels in draft-only mode
+
+**Decision:** Let `run_zoho --draft-only` analyze an existing controlled Zoho
+ticket whenever it has usable ticket text, including a non-Email ticket.
+Print the local agent run ID so the operator can find its JSONL events. The
+command never assigns a Zoho agent or posts a public reply; the graph's
+simulation-only delivery boundary remains in force.
+**Alternatives considered:** Keep the older Email-only read restriction;
+enable direct graph delivery for test tickets.
+**Reasoning:** Channel restrictions are necessary for outbound Email, but
+read-only classification and drafting can operate on a controlled non-Email
+ticket. The prior Email-only TASK-24 restriction is superseded for this
+draft-only command. TASK-25's direct-delivery block remains active because
+mock order facts and unapproved knowledge cannot authorize public replies.
+**Status:** active.
 
 ## [2026-10-05] Emit an explicit triage priority for each ticket
 
@@ -327,6 +464,18 @@ conflicting with other Python projects. The existing pip requirements file is
 sufficient, and `.venv/` is already excluded from Git.
 **Status:** active
 
+## [2026-10-06] Jev structured supervisor review (TASK-38)
+
+Replace generated JSON checklist reviews with three typed Jev Choice questions
+through the existing OpenRouter Decisions client. Require each check to select
+pass with probability at least 0.90; this provisional threshold is not calibrated.
+Use fixed checklist feedback, preserve exact FAQ validation and deterministic
+send gates, and escalate transport/invalid-response failures without draft retries.
+Record model, question version, probabilities, and threshold separately from the
+checklist completion score. This supersedes the generative reviewer below; it
+does not establish better accuracy until measured. Sources: https://docs.typesafe.ai/api
+and https://openrouter.ai/blog/tutorials/jev-vs-llm-when-to-use-each/.
+
 ## [2026-09-24] Structured supervisor checklist review
 **Decision:** Review each draft with an explicit three-check checklist for
 tool-grounded facts, unsupported claims, and urgency-appropriate tone. Parse
@@ -339,7 +488,7 @@ same step.
 **Reasoning:** Per-check results make failures inspectable and testable, while
 keeping retry policy separate and bounded in its designated task. The model's
 verdict field is not trusted; the code computes it from validated checks.
-**Status:** active
+**Status:** generative model review superseded by TASK-38; the checklist and derived verdict remain active.
 
 ## [2026-09-24] Supervisor retry cap
 **Decision:** Allow at most 3 graph-level retries after the initial draft, for
@@ -491,3 +640,7 @@ escalate. This was evidence for disabling graph delivery.
 **Status:** superseded by the 2026-09-30 safety improvement decision and the
 2026-10-04 controlled Render deployment decision. `run_zoho` is draft-only;
 the local graph cannot send public replies.
+
+## [2026-10-06] Shared evidence-bound safety assessment (TASK-40)
+
+Implement the approved safety plan under PRD Section 4 and Section 5. Preserve informational-only authority, collect simultaneous blocking findings, require explicit simulation reply scope for PDF approval, and revalidate exact outgoing text. Add separate v1 simulation template PDFs without altering reference PDFs. No real customer approval or new provider is enabled. Policy v4 supersedes v3; existing benchmark numbers remain historical until a complete configured-model run.

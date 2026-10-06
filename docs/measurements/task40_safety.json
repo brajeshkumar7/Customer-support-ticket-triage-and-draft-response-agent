@@ -1,0 +1,472 @@
+{
+  "task": "TASK-40",
+  "status": "failed_acceptance_not_complete_accuracy",
+  "report_path": "data\\eval_reports\\task29_20261006T165804Z_49001dc4.json",
+  "report_sha256": "546dba55f39fac3adb5c437e68acee0d60e0eccff778ad84f59dcd997005f6c3",
+  "policy": "informational_only_v4",
+  "metrics": {
+    "ticket_count": 50,
+    "scored_ticket_count": 49,
+    "unscored_count": 1,
+    "matched_count": 46,
+    "task_completion_rate": 0.9387755102040817,
+    "category_classification": {
+      "measured_count": 50,
+      "correct_count": 44,
+      "accuracy": 0.88,
+      "urgency_distribution": {
+        "high": 6,
+        "medium": 22,
+        "low": 22
+      },
+      "priority_distribution": {
+        "P1": 6,
+        "P2": 22,
+        "P3": 22
+      }
+    },
+    "expected_auto_resolve_count": 7,
+    "auto_resolve_incorrect_escalation_count": 3,
+    "auto_resolve_incorrect_escalation_rate": 0.42857142857142855,
+    "expected_escalate_count": 42,
+    "expected_escalate_correct_count": 42,
+    "escalation_recall": 1.0,
+    "expected_escalate_incorrect_send_count": 0,
+    "expected_escalate_incorrect_send_rate": 0.0,
+    "false_send_count": 0,
+    "missed_escalation_count": 0,
+    "false_escalation_count": 3,
+    "unsupported_claim_review_count": 22,
+    "safety_gate_violation_count": 0,
+    "by_category": {
+      "billing_dispute": {
+        "ticket_count": 10,
+        "llm_calls": 60,
+        "reported_cost": 0.054409764,
+        "calls_missing_cost": 0,
+        "false_sends": 0,
+        "missed_escalations": 1,
+        "false_escalations": 0,
+        "unsupported_claim_reviews": 1,
+        "safety_gate_violations": 0
+      },
+      "damaged_item": {
+        "ticket_count": 10,
+        "llm_calls": 55,
+        "reported_cost": 0.047106953,
+        "calls_missing_cost": 0,
+        "false_sends": 0,
+        "missed_escalations": 0,
+        "false_escalations": 0,
+        "unsupported_claim_reviews": 7,
+        "safety_gate_violations": 0
+      },
+      "general_question": {
+        "ticket_count": 10,
+        "llm_calls": 43,
+        "reported_cost": 0.039243894,
+        "calls_missing_cost": 0,
+        "false_sends": 0,
+        "missed_escalations": 0,
+        "false_escalations": 3,
+        "unsupported_claim_reviews": 1,
+        "safety_gate_violations": 0
+      },
+      "order_status": {
+        "ticket_count": 10,
+        "llm_calls": 60,
+        "reported_cost": 0.049113925999999995,
+        "calls_missing_cost": 0,
+        "false_sends": 0,
+        "missed_escalations": 0,
+        "false_escalations": 0,
+        "unsupported_claim_reviews": 5,
+        "safety_gate_violations": 0
+      },
+      "returns": {
+        "ticket_count": 10,
+        "llm_calls": 56,
+        "reported_cost": 0.047609139,
+        "calls_missing_cost": 0,
+        "false_sends": 0,
+        "missed_escalations": 0,
+        "false_escalations": 0,
+        "unsupported_claim_reviews": 8,
+        "safety_gate_violations": 0
+      }
+    },
+    "mean_retries_to_success": 0.0,
+    "failure_after_cap_count": 0,
+    "failure_after_cap_rate": 0.0,
+    "p95_latency_ms": 53658.00060000038,
+    "total_reported_token_cost": 0.237483676,
+    "llm_calls_total": 274,
+    "zero_model_call_tickets": 0,
+    "tickets_with_missing_token_cost": 0,
+    "cost_per_successful_run": 0.004679641695652174,
+    "by_model": {
+      "openai/gpt-6-luna-pro": {
+        "llm_calls": 179,
+        "reported_cost": 0.2255362299999999,
+        "calls_missing_cost": 0
+      },
+      "typesafe/jev-1.13-20260917": {
+        "llm_calls": 95,
+        "reported_cost": 0.011947446000000002,
+        "calls_missing_cost": 0
+      }
+    }
+  },
+  "cases": [
+    {
+      "ticket_id": "order_01",
+      "observed_outcome": "escalated",
+      "matches_expected": true,
+      "run_error": null,
+      "reason_code": "customer_facts_unverified"
+    },
+    {
+      "ticket_id": "order_02",
+      "observed_outcome": "escalated",
+      "matches_expected": true,
+      "run_error": null,
+      "reason_code": "customer_facts_unverified"
+    },
+    {
+      "ticket_id": "order_03",
+      "observed_outcome": "escalated",
+      "matches_expected": true,
+      "run_error": null,
+      "reason_code": "faq_coverage_missing"
+    },
+    {
+      "ticket_id": "order_04",
+      "observed_outcome": "escalated",
+      "matches_expected": true,
+      "run_error": null,
+      "reason_code": "customer_facts_unverified"
+    },
+    {
+      "ticket_id": "order_05",
+      "observed_outcome": "escalated",
+      "matches_expected": true,
+      "run_error": null,
+      "reason_code": "human_judgment_required"
+    },
+    {
+      "ticket_id": "return_01",
+      "observed_outcome": "escalated",
+      "matches_expected": true,
+      "run_error": null,
+      "reason_code": "customer_facts_unverified"
+    },
+    {
+      "ticket_id": "return_02",
+      "observed_outcome": "escalated",
+      "matches_expected": true,
+      "run_error": null,
+      "reason_code": "customer_facts_unverified"
+    },
+    {
+      "ticket_id": "return_03",
+      "observed_outcome": "escalated",
+      "matches_expected": true,
+      "run_error": null,
+      "reason_code": "customer_facts_unverified"
+    },
+    {
+      "ticket_id": "return_04",
+      "observed_outcome": "escalated",
+      "matches_expected": true,
+      "run_error": null,
+      "reason_code": "human_judgment_required"
+    },
+    {
+      "ticket_id": "return_05",
+      "observed_outcome": "escalated",
+      "matches_expected": true,
+      "run_error": null,
+      "reason_code": "human_judgment_required"
+    },
+    {
+      "ticket_id": "damage_01",
+      "observed_outcome": "escalated",
+      "matches_expected": true,
+      "run_error": null,
+      "reason_code": "customer_facts_unverified"
+    },
+    {
+      "ticket_id": "damage_02",
+      "observed_outcome": "escalated",
+      "matches_expected": true,
+      "run_error": null,
+      "reason_code": "customer_facts_unverified"
+    },
+    {
+      "ticket_id": "damage_03",
+      "observed_outcome": "escalated",
+      "matches_expected": true,
+      "run_error": null,
+      "reason_code": "human_judgment_required"
+    },
+    {
+      "ticket_id": "damage_04",
+      "observed_outcome": "escalated",
+      "matches_expected": true,
+      "run_error": null,
+      "reason_code": "human_judgment_required"
+    },
+    {
+      "ticket_id": "damage_05",
+      "observed_outcome": "escalated",
+      "matches_expected": true,
+      "run_error": null,
+      "reason_code": "customer_facts_unverified"
+    },
+    {
+      "ticket_id": "billing_01",
+      "observed_outcome": "failed",
+      "matches_expected": false,
+      "run_error": "ValueError",
+      "reason_code": "human_judgment_required"
+    },
+    {
+      "ticket_id": "billing_02",
+      "observed_outcome": "escalated",
+      "matches_expected": true,
+      "run_error": null,
+      "reason_code": "human_judgment_required"
+    },
+    {
+      "ticket_id": "billing_03",
+      "observed_outcome": "escalated",
+      "matches_expected": true,
+      "run_error": null,
+      "reason_code": "customer_facts_unverified"
+    },
+    {
+      "ticket_id": "billing_04",
+      "observed_outcome": "escalated",
+      "matches_expected": true,
+      "run_error": null,
+      "reason_code": "business_action_unavailable"
+    },
+    {
+      "ticket_id": "billing_05",
+      "observed_outcome": "escalated",
+      "matches_expected": true,
+      "run_error": null,
+      "reason_code": "business_action_unavailable"
+    },
+    {
+      "ticket_id": "general_01",
+      "observed_outcome": "simulated_sent",
+      "matches_expected": true,
+      "run_error": null,
+      "reason_code": "supported_faq"
+    },
+    {
+      "ticket_id": "general_02",
+      "observed_outcome": "simulated_sent",
+      "matches_expected": true,
+      "run_error": null,
+      "reason_code": "supported_faq"
+    },
+    {
+      "ticket_id": "general_03",
+      "observed_outcome": "escalated",
+      "matches_expected": false,
+      "run_error": null,
+      "reason_code": "rag_approval_evidence_missing"
+    },
+    {
+      "ticket_id": "general_04",
+      "observed_outcome": "escalated",
+      "matches_expected": false,
+      "run_error": null,
+      "reason_code": "rag_coverage_missing"
+    },
+    {
+      "ticket_id": "general_05",
+      "observed_outcome": "escalated",
+      "matches_expected": true,
+      "run_error": null,
+      "reason_code": "human_judgment_required"
+    },
+    {
+      "ticket_id": "order_06",
+      "observed_outcome": "escalated",
+      "matches_expected": true,
+      "run_error": null,
+      "reason_code": "customer_facts_unverified"
+    },
+    {
+      "ticket_id": "order_07",
+      "observed_outcome": "escalated",
+      "matches_expected": true,
+      "run_error": null,
+      "reason_code": "customer_facts_unverified"
+    },
+    {
+      "ticket_id": "order_08",
+      "observed_outcome": "escalated",
+      "matches_expected": true,
+      "run_error": null,
+      "reason_code": "business_action_unavailable"
+    },
+    {
+      "ticket_id": "order_09",
+      "observed_outcome": "escalated",
+      "matches_expected": true,
+      "run_error": null,
+      "reason_code": "business_action_unavailable"
+    },
+    {
+      "ticket_id": "order_10",
+      "observed_outcome": "escalated",
+      "matches_expected": true,
+      "run_error": null,
+      "reason_code": "business_action_unavailable"
+    },
+    {
+      "ticket_id": "return_06",
+      "observed_outcome": "escalated",
+      "matches_expected": true,
+      "run_error": null,
+      "reason_code": "customer_facts_unverified"
+    },
+    {
+      "ticket_id": "return_07",
+      "observed_outcome": "escalated",
+      "matches_expected": true,
+      "run_error": null,
+      "reason_code": "customer_facts_unverified"
+    },
+    {
+      "ticket_id": "return_08",
+      "observed_outcome": "escalated",
+      "matches_expected": true,
+      "run_error": null,
+      "reason_code": "customer_facts_unverified"
+    },
+    {
+      "ticket_id": "return_09",
+      "observed_outcome": "escalated",
+      "matches_expected": true,
+      "run_error": null,
+      "reason_code": "human_judgment_required"
+    },
+    {
+      "ticket_id": "return_10",
+      "observed_outcome": "escalated",
+      "matches_expected": true,
+      "run_error": null,
+      "reason_code": "faq_coverage_missing"
+    },
+    {
+      "ticket_id": "damage_06",
+      "observed_outcome": "escalated",
+      "matches_expected": true,
+      "run_error": null,
+      "reason_code": "customer_facts_unverified"
+    },
+    {
+      "ticket_id": "damage_07",
+      "observed_outcome": "escalated",
+      "matches_expected": true,
+      "run_error": null,
+      "reason_code": "customer_facts_unverified"
+    },
+    {
+      "ticket_id": "damage_08",
+      "observed_outcome": "escalated",
+      "matches_expected": true,
+      "run_error": null,
+      "reason_code": "customer_facts_unverified"
+    },
+    {
+      "ticket_id": "damage_09",
+      "observed_outcome": "escalated",
+      "matches_expected": true,
+      "run_error": null,
+      "reason_code": "human_judgment_required"
+    },
+    {
+      "ticket_id": "damage_10",
+      "observed_outcome": "escalated",
+      "matches_expected": true,
+      "run_error": null,
+      "reason_code": "customer_facts_unverified"
+    },
+    {
+      "ticket_id": "billing_06",
+      "observed_outcome": "escalated",
+      "matches_expected": true,
+      "run_error": null,
+      "reason_code": "human_judgment_required"
+    },
+    {
+      "ticket_id": "billing_07",
+      "observed_outcome": "escalated",
+      "matches_expected": true,
+      "run_error": null,
+      "reason_code": "customer_facts_unverified"
+    },
+    {
+      "ticket_id": "billing_08",
+      "observed_outcome": "escalated",
+      "matches_expected": true,
+      "run_error": null,
+      "reason_code": "business_action_unavailable"
+    },
+    {
+      "ticket_id": "billing_09",
+      "observed_outcome": "escalated",
+      "matches_expected": true,
+      "run_error": null,
+      "reason_code": "customer_facts_unverified"
+    },
+    {
+      "ticket_id": "billing_10",
+      "observed_outcome": "escalated",
+      "matches_expected": true,
+      "run_error": null,
+      "reason_code": "business_action_unavailable"
+    },
+    {
+      "ticket_id": "general_06",
+      "observed_outcome": "simulated_sent",
+      "matches_expected": true,
+      "run_error": null,
+      "reason_code": "supported_faq"
+    },
+    {
+      "ticket_id": "general_07",
+      "observed_outcome": "simulated_sent",
+      "matches_expected": true,
+      "run_error": null,
+      "reason_code": "supported_faq"
+    },
+    {
+      "ticket_id": "general_08",
+      "observed_outcome": "escalated",
+      "matches_expected": false,
+      "run_error": null,
+      "reason_code": "rag_coverage_missing"
+    },
+    {
+      "ticket_id": "general_09",
+      "observed_outcome": "escalated",
+      "matches_expected": true,
+      "run_error": null,
+      "reason_code": "merchant_terms_unavailable"
+    },
+    {
+      "ticket_id": "general_10",
+      "observed_outcome": "escalated",
+      "matches_expected": true,
+      "run_error": null,
+      "reason_code": "business_action_unavailable"
+    }
+  ]
+}

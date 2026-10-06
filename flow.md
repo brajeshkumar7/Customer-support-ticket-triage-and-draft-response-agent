@@ -3,14 +3,15 @@
 This guide explains the project in three stages:
 
 1. Run the agent without Zoho Desk.
-2. Run the current agent with Zoho ticket intake in draft-only mode.
+2. Run the current agent with Zoho ticket intake in draft-only mode, with an
+   optional human-reviewed email to a controlled contact.
 3. Run a controlled Zoho worker for allowlisted informational replies.
 
 All three diagrams describe code in this repository. The controlled worker in
 the third diagram is implemented but has not been deployed; its `live` mode
 refuses startup and the local knowledge file is not owner-approved. The
-interactive Zoho command fetches and analyzes a ticket but cannot send a
-public reply.
+interactive Zoho command fetches and analyzes a ticket; its optional reviewed
+mode can send one public email after explicit operator approval.
 
 ## The pieces, in plain language
 
@@ -19,10 +20,17 @@ public reply.
   command accepts Zoho's numeric ticket API ID and fetches its text.
 - **LangGraph:** Runs the steps below in order and keeps the results together
   as one ticket's state.
-- **OpenRouter:** The current model provider. It classifies the ticket,
-  extracts an explicitly written order ID and reason, drafts a reply, and
-  reviews the draft. The application uses the OpenAI-compatible API with
-  settings from `.env`.
+- **OpenRouter:** The current model provider. Jev uses the Decisions endpoint
+  to choose category and urgency from typed rubrics. Generative models use the
+  chat endpoint to extract an explicit order ID/reason, draft, and review.
+  Both use `.env` settings and the same rate budget. With PDF RAG enabled,
+  every ticket runs Jev and evidence review. Covered FAQs skip generative
+  drafting only after retrieval verifies matching simulation guidance.
+- **PDF RAG:** Actual documents in `knowledgebase/` are indexed by one CLI.
+  Chroma stores dense MiniLM vectors; SQLite stores sparse BM25 vectors and
+  the full-file hash ledger. The agent can search across all documents up to
+  three times, review passages and cite file/page/chunk IDs in human drafts.
+  Category is a hint, not a document selector. New PDFs are unreviewed.
 - **Mock tools:** Local Python tools that read the small order fixture, apply
   the project's sample return/damage rules, and search a small FAQ list. They
   do not call a store, payment processor, or shipping carrier.
@@ -36,7 +44,8 @@ public reply.
   path.
 - **Reply sender:** A small interface for sending an approved reply. The normal
   benchmark injects a fake sender that records simulated success and never
-  calls Zoho. The Zoho workflow currently runs with delivery forcibly disabled.
+  calls Zoho. The Zoho graph runs with delivery forcibly disabled; the reviewed
+  CLI mode is a separate, manually authorized sender.
 - **Escalation:** A structured result containing the ticket, available tool
   results, failed drafts and feedback, and a reason. The current graph returns
   this result to its caller; it does not itself assign the ticket to a person or
@@ -47,12 +56,14 @@ public reply.
 | Run mode | Required input/configuration |
 |---|---|
 | One synthetic case | A case ID from the test-ticket manifest, OpenRouter API key/base URL/primary model/fallback models. Uses an injected fake sender and ephemeral Chroma; no Zoho credentials or persistent Chroma are used. |
-| Zoho ticket draft | OpenRouter settings, a Zoho ticket API ID, Zoho ticket-read credentials, and the operator's interactive confirmations. The command fetches ticket text but cannot send a reply. |
+| Zoho ticket draft | OpenRouter settings, a Zoho ticket API ID, Zoho ticket-read credentials, and the operator's interactive confirmations. Fetches and analyzes without sending. |
+| Reviewed Zoho email | The same settings plus send-enabled configuration and Zoho update scope. Requires a supervisor-approved draft, recipient confirmation, and `SEND` with the ticket ID; sends one public email to the controlled requester. |
 | Full synthetic benchmark | The 50 development tickets or frozen 200-case author-labeled holdout, configured model credentials, and an injected fake sender. No Zoho ticket IDs or Zoho credentials are needed for delivery. |
 
 For tickets routed to human review, the graph makes separate model calls for
 classification, ticket-detail extraction, drafting, and supervisor review.
-An exact supported FAQ reply skips those calls and the mock business tools.
+An exact supported FAQ reply skips drafting/extraction and mock business tools,
+but with RAG enabled it still runs Jev and PDF retrieval/evidence review.
 Blocked human-review cases do not retry. The OpenRouter client applies the configured request pacing before API
 attempts, supplies the configured model fallback list, and handles bounded
 429 retries. The structured logger writes run/node/tool/model events to
@@ -81,7 +92,9 @@ unresolved tickets escalate with no public reply. No Zoho API is called.
 flowchart TD
     A[Operator selects one case ID from the synthetic ticket set] --> B[Runner loads its ticket text and creates an internal run ID]
     B --> C[Recall similar historical facts from local Chroma; never approval evidence]
-    C --> D{Shared informational-only decision using versioned local FAQ}
+    C --> TRIAGE[Jev category and urgency; priority]
+    TRIAGE --> RAG[Hybrid PDF search; up to three tool calls; review coverage]
+    RAG --> D{Informational gate plus retrieved hash-pinned PDF evidence}
     D -->|One fully covered FAQ intent| K[Record knowledge version and FAQ evidence ID]
     K --> R[Use exact bounded FAQ reply and deterministic exact-text review]
     R --> U[Fake sender records simulated success; no Zoho call]
@@ -113,16 +126,24 @@ flowchart TD
    general informational reply. The decision records a reason code, evidence
    ID, and knowledge version. The original 50/50 report used a broader rule;
    the current 50-case manifest labels only seven FAQ cases auto-resolvable.
-4. **Classify:** For tickets outside the exact FAQ path, OpenRouter returns a category (order status, return request,
-   damaged item, billing dispute, or general question) and urgency (low,
-   medium, or high).
-5. **Extract and gather:** OpenRouter extracts an order ID only if it appears
+4. **Classify:** With PDF RAG enabled, Jev answers two Choice questions
+   in one OpenRouter Decisions call: support category and low/medium/high
+   urgency. Its option probabilities, confidence, and exact served model are
+   recorded in `triage_decision`. An unclear category or invalid answer
+   escalates. Explicit safety/urgency signals may raise priority; category
+   regex overrides no longer replace Jev's choice. No triage probability
+   authorizes a public reply.
+5. **Retrieve, extract and gather:** Search the PDF corpus with dense + sparse
+   ranking and RRF; the model may reformulate the query twice and reviews
+   completeness. Retrieved passages are untrusted and cannot override safety.
+   OpenRouter extracts an order ID only if it appears
    explicitly in the ticket. Then `order_lookup`, `policy_checker`, and
    `faq_search` run concurrently. A missing/unknown order can make an
    order-dependent tool fail while the other results are retained.
 6. **Draft:** OpenRouter receives the ticket, classifications, and documented
    tool fields. Tool text, ticket text, memory, and review feedback are treated
-   as untrusted data, not instructions.
+   as untrusted data, not instructions. Generated human drafts return cited
+   chunk IDs; the application rejects citations outside the retrieved set.
 7. **Review:** The supervisor checks tool grounding, unsupported claims, and
    urgency-appropriate tone for a human-review draft. Blocked cases escalate
    after that review without spending retry attempts. An exact FAQ template
@@ -141,45 +162,60 @@ the manifest. Other callers can pass ticket text to
 `build_graph(...).ainvoke(...)`. This is a local Python entry point, not an
 HTTP API endpoint.
 
-## 2. Current workflow with Zoho Desk connected (draft-only)
+## 2. Current workflow with Zoho Desk connected
 
 The operator supplies one existing ticket API ID. The command asks the
 operator to confirm it is a controlled ticket/contact, fetches its subject and
-description, validates that it is an Email ticket with usable text, then runs
-the same graph. This command cannot send a public reply, regardless of the
-Zoho send environment setting. It does not automatically poll Zoho or receive
-new tickets.
+description, validates usable text for any ticket channel, then runs
+the same graph. The graph itself cannot send a public reply. A separate CLI
+step can send the exact draft after an operator reviews it and confirms the
+controlled recipient. The command does not automatically poll Zoho.
 
 ```powershell
 .\.venv\Scripts\python.exe -m src.agent.run_zoho --ticket-id YOUR_TICKET_API_ID --draft-only
+.\.venv\Scripts\python.exe -m src.agent.run_zoho --ticket-id YOUR_TICKET_API_ID --send-reviewed
 ```
 
 ```mermaid
 flowchart TD
     A[Operator supplies one existing Zoho ticket API ID] --> B[Confirm controlled ticket/contact and retype ID]
     B --> C[Zoho client refreshes OAuth and fetches the ticket]
-    C --> D{Email ticket with usable text?}
+    C --> D{Usable ticket text?}
     D -->|No| Z[Stop without graph run]
     D -->|Yes| E[Create internal run ID; pass subject, description, and Zoho ID]
     E --> F[Recall historical summaries from local Chroma]
-    F --> G{Exact versioned informational FAQ covers the request?}
-    G -->|Yes| I[Use exact FAQ text; skip model and mock tools]
+    F --> TRIAGE[Jev category, urgency and priority]
+    TRIAGE --> RAG[Hybrid PDF retrieval and bounded evidence review]
+    RAG --> G{Retrieved pinned evidence plus exact FAQ covers the request?}
+    G -->|Yes| I[Use exact FAQ text; skip generative draft and mock tools]
     G -->|No| H[Classify, extract, gather fixture facts, and draft for a human]
     H --> J[Supervisor reviews draft; blocked case cannot send]
     I --> K[Draft-only override blocks public delivery]
     J --> M[Return explicit escalation with draft, tool results, and safety findings]
     K --> M
-    M --> O[Operator reviews and decides whether/how to reply in Zoho]
-    O --> P[End: agent did not send a public reply]
+    M --> O{Operator selected send-reviewed?}
+    O -->|No| P[End: draft only; no public reply]
+    O -->|Yes| Q{Supervisor PASS with a draft?}
+    Q -->|Yes| U[Propose the approved agent draft]
+    Q -->|No| V[Propose a fixed human-review acknowledgement]
+    U --> R{Operator confirms exact email, recipient, and SEND ID?}
+    V --> R
+    R -->|No| P
+    R -->|Yes| S[Recheck requester and status; attempt one public email]
+    S --> T[Report confirmed thread ID or unknown outcome; never auto-retry]
 ```
 
 The deterministic gate blocks or routes for clarification when billing cannot
 be verified, order data is missing or unavailable, a customer reports a safety
 issue, requests a manager, asks for a policy exception, or leaves the desired
-resolution ambiguous. The LLM supervisor remains a review signal; PASS alone
+resolution ambiguous. The Jev supervisor remains a review signal; PASS alone
 does not authorize delivery. The graph returns the current draft and findings
-for an operator. The standalone `zoho_smoke` command still sends one fixed
-message after explicit confirmation, but it does not run the agent.
+for an operator. `--send-reviewed` is a human-approved exception for a
+controlled test ticket and contact. A failed review sends only the fixed
+acknowledgement after confirmation, never the failed draft. It does not make fixture-backed order
+answers safe for unattended customer delivery. The standalone `zoho_smoke`
+command still sends one fixed message after confirmation without running the
+agent.
 
 The standalone Zoho smoke command is separate from a graph run. It sends one
 fixed test message to one existing ticket only after the operator identifies a
@@ -190,7 +226,8 @@ normal ticket-processing workflow.
 
 This is a separate, deterministic outbound path for an owner-controlled demo.
 It does **not** send LangGraph-generated prose. The Zoho runner in Flow 2
-remains draft-only. The worker uses the latest inbound email thread and a
+still runs draft-only inside the graph; its optional reviewed CLI email is a
+separate manual action. The worker uses the latest inbound email thread and a
 reviewed repository template. All other issues are routed to a human.
 
 ```mermaid
@@ -252,3 +289,41 @@ baseline measurements. The newer 50-ticket informational-only run and frozen
 200-case synthetic holdout also measure the local graph, not this controlled
 worker or real customer accuracy. The fixed Docker tool runner is a placeholder;
 the graph's fixed Python tools currently execute in the host process.
+
+
+## TASK-38: Jev supervisor review
+
+Generated human-review drafts use one OpenRouter Decisions request with three
+Choice questions (pass, fail, insufficient_evidence). Configure
+`OPENROUTER_SUPERVISOR_MODEL` independently from triage and drafting; its default
+is `typesafe/jev-1.13`. Each check must select pass with probability >= 0.90.
+This initial threshold is provisional, not calibrated. Fixed checklist guidance
+supplies retry feedback; it does not identify individual unsupported sentences.
+Malformed or unavailable reviews escalate. Exact approved FAQ templates retain
+local validation without a supervisor model call. Checklist completion score is
+not Jev probability. Current tools remain fictional; cited PDF guidance and
+historical summaries do not verify customer identity. Safety gates and live-send
+restrictions remain in force. Earlier generative-supervisor descriptions are
+historical; accuracy and speed changes require new measured reports.
+
+## TASK-40: Evidence-bound safety assessment
+
+The graph and controlled worker share `production_policy.decide_public_reply`
+under `informational_only_v4`. The assessment records all detected blockers,
+specific missing evidence, knowledge IDs/version and policy version. Separate
+questions must be covered by the same approved reply; unsupported actions,
+safety incidents, billing disputes and customer-specific facts remain human work.
+This is a bounded informational policy, not a general proof of intent coverage.
+
+RAG approval additionally requires an explicitly scoped
+`automatic_reply_simulation` PDF containing the exact v1 reply, with trusted
+hash-pinned provenance and a cited, sufficient coverage review. The corpus now
+has seven unchanged reference-only PDFs and four separate fictional reply PDFs.
+Neither historical Chroma summaries nor reference-only PDFs authorize sending.
+The final graph delivery step rechecks evidence and exact outgoing text; the
+worker also checks exact template text. Jev PASS cannot override any blocker.
+
+Reindex with `python -m src.knowledge.ingest`. Run the fake-only benchmark with
+`python -m src.eval.run_eval`; reproduce saved metrics with
+`python -m src.eval.run_eval --report PATH`. Real customer sending stays disabled.
+Approved simulation content is not merchant approval or production evidence.

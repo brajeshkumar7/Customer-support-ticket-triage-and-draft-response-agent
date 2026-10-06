@@ -68,7 +68,7 @@ ORDER_STATUS_INTENT_PATTERN = re.compile(
 
 
 def reconcile_category(ticket_text: str, model_category: str) -> tuple[str, str]:
-    """Correct clear model category misses with specific ticket intent cues."""
+    """Legacy generative-classifier correction; the Jev graph does not use it."""
     text = ticket_text
     if BILLING_INTENT_PATTERN.search(text):
         return "billing dispute", "explicit_billing_intent"

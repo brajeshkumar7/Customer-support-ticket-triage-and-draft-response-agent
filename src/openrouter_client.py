@@ -52,7 +52,7 @@ def parse_openrouter_models(raw_models: str | Sequence[str]) -> tuple[str, ...]:
 
 
 class OpenRouterClient:
-    """Wrap OpenAI-compatible chat completion calls to OpenRouter."""
+    """Chat and typed Decisions calls sharing one bounded request budget."""
 
     def __init__(
         self,
@@ -89,6 +89,7 @@ class OpenRouterClient:
         )
         self._sleep = sleep
         self._rate_limiter = rate_limiter or OpenRouterRateLimiter(sleep=sleep)
+        self._decisions_url = configured_url.rstrip("/").removesuffix("/v1") + "/alpha/decisions"
 
     async def create_chat_completion(
         self,
@@ -125,12 +126,48 @@ class OpenRouterClient:
             "options": {key: value for key, value in request_options.items()
                         if key not in {"model", "messages"}},
         }
+        return await self._request_with_retries(
+            model=model, run_id=run_id, call_name=call_name, safe_inputs=safe_inputs,
+            request=lambda: self._client.chat.completions.create(**request_options),
+            log_output=_completion_log_output,
+        )
+
+    async def create_decision(
+        self, *, model: str, state: Any, questions: dict[str, Any],
+        run_id: str | None = None, call_name: str = "triage_decision",
+    ) -> dict[str, Any]:
+        """Use the Decisions API, not chat messages or generative-model fallbacks.
+
+        Raw HTTP contract: https://openrouter.ai/blog/insights/what-is-jev/
+        The existing SDK transport supplies authentication and bounded timeout.
+        Its automatic retries remain disabled.
+        """
+        if not model.strip():
+            raise OpenRouterConfigurationError("OPENROUTER_TRIAGE_MODEL must name a decision model.")
+        if not isinstance(questions, dict) or not questions:
+            raise ValueError("Decisions requests require typed questions.")
+        body = {"model": model, "state": state, "questions": questions}
+        return await self._request_with_retries(
+            model=model, run_id=run_id, call_name=call_name,
+            safe_inputs={"api": "decisions", **body},
+            request=lambda: self._client.post(self._decisions_url, cast_to=dict, body=body),
+            log_output=lambda response: {
+                "api": "decisions", "model": _field(response, "model"),
+                "answers": _field(response, "answers"), "usage": _field(response, "usage"),
+            },
+        )
+
+    async def _request_with_retries(
+        self, *, model: str, run_id: str | None, call_name: str,
+        safe_inputs: dict[str, Any], request: Callable[[], Awaitable[Any]],
+        log_output: Callable[[Any], dict[str, Any]],
+    ) -> Any:
         for retry_number in range(MAX_429_RETRIES + 1):
             attempt = retry_number + 1
             await self._rate_limiter.acquire()
             started = time.perf_counter()
             try:
-                response = await self._client.chat.completions.create(**request_options)
+                response = await request()
             except APIStatusError as error:
                 latency_ms = (time.perf_counter() - started) * 1000
                 failure = {
@@ -182,7 +219,7 @@ class OpenRouterClient:
                     run_id=run_id,
                     call_name=call_name,
                     inputs={**safe_inputs, "attempt": attempt},
-                    output=_completion_log_output(response),
+                    output=log_output(response),
                     latency_ms=(time.perf_counter() - started) * 1000,
                     token_cost=_completion_cost(response),
                 )

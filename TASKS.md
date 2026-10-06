@@ -27,7 +27,8 @@ place; don't delete completed items, so the history stays visible.
       draft
 - [x] TASK-11: Explicit terminal outcome and Zoho adapter were implemented.
       Direct graph sending was later disabled; the current graph simulates
-      approved replies or escalates, and `run_zoho` is draft-only.
+      approved replies or escalates. `run_zoho` keeps graph delivery disabled;
+      TASK-34 added a separate manually reviewed controlled email mode.
 
 ## Phase 3 — Observability
 - [x] TASK-12: Structured JSONL logging for graph nodes, tool calls, LLM
@@ -205,3 +206,79 @@ Revisit only after Phase 6 is done.)*
       live replies.
 - [ ] Decide separately whether a multi-ticket queue or SLA routing is needed;
       current priority metadata ranks one ticket but does not create a queue.
+
+### TASK-33 — Run controlled Zoho tickets through the local agent
+- [x] Keep the fixed-message `zoho_smoke` command separate from the agent run.
+- [x] Let `run_zoho --draft-only` analyze controlled tickets with usable text
+      across Zoho channels, print its local run ID, and never post or assign a
+      Zoho reply. The controlled worker's Email-only send boundary is unchanged.
+
+### TASK-34 — Send one manually reviewed agent draft to a controlled Zoho contact
+- [x] Add `run_zoho --send-reviewed`: run the graph without automatic delivery,
+      display the exact draft and safety findings, and require supervisor PASS
+      plus explicit recipient and ticket confirmation before one public email.
+- [x] Recheck ticket text and recipient before the send, reject changed or
+      unavailable tickets, and never automatically retry an uncertain outcome.
+- [x] Keep unattended graph and real-customer auto-send disabled; cover the
+      controlled path with network-free command and Zoho adapter tests.
+
+### TASK-35 — Acknowledge controlled tickets when the draft fails review
+- [x] Keep failed or unverified agent prose out of public email. In the
+      reviewed-send command, show a fixed human-review acknowledgement instead.
+- [x] Require the same exact recipient and send confirmation, recheck the
+      ticket, and preserve one-attempt delivery with no automatic retry.
+- [x] Keep graph and unattended customer delivery gates unchanged.
+
+### TASK-36 — Use Jev typed Decisions for triage
+- [x] Review OpenRouter/TypeSafe contracts and replace generative category/
+      urgency classification with one Jev request outside the covered FAQ path.
+- [x] Configure the triage model separately, validate typed Choice answers and
+      preserve probabilities/model provenance; unclear decisions escalate.
+- [x] Share client pacing, timeout, bounded API retries, and provider-cost
+      logging; retain explicit safety priority floors and remove current-path
+      category regex overrides.
+- [x] Verify the API contract and graph/evaluator behavior offline; one live
+      Jev request succeeded using the configured OpenRouter key.
+- [ ] Run a fresh 50-case simulated benchmark to measure Jev category accuracy,
+      urgency, latency and cost against the historical generative classifier.
+
+### TASK-37 - Incremental PDF ingestion and bounded hybrid RAG
+- [x] Store seven actual local simulation PDFs and hash-pinned provenance in
+      `knowledgebase/`; retain review-required and real-delivery boundaries.
+- [x] Add one CLI for paragraph-aware chunking, dense MiniLM vectors in Chroma,
+      sparse BM25 vectors and ledger in SQLite, and RRF retrieval.
+  - [x] Filename + first-150-word hashes identify immutable PDFs; skip completed documents,
+      exclude deleted/failed versions, and query only committed generations.
+- [x] Wire bounded allowlisted search, evidence review and cited drafts after
+      Jev triage; require retrieved PDF evidence for exact FAQ simulations.
+- [x] Run offline regressions, index/reindex the seven PDFs, and verify one
+      configured-model fake-delivery case; document the observed review failure.
+- [ ] Measure complete 50/200-case RAG accuracy, citations, latency and cost.
+- [ ] Measure larger-corpus retrieval; no 1,000-document performance claim yet.
+
+
+### TASK-38 ? Jev supervisor Decisions
+- [x] Replace generated checklist review with typed Jev choices and fixed feedback.
+- [x] Preserve exact FAQ validation, safety gates, logging and bounded retries.
+- [x] Verify offline regressions and measure nine labeled development reviews;
+      three false rejections remain open (FM-022).
+- [x] Complete all 50 attempted cases and document the saved report, including
+      seven false escalations and two unscored workflow failures. The harness
+      refused publication to the accepted tracker; accuracy issues remain open.
+
+
+### TASK-39 - Reviewed simulation reference provenance and CLI review details
+- [x] Review and repin the expanded PDFs without overwriting user documents;
+      use a distinct reference version and preserve send restrictions.
+- [x] Reindex seven documents, confirm subsequent ingestion skips them, and
+      inspect populated metadata in a real local hybrid query.
+- [x] Display structured supervisor reasons, decisions/probabilities, checklist
+      score and workflow errors in both single-ticket commands.
+
+### TASK-40 - Shared evidence-bound safety decisions
+- [x] Collect simultaneous findings and ticket-specific required evidence.
+- [x] Require explicit simulation approval scope and validate final exact text.
+- [x] Add separate hash-pinned simulation reply PDFs; preserve references.
+- [x] Run network-free safety, graph, worker and RAG regressions.
+- [x] Complete and assess all 50 attempted cases; report one unscored workflow failure and three false escalations (FM-026/027).
+- [ ] Meet local acceptance: zero critical false approvals and supported informational controls remain eligible.

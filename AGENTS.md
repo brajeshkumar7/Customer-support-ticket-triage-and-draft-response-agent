@@ -49,6 +49,24 @@ paid infrastructure or a new provider without the owner's deployment action.
   - **Ollama (local)** was considered as an offline alternative, but no Ollama
     client or fallback is wired into this application.
   - Use the primary and fallback models explicitly configured in `.env`.
+  - Triage: Jev through OpenRouter's `/api/alpha/decisions`, configured by
+    `OPENROUTER_TRIAGE_MODEL` (default `typesafe/jev-1.13`). Category and urgency
+    are typed Choice answers with probabilities. Chat fallback models apply
+    only to generative calls. With PDF RAG enabled, every ticket uses Jev;
+    the legacy FAQ shortcut is available only with RAG disabled.
+    Explicit safety signals can raise priority.
+  - Supervisor: Jev typed Choice checks through the same Decisions transport,
+    configured independently by `OPENROUTER_SUPERVISOR_MODEL`. The provisional
+    pass-probability threshold is 0.90 per check; fixed checklist feedback
+    replaces generated explanations. Exact approved FAQ validation stays local.
+    Jev probabilities never override deterministic send gates.
+- Knowledge retrieval: immutable text-layer PDFs in `knowledgebase/`; ingestion
+  skips completed documents using SHA-256 of the relative filename plus first
+  150 words through `python -m src.knowledge.ingest`. Dense MiniLM
+  embeddings in separate local Chroma and sparse BM25 vectors/ledger in SQLite,
+  with reciprocal-rank fusion. A bounded allowlisted search agent reviews
+  evidence; citations are validated. New PDFs are unreviewed and cannot
+  authorize automatic sending. The controlled worker stays template-only.
 - Tool execution: fixed application-owned tools only. The Docker runner is a
   placeholder and is not the current tool execution boundary. Never execute
   model-generated code or shell commands. The controlled worker uses an
@@ -139,3 +157,30 @@ critic accepts a bad answer, a retry loop runs longer than intended — write it
 to `FAILURE_MODES.md` as it happens, using the FM-### format already in that
 file. Don't wait until later to reconstruct what went wrong; the real value of
 that file is the accurate, in-the-moment account, not a tidied-up version.
+
+
+## TASK-38: Jev supervisor review
+
+Generated human-review drafts use one OpenRouter Decisions request with three
+Choice questions (pass, fail, insufficient_evidence). Configure
+`OPENROUTER_SUPERVISOR_MODEL` independently from triage and drafting; its default
+is `typesafe/jev-1.13`. Each check must select pass with probability >= 0.90.
+This initial threshold is provisional, not calibrated. Fixed checklist guidance
+supplies retry feedback; it does not identify individual unsupported sentences.
+Malformed or unavailable reviews escalate. Exact approved FAQ templates retain
+local validation without a supervisor model call. Checklist completion score is
+not Jev probability. Current tools remain fictional; cited PDF guidance and
+historical summaries do not verify customer identity. Safety gates and live-send
+restrictions remain in force. Earlier generative-supervisor descriptions are
+historical; accuracy and speed changes require new measured reports.
+
+## TASK-40 current safety contract
+
+Use the shared `informational_only_v4` policy for graph and worker decisions.
+Expose all detected blockers and required evidence. A Jev PASS is not approval.
+Seven expanded reference PDFs remain reference-only; four separate v1 reply
+PDFs are scoped `automatic_reply_simulation`. Only exact, cited, version-matching
+simulation replies may pass the local RAG gate. Final delivery revalidates the
+reply text. Fixtures and historical memory never authorize customer-specific
+facts. Real customer delivery remains disabled. Earlier v3 policy descriptions
+are historical; do not present earlier metrics as v4 measurements.
