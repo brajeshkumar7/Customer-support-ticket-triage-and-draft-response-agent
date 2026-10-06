@@ -1,8 +1,10 @@
 # Test Tickets
 
-25 synthetic support tickets for the eval (TASKS.md TASK-18), with expected
+50 synthetic support tickets for the eval (TASKS.md TASK-18 and TASK-27), with expected
 outcomes recorded in `manifest.csv` and ticket text in `tickets.jsonl` so
-TASK-19 can score runs against a fixed set.
+the evaluator can score runs against a fixed set. The original 25 are unchanged;
+the additional 25 include five new cases in each category. Their labels are
+author-drafted and do not count as independently human-reviewed cases.
 
 Cover: order status, returns, damage, billing, general questions, PLUS
 deliberate edge cases that SHOULD trigger escalation (ambiguous intent,
@@ -18,24 +20,63 @@ escalation because no billing transaction lookup is available.
 
 Each non-empty line in `tickets.jsonl` is one JSON object with exactly
 `ticket_id` and `ticket_text`. IDs must match the manifest exactly. These
-files are evaluation data only; this task does not run tickets through the
-agent or add evaluation-running code.
+files are evaluation inputs; `src.eval.run_eval` runs them through the graph.
 
-TASK-19 uses a fake reply sender for all 25 synthetic cases. It does not
+The current evaluator uses `manifest_informational.csv` for all 50 synthetic
+cases. It keeps the original `manifest.csv` unchanged for historical report
+comparison. Under the new policy only seven general FAQ cases are labeled
+`auto_resolve`; customer-specific fixture cases require human review.
+The evaluator uses a fake reply sender and does not
 require Zoho ticket IDs, create tickets, or send public replies. A simulated
 sent outcome measures the graph's approved-reply path; it does not establish
 that a real provider delivered the reply.
 
+`holdout_v1.jsonl` contains 200 author-labeled, templated synthetic cases,
+40 per category, with required evidence, acceptable answer, and critical
+failure tags. Its byte-level SHA-256 is pinned in `src/eval/run_holdout.py`;
+the runner refuses changed content. Run it with
+`.\.venv\Scripts\python.exe -m src.eval.run_holdout`. It uses configured
+OpenRouter models for non-FAQ cases and a fake sender only. A saved report can
+be recomputed offline with `--report PATH`. The holdout has not been reviewed
+independently and is separate from the future real-ticket release set.
+
 Run the benchmark from the repository root with
-`.venv\\Scripts\\python.exe -m src.eval.run_eval`. It uses the configured
+`.\.venv\Scripts\python.exe -m src.eval.run_eval`. It uses the configured
 OpenRouter models, writes a report under `data/eval_reports/`, and updates
 measured metrics in `PROGRESS.md` after all cases run. Recompute a saved report
 without model or network calls with
-`.venv\\Scripts\\python.exe -m src.eval.run_eval --report PATH`.
+`.\.venv\Scripts\python.exe -m src.eval.run_eval --report PATH`.
 
 Test live Zoho delivery separately with one existing ticket and contact you
 control. Set `ZOHO_DESK_SEND_ENABLED=true`, then run
-`.venv\\Scripts\\python.exe -m src.eval.zoho_smoke --ticket-id ID --send`.
+`.\.venv\Scripts\python.exe -m src.eval.zoho_smoke --ticket-id ID --send`.
 The command asks you to confirm the ticket/contact are controlled, then type
 the ticket ID before sending one fixed public smoke-test reply. It does not
 create tickets or retry an ambiguous send.
+
+## TASK-25 safety regressions
+
+`safety_regressions.jsonl` has 31 historical fixture-backed safety cases. Its
+runner still measures the old gate for comparison; the current graph uses the
+shared informational-only policy, tested in `tests/test_informational_policy.py`.
+Each
+case includes expected evidence, acceptable draft and terminal behavior, and
+the deterministic gate result. Run with
+`.\.venv\Scripts\python.exe -m src.eval.run_safety_regressions`. It does not
+call an LLM, Zoho, or the fake sender, so it measures the deterministic rules
+only and does not measure generated-response quality. Four carrier-scan
+cases cover the `general_03` misclassification, a paraphrase, a request for
+specific shipment status, and an unavailable FAQ. TASK-28 adds the four
+previously missed escalations, paraphrases, and neighboring answerable
+cases. They are author-labeled regressions, not part of the independently
+reviewed release set.
+# Controlled deployment release set
+
+The synthetic graph benchmark cases are local evaluation data. They
+do not authorize customer-facing delivery. A separate
+`release_reviewed.jsonl` must contain at least 200 genuinely human-reviewed
+cases, at least 20 per category, before running
+`python -m src.eval.run_release_eval --cases ... --out ...`. Each line needs
+`id`, `category`, `ticket_text`, `expected_disposition` (`informational` or
+`human`), `reviewed_by`, and `reviewed_at`. The review set does not yet exist;
+do not copy synthetic labels into it as if they were independently reviewed.

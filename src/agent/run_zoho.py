@@ -1,4 +1,4 @@
-"""Fetch one controlled Zoho email ticket, run the agent, and send only on PASS."""
+"""Fetch one controlled Zoho email ticket and run the agent in draft-only mode."""
 
 from __future__ import annotations
 
@@ -69,15 +69,21 @@ async def process_ticket(
     graph = graph_builder(
         short_term_memory=ShortTermMemory(run_id),
         long_term_memory=memory_factory(),
-        reply_sender=client,
+        allow_delivery=False,
     )
-    return await graph.ainvoke(
+    try:
+        run_timeout = float(os.getenv("AGENT_RUN_TIMEOUT_SECONDS", "60"))
+    except ValueError as error:
+        raise ValueError("AGENT_RUN_TIMEOUT_SECONDS must be a positive number.") from error
+    if not 0 < run_timeout <= 600:
+        raise ValueError("AGENT_RUN_TIMEOUT_SECONDS must be between 0 and 600.")
+    return await asyncio.wait_for(graph.ainvoke(
         {
             "ticket_id": run_id,
             "zoho_ticket_id": ticket_id,
             "ticket_text": ticket_text,
         }
-    )
+    ), timeout=run_timeout)
 
 
 def main(
@@ -90,22 +96,31 @@ def main(
 ) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--ticket-id", required=True, help="Existing numeric Zoho ticket API ID")
-    parser.add_argument("--send", action="store_true", help="Allow a public reply after PASS")
+    parser.add_argument(
+        "--draft-only",
+        action="store_true",
+        help="Required acknowledgement: this phase never sends a public reply.",
+    )
+    parser.add_argument(
+        "--send",
+        action="store_true",
+        help=argparse.SUPPRESS,
+    )
     args = parser.parse_args(argv)
     ticket_id = args.ticket_id.strip()
     if not re.fullmatch(r"[0-9]+", ticket_id):
         parser.error("--ticket-id must contain digits only.")
-    if not args.send:
-        print("No ticket fetched or reply sent. Re-run with --send for a controlled test ticket.")
+    if args.send:
+        parser.error("Live sending is blocked during the safety-improvement phase; use --draft-only.")
+    if not args.draft_only:
+        print("No ticket fetched. Run with --draft-only to process a controlled ticket without sending.")
         return 0
 
     load_dotenv(REPOSITORY_ROOT / ".env")
-    if os.getenv("ZOHO_DESK_SEND_ENABLED", "").strip().casefold() not in {"true", "1", "yes", "on"}:
-        parser.error("Set ZOHO_DESK_SEND_ENABLED=true before running this command with --send.")
-
     print(
-        f"This will fetch Zoho ticket {ticket_id} and may post one public customer email "
-        "if the agent supervisor passes. Use only a ticket and contact you control."
+        f"This will fetch Zoho ticket {ticket_id} and create a draft-only agent result. "
+        "It cannot post a public reply, even when ZOHO_DESK_SEND_ENABLED=true. "
+        "Use only a ticket and contact you control."
     )
     if confirm_input("Type CONTROLLED to confirm this ticket/contact are yours: ").strip() != "CONTROLLED":
         print("Ownership confirmation did not match; no ticket was fetched or reply sent.")
@@ -131,11 +146,20 @@ def main(
     print(
         json.dumps(
             {
+                "category": result.get("category"),
+                "urgency": result.get("urgency"),
+                "priority": result.get("priority"),
+                "priority_rank": result.get("priority_rank"),
+                "classification_basis": result.get("classification_basis"),
+                "category_basis": result.get("category_basis"),
+                "urgency_basis": result.get("urgency_basis"),
                 "supervisor_status": result.get("supervisor_status"),
                 "terminal_status": result.get("terminal_status"),
                 "zoho_delivery_status": result.get("zoho_delivery_status"),
                 "response_sent": result.get("response_sent"),
                 "retry_count": result.get("retry_count"),
+                "safety_review": result.get("safety_review"),
+                "draft_response": result.get("draft_response"),
                 "escalation_reason": result.get("escalation_reason"),
             },
             indent=2,

@@ -6,7 +6,11 @@ from typing import Any
 from src.tools.base import BaseTool, ToolInputError
 from src.tools.order_data import find_order
 
-_DAMAGE_TERMS = {"damaged", "damage", "broken", "defective"}
+_DAMAGE_TERMS = {
+    "damaged", "damage", "broken", "defective", "smoke", "smoking", "smoked",
+    "spark", "sparks", "sparked", "sparking", "overheated", "overheating",
+    "hazard", "hazardous",
+}
 
 
 class PolicyCheckerTool(BaseTool):

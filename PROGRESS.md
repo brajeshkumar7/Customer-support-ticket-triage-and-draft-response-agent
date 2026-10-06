@@ -18,30 +18,93 @@ Format:
 pick this back up cold
 ```
 
-| Per-ticket reported token cost | order_01=0.0019142999999999999; order_02=0.0019573999999999998; order_03=0.007313299999999999; order_04=0.0092749; order_05=0.011004; return_01=0.0019686; return_02=0.0019868; return_03=0.0023494550000000003; return_04=0.0024754300000000003; return_05=0.00460142; damage_01=0.00509074; damage_02=0.0048194299999999995; damage_03=0.00720861; damage_04=0.011868624999999999; damage_05=0.008179925; billing_01=0.0046505850000000005; billing_02=0.00970864; billing_03=0.004355515; billing_04=0.002690675; billing_05=0.0028010400000000003; general_01=0.0030952900000000005; general_02=0.0019303699999999998; general_03=0.008389655; general_04=0.007201485; general_05=0.00584907 | 2026-09-30 |
 ---
 
 ## Metrics tracker (update as you measure — mirrors PRD.md Section 5)
 
+**Current metrics provenance:** Complete 50-ticket simulated graph run under informational-only labels, saved as `data/eval_reports/task29_20261005T183529Z_2979caa5.json` and recorded on 2026-10-06. It predates the final TASK-32 triage edit; a fresh complete run is still needed. Earlier fixture-backed and v3 reports remain historical. The interrupted OpenRouter run produced no complete report or new accuracy measurement.
+
 | Metric | Value | Date measured |
 |---|---|---|
-| Task completion rate (simulated delivery) | 15/25 = 0.6 | 2026-09-30 |
-| Mean retries-to-success | 1.4 | 2026-09-30 |
-| Failure rate after cap | 6/25 = 0.24 | 2026-09-30 |
+| Category classification accuracy | 50/50 = 1.0 | 2026-10-06 |
+| Urgency / priority distribution (not accuracy) | urgency={"high":6,"medium":20,"low":24}; priority={"P1":6,"P2":20,"P3":24} | 2026-10-06 |
+| Task completion rate (simulated delivery) | 50/50 = 1.0 | 2026-10-06 |
+| Mean retries-to-success | 0.0 | 2026-10-06 |
+| Failure rate after cap | 0/50 = 0.0 | 2026-10-06 |
 | p95 latency (sequential) | Not measured: pending TASK-20 | Not measured |
-| p95 latency (async) | 116460.39039999596 ms | 2026-09-30 |
-| Cost per successful run | 0.005243950666666666 | 2026-09-30 |
-| Total reported token cost | 0.13268526 | 2026-09-30 |
-| Tickets with missing token cost | 0 | 2026-09-30 |
-| Escalation recall | 5/14 = 0.35714285714285715 | 2026-09-30 |
-| Incorrect escalation rate (auto-resolve) | 1/11 = 0.09090909090909091 | 2026-09-30 |
-| Incorrect send rate (expected escalation) | 9/14 = 0.6428571428571429 | 2026-09-30 |
-| Unscored workflow failures | 0 | 2026-09-30 |
+| p95 latency (async) | 44778.41449999687 ms | 2026-10-06 |
+| Cost per successful run | 0.0023002769000000003 | 2026-10-06 |
+| Total reported token cost | 0.115013845 | 2026-10-06 |
+| Tickets with missing token cost | 0 | 2026-10-06 |
+| Escalation recall | 43/43 = 1.0 | 2026-10-06 |
+| Incorrect escalation rate (auto-resolve) | 0/7 = 0.0 | 2026-10-06 |
+| Incorrect send rate (expected escalation) | 0/43 = 0.0 | 2026-10-06 |
+| Unscored workflow failures | 0 | 2026-10-06 |
 | Prompt-injection attempts / successes | TASK-16: 10 / 1 unsafe; TASK-17: 10 scored / 0 unsafe; 20 additional attempts unscored | 2026-09-29 |
+| Per-ticket reported token cost | order_01=0.0024906; order_02=0.0021614; order_03=0.0028225999999999998; order_04=0.0022011; order_05=0.0028393999999999997; return_01=0.0024518; return_02=0.0026594; return_03=0.0027513; return_04=0.0027282; return_05=0.0031215; damage_01=0.0028855; damage_02=0.0030467; damage_03=0.0027773; damage_04=0.0026889; damage_05=0.0023401; billing_01=0.002686; billing_02=0.0022768000000000003; billing_03=0.0025835; billing_04=0.0022337; billing_05=0.0036691; general_01=0.0; general_02=0.0; general_03=0.0; general_04=0.0; general_05=0.0030807; order_06=0.00190063; order_07=0.0022162600000000003; order_08=0.0031430399999999997; order_09=0.003111505; order_10=0.00249139; return_06=0.0024129100000000003; return_07=0.00237035; return_08=0.0027194100000000002; return_09=0.0026095650000000003; return_10=0.002780745; damage_06=0.00237981; damage_07=0.0025817; damage_08=0.0029088000000000004; damage_09=0.00278204; damage_10=0.00223231; billing_06=0.0029295149999999997; billing_07=0.00249134; billing_08=0.00268221; billing_09=0.0028379399999999997; billing_10=0.003136855; general_06=0.0; general_07=0.0; general_08=0.0; general_09=0.00295821; general_10=0.00284171 | 2026-10-06 |
+| False sends | 0 | 2026-10-06 |
+| Missed escalations | 0 | 2026-10-06 |
+| False escalations | 0 | 2026-10-06 |
+| Drafts flagged for unsupported claims | 23 | 2026-10-06 |
+| Deterministic safety-gate violations | 0 | 2026-10-06 |
+| Disposition errors by category | {"billing_dispute":{"calls_missing_cost":0,"false_escalations":0,"false_sends":0,"llm_calls":40,"missed_escalations":0,"reported_cost":0.02752696,"safety_gate_violations":0,"ticket_count":10,"unsupported_claim_reviews":7},"damaged_item":{"calls_missing_cost":0,"false_escalations":0,"false_sends":0,"llm_calls":40,"missed_escalations":0,"reported_cost":0.02662316,"safety_gate_violations":0,"ticket_count":10,"unsupported_claim_reviews":5},"general_question":{"calls_missing_cost":0,"false_escalations":0,"false_sends":0,"llm_calls":12,"missed_escalations":0,"reported_cost":0.00888062,"safety_gate_violations":0,"ticket_count":10,"unsupported_claim_reviews":2},"order_status":{"calls_missing_cost":0,"false_escalations":0,"false_sends":0,"llm_calls":40,"missed_escalations":0,"reported_cost":0.025377925,"safety_gate_violations":0,"ticket_count":10,"unsupported_claim_reviews":5},"returns":{"calls_missing_cost":0,"false_escalations":0,"false_sends":0,"llm_calls":40,"missed_escalations":0,"reported_cost":0.02660518,"safety_gate_violations":0,"ticket_count":10,"unsupported_claim_reviews":4}} | 2026-10-06 |
+| 50-case reported cost by category | billing_dispute=0.02752696; damaged_item=0.02662316; general_question=0.00888062; order_status=0.025377925; returns=0.02660518 | 2026-10-06 |
+| 50-case model attribution | openai/gpt-6-luna-pro=172 LLM calls, 0.115013845 reported cost, 0 missing-cost calls; no fallback model calls logged | 2026-10-06 |
+
+The earlier v3 report (`task29_20261005T062249Z_c30b0b20.json`) remains
+available for historical comparison. Its 0.110459985 total cost and
+42986.12800000001 ms p95 must not be mixed into the latest tracker.
+
+### TASK-29 frozen 200-case local regression (2026-10-05)
+
+Report: `data/eval_reports/holdout_v1_20261005T064737Z_9b17b234.json`.
+Public-safe per-case report: `docs/measurements/task29_holdout_v1.json`.
+Policy: `informational_only_v3`; delivery adapter: fake; no Zoho requests or
+public replies. Dataset provenance: author-drafted templated synthetic cases,
+not independently reviewed; do not present as an independent release set.
+
+| Metric | Measured value |
+|---|---|
+| Disposition match | 189/200 = 0.945 (95% target not met) |
+| Expected informational cases / false escalations | 32 / 11 (11/32 = 0.34375) |
+| Expected human handoffs / correct escalations | 168 / 168 (recall 1.0) |
+| False simulated sends / missed escalations | 0 / 0 |
+| Unsupported public claims / evidence coverage | 0 / 21 simulated sends (21/21 covered) |
+| Unsupported-claim review flags on human drafts | 107 |
+| p95 full-run latency / p95 approved FAQ latency | 59722.046200000026 ms / 714.4188000002032 ms |
+| Total reported token cost / cost per matched run | 0.45285409 / 0.0022546855026455027 |
+| LLM calls / calls missing provider-reported cost | 716 / 0 |
+| Mean retries / failure-after-cap | 0.0 / 0/200 = 0.0 |
+| False escalations by category | general_question: 11; all other categories: 0 |
+| Calls and provider cost by category | order_status: 160 / 0.0969393; returns: 160 / 0.101812; damaged_item: 160 / 0.1056493; billing_dispute: 160 / 0.10040729; general_question: 76 / 0.0480462 |
+| Model attribution | openai/gpt-6-luna-pro: 716 calls, 0.45285409 reported cost, 0 missing-cost calls; no fallback model calls logged |
+
+The evaluation met the zero-false-send and zero-unsupported-public-claim
+targets, but missed the 95% disposition target due to false escalations in
+paraphrased general questions. Sequential p95 was not measured. See the saved
+report for all per-case outcomes and per-category latency/call/cost details.
 
 ---
 
 ## Session log
+
+## [2026-10-06] Documentation alignment (TASK-21–23)
+
+**Worked on:** Reconciled all repository Markdown with the local graph,
+controlled worker, task status, and saved reports.
+**Completed:** Replaced the Docker-centered architecture diagram; finished
+README and PRD trade-off; separated latest completed and historical metrics;
+corrected memory, sending, streaming, and deployment descriptions; repaired
+duplicate failure IDs and the misplaced Zoho fix. No application code or
+evaluation data changed in this documentation pass.
+**Blocked/open questions:** TASK-20 sequential comparison, the 200-case
+accuracy target, independent release review, worker deployment, and a fresh
+complete post-TASK-32 classification run remain open. The interrupted
+OpenRouter attempt was unscored.
+**Metrics measured this session:** None. Existing numbers retain their saved
+report provenance.
+**Next session should start with:** Decide whether to rerun the complete
+50-case fake-sender benchmark with the configured model for TASK-32 triage.
 
 ## [2026-09-28] TASK-12 structured JSONL logging
 **Worked on:** TASK-12
@@ -164,7 +227,9 @@ manager-note claim was absent. Zoho was forced off and long-term memory was
 isolated in memory in the scored run.
 **Blocked/open questions:** None for TASK-17. The refund timing mentioned
 in the pre-approval case is supported by the existing FAQ fixture; the earlier
-FM-007 classification was incorrect and has been removed.
+FM-007 classification was incorrect and has been removed. That
+historical mention refers to a removed entry, not today's FM-007 carrier-scan
+guidance entry.
 **Metrics measured this session:** TASK-17: 10 scored attempts, 0 unsafe
 injection successes; plus 20 unscored environment attempts. The evaluator
 initially misreported pre-dispatch failures as mutation errors; its reporting
@@ -229,3 +294,288 @@ metrics without model or Zoho calls. No public replies were sent.
 **Blocked/open questions:** Sequential latency remains unmeasured until TASK-20. 0 tickets had at least one missing provider-reported token cost; those costs are not estimated.
 **Metrics measured this session:** See the tracker above and the saved report `data\eval_reports\task19_20260929T193705Z_288067e8.json`.
 **Next session should start with:** TASK-20 sequential versus async latency comparison.
+
+## [2026-09-30] TASK-25 safety gate and accuracy work
+**Worked on:** TASK-25
+**Completed:** Disabled agent-initiated Zoho delivery in `run_zoho` regardless
+of the environment send flag; audited all 25 previous labels and the 10
+incorrect dispositions; added clarification-versus-human-review criteria, a
+deterministic safety gate, provider-neutral fixture interfaces, and 14 offline
+safety regression cases. Extended saved evaluation reports and metric
+calculation to cover false sends, missed escalations, unsupported-claim review
+flags, safety-gate violations, and false escalations by category.
+**Verification:** The 14 deterministic safety cases matched expected safety
+findings and dispositions (14/14, 0 false sends, 0 missed escalations, and 0
+false escalations in this offline rule suite). Focused tests passed: 59 passed.
+The configured-model 25-ticket post-gate attempt failed at classification with
+`APIConnectionError` on the first five tickets before tool dispatch and was
+stopped; it is unscored. No Zoho calls or public replies were made. The saved
+pre-gate benchmark is unchanged and remains historical evidence only.
+**Blocked/open questions:** A complete post-gate graph evaluation requires a
+reachable OpenRouter endpoint. Real order, billing, and authoritative policy
+adapters remain unselected and are not claimed as integrated.
+**Metrics measured this session:** No new generated-agent benchmark metrics.
+The 14/14 figure measures deterministic offline safety rules only and must not
+be substituted for the graph benchmark. Existing benchmark metrics in the
+tracker remain from the pre-gate TASK-19 saved report.
+**Next session should start with:** Retry the 25-ticket simulated-delivery
+benchmark when OpenRouter is reachable; do not enable agent-initiated Zoho
+delivery based on the offline rule suite alone.
+
+## [2026-10-04] TASK-25 post-gate full evaluation
+**Worked on:** TASK-25 (post-gate re-evaluation with simulated delivery)
+**Completed:** Ran 25 tickets with simulated delivery; 23 matched their expected disposition.
+**Blocked/open questions:** Sequential latency remains unmeasured until TASK-20. 0 tickets had at least one missing provider-reported token cost; those costs are not estimated.
+**Metrics measured this session:** See the tracker above and the saved report `data\eval_reports\task19_20261004T074219Z_b7d0d175.json`.
+**Next session should start with:** Review per-category errors and the zero-false-send gate; keep live Zoho delivery blocked.
+
+## [2026-10-06] TASK-32 per-ticket category and priority triage
+**Worked on:** TASK-32 classification and urgency-based priority metadata.
+**Completed:** Graph results now include category, urgency, `P1`/`P2`/`P3`
+priority, sort rank, and classification/urgency basis. Explicit safety,
+high-stakes, urgent, deadline, and manager signals elevate urgency; selected
+repeated/impact wording can elevate low to medium. Both local ticket commands
+display these fields. New evaluation reports record category predictions and
+report category accuracy separately from disposition accuracy. Added narrow
+intent overrides for four clear model category errors and stopped treating a
+bare "today" mention as P1.
+**Blocked/open questions:** The first post-instrumentation model report
+recorded 46/50 category accuracy (0.92), not the disposition result of 50/50;
+three return cases and one billing case were categorized incorrectly. A bare
+"today" mention also over-prioritized `order_01` and `damage_03`. The category
+rule corrections passed local regression tests, but a fresh configured-model
+run is required for a post-fix category score. A single ticket receives a rank
+only; shared queue ordering and SLA routing are outside the current workflow.
+Live customer sending remains disabled.
+**Metrics measured this session:** 60 focused network-free tests passed after
+the rule corrections. An offline replay of the saved pre-fix outputs selected
+the four known category corrections and preserved the vague general complaint;
+this is not a post-fix benchmark. The 46/50 category score and P1/P2/P3
+distributions remain pre-fix observations from the report above.
+**Next session should start with:** Run the 50-case simulated benchmark and
+review classification accuracy and the urgency/priority distributions before
+deciding whether the triage rules need revision.
+
+## [2026-10-04] TASK-26 controlled deployment implementation
+**Worked on:** A fail-closed Render/PostgreSQL worker that polls Zoho Email
+threads, deduplicates jobs, rechecks recipient and latest thread before a
+single approved informational reply, and records uncertain sends for
+reconciliation without replay. The database allowlist and kill switch default
+to no sends. `live` mode refuses startup. The existing graph's direct real
+sender path is blocked; the local fake-sender benchmark remains separate.
+**Verification:** 145 local tests passed; two older tests requiring pytest's
+temporary-directory fixture were deselected because this environment denies
+access to directories created by that fixture. The release evaluator requires at least 200 attributed
+human-reviewed cases; no such dataset or deployment measurement exists yet.
+**Metrics measured this session:** No new end-to-end accuracy or arrival-to-
+reply latency metric. The earlier 23/25 and 94366.37110001175 ms p95 remain
+the saved simulated-graph baseline, not results for the new worker.
+**Blocked/open questions:** No Render account deployment, owner-approved
+knowledge hash, controlled test allowlist, or authoritative commerce/billing
+source was supplied. No live Zoho send or real customer release occurred.
+Operator alert routing is not configured; the worker currently emits warning
+and error log events for backlog and failures.
+
+### Structured classification comparison
+
+The configured OpenRouter models were called for all 25 fixed tickets. The
+saved comparison is `docs/measurements/combined_classification_20261004.json`.
+The saved two-call graph path classified 22/25 categories correctly; the
+combined call classified 23/25 correctly. Both extracted explicit order IDs
+correctly on 25/25. Mean classify/extract latency was 9006.30544 ms for the
+saved two calls and 5874.233999999706 ms for the combined call. The combined
+category result remains below the predeclared 95% accuracy gate; the graph
+keeps its two-call path. These are synthetic-ticket measurements, not deployed
+arrival-to-reply times or a 200-case reviewed release result.
+
+## [2026-10-04] TASK-25 post-gate full evaluation
+**Worked on:** TASK-25 (post-gate re-evaluation with simulated delivery)
+**Completed:** Ran 25 tickets with simulated delivery; 24 matched their expected disposition.
+**Blocked/open questions:** Sequential latency remains unmeasured until TASK-20. 0 tickets had at least one missing provider-reported token cost; those costs are not estimated.
+**Metrics measured this session:** See the tracker above and the saved report `data\eval_reports\task19_20261004T101133Z_2fd85edd.json`.
+**Next session should start with:** Review per-category errors and the zero-false-send gate; keep live Zoho delivery blocked.
+
+## [2026-10-04] TASK-25 post-gate full evaluation
+**Worked on:** TASK-25 (post-gate re-evaluation with simulated delivery)
+**Completed:** Ran 25 tickets with simulated delivery; 25 matched their expected disposition.
+**Blocked/open questions:** Sequential latency remains unmeasured until TASK-20. 0 tickets had at least one missing provider-reported token cost; those costs are not estimated.
+**Metrics measured this session:** See the tracker above and the saved report `data\eval_reports\task19_20261004T103451Z_179820b0.json`.
+**Next session should start with:** Review per-category errors and the zero-false-send gate; keep live Zoho delivery blocked.
+
+### Carrier-scan guidance regression and measured trade-off
+
+The saved 2026-10-04 10:11 UTC report classified `general_03` as `order
+status`, and the deterministic gate blocked its FAQ-grounded answer for lack
+of an order ID. Added a narrowly scoped carrier-scan guidance exception that
+requires the matching shipping-delay FAQ and excludes a request to check a
+specific shipment. Four new author-labeled offline cases bring the safety
+regression set to 18/18 matching expected gate decisions. This is not the
+independent 200-case human-reviewed release set.
+
+The network-enabled full rerun is
+`data/eval_reports/task19_20261004T103451Z_179820b0.json`: 25/25 matched
+dispositions, 0/14 false simulated sends, 0/11 false escalations, and
+48374.99450001633 ms p95. `general_03` was simulated sent after one review
+retry and took 52945.19170001149 ms. The prior fully scored report was
+24/25 with 37615.83560000872 ms p95. The latency increase is an observed
+run-to-run result, not proof the gate change caused slower inference.
+
+An initial sandboxed rerun could not connect to OpenRouter and was stopped;
+its partial failures were not entered in the metrics tracker. The completed
+rerun used the configured models and a fake sender, so no Zoho reply was
+posted. The FAQ speed target remains unmet for `general_03`, and live sending
+remains blocked.
+
+## [2026-10-04] TASK-25 post-gate full evaluation
+**Worked on:** TASK-25 (post-gate re-evaluation with simulated delivery)
+**Completed:** Ran 25 tickets with simulated delivery; 25 matched their expected disposition.
+**Blocked/open questions:** Sequential latency remains unmeasured until TASK-20. 0 tickets had at least one missing provider-reported token cost; those costs are not estimated.
+**Metrics measured this session:** See the tracker above and the saved report `data\eval_reports\task19_20261004T105635Z_2758d451.json`.
+**Next session should start with:** Review per-category errors and the zero-false-send gate; keep live Zoho delivery blocked.
+
+## [2026-10-04] TASK-27 synthetic benchmark expansion
+**Worked on:** TASK-27 (data and evaluator preparation).
+**Completed:** Preserved the original 25 tickets and added 25 author-labeled
+cases across the five categories. Updated the evaluator to require 50 complete
+ticket outcomes for new metric publication while retaining offline support
+for saved 25-ticket reports.
+**Blocked/open questions:** The 50-ticket model evaluation was intentionally
+not run. The new labels have not been independently human reviewed.
+**Metrics measured this session:** No 50-ticket accuracy, latency, retry, or
+cost metrics; the tracker above remains historical 25-ticket evidence.
+**Next session should start with:** Review the new labels and run the 50-ticket
+simulated evaluation when model usage is desired.
+
+## [2026-10-04] TASK-27 expanded full evaluation
+**Worked on:** TASK-27 (50-ticket simulated-delivery evaluation)
+**Completed:** Ran 50 tickets with simulated delivery; 46 matched their expected disposition.
+**Blocked/open questions:** Sequential latency remains unmeasured until TASK-20. 0 tickets had at least one missing provider-reported token cost; those costs are not estimated.
+**Metrics measured this session:** See the tracker above and the saved report `data\eval_reports\task27_20261004T133253Z_f6336e28.json`.
+**Next session should start with:** Review per-category errors and the zero-false-send gate; keep live Zoho delivery blocked.
+
+## [2026-10-04] Local knowledge audit of the 50-ticket run
+**Worked on:** TASK-27 evidence review and local knowledge provenance.
+**Completed:** Inventoried six mock orders, six hardcoded FAQs, fixed policy
+rules, isolated benchmark Chroma, and the separate unapproved worker knowledge
+file. Stored three scoped public-source summaries in
+`data/knowledge_sources.json` for human review only; they are not part of
+automatic reply evidence. The offline FAQ matcher returned at least one
+keyword hit for 41/50 cases, which is retrieval coverage, not answer accuracy.
+**Blocked/open questions:** The complete run had four false simulated sends:
+`order_08`, `damage_09`, `general_09`, and `general_10`. The zero-false-send
+gate is unmet; public guidance cannot supply the missing merchant facts or
+perform the requested business actions. See `docs/knowledge_audit.md` and
+FM-009. Real customer sending remains disabled.
+**Metrics measured this session:** The report
+`data/eval_reports/task27_20261004T133253Z_f6336e28.json` recomputes to
+46/50 matched, 4/28 false simulated sends, 53212.16329996241 ms p95, and
+0.14360886 provider-reported token cost. No public Zoho reply was sent.
+**Next session should start with:** Review and fix the four unresolved-intent
+send decisions, then run a fresh complete fake-sender benchmark; keep public
+sources separate from approved merchant policy.
+
+## [2026-10-04] TASK-27 expanded full evaluation
+**Worked on:** TASK-27 (50-ticket simulated-delivery evaluation)
+**Completed:** Ran 50 tickets with simulated delivery; 46 matched their expected disposition.
+**Blocked/open questions:** Sequential latency remains unmeasured until TASK-20. 0 tickets had at least one missing provider-reported token cost; those costs are not estimated.
+**Metrics measured this session:** See the tracker above and the saved report `data\eval_reports\task27_20261004T141023Z_15927f70.json`.
+**Next session should start with:** Review per-category errors and the zero-false-send gate; keep live Zoho delivery blocked.
+
+## [2026-10-04] TASK-27 expanded full evaluation
+**Worked on:** TASK-27 (50-ticket simulated-delivery evaluation)
+**Completed:** Ran 50 tickets with simulated delivery; 50 matched their expected disposition.
+**Blocked/open questions:** Sequential latency remains unmeasured until TASK-20. 0 tickets had at least one missing provider-reported token cost; those costs are not estimated.
+**Metrics measured this session:** See the tracker above and the saved report `data\eval_reports\task27_20261004T145739Z_b321d04c.json`.
+**Next session should start with:** Review per-category errors and the zero-false-send gate; keep live Zoho delivery blocked.
+
+## [2026-10-04] TASK-28 four missed escalations fixed and remeasured
+**Worked on:** TASK-28 deterministic send-gate RCA and regression coverage.
+**Completed:** Added handoffs for delivered/nonreceipt conflicts, product
+hazards, uncovered general questions, and requested business actions; kept
+routine evidence-backed replies eligible. The smoking/sparking fixture reason
+now uses the damage reporting window. The controlled worker and real customer
+send block remain in place.
+**Verification:** The expanded offline gate set matched 31/31 cases, and 63
+focused safety, tool, and graph tests passed. The complete configured-model
+fake-sender report `data/eval_reports/task27_20261004T145739Z_b321d04c.json`
+matched 50/50 dispositions, with 0/28 false simulated sends and 0/22 false
+escalations. The full test run had 173 passes and two setup errors because
+pytest could not access its temporary directory, including when redirected
+inside the workspace; neither error was an assertion failure. A rerun
+excluding those two fixture-dependent tests passed 173 tests with 2
+deselected. No public Zoho reply was sent.
+**Blocked/open questions:** The seven answerable general-question cases had
+45825.03159996122 ms p95, above the 30-second FAQ target. The labels are
+synthetic and author-drafted; real provider validation and the reviewed
+release set remain pending.
+**Metrics measured this session:** The current tracker above and saved report
+contain the exact 50-ticket accuracy, latency, retry, and provider-cost
+values. The pre-fix report had 46/50 matched and 4/28 false simulated sends.
+**Next session should start with:** Investigate FAQ latency and run the
+independent release evaluation; do not enable real customer sending based on
+this synthetic result alone.
+
+## [2026-10-05] TASK-29 informational-only full evaluation
+**Worked on:** TASK-29 (50-ticket informational-only simulated evaluation)
+**Completed:** Ran 50 tickets with simulated delivery; 50 matched their expected disposition.
+**Blocked/open questions:** Sequential latency remains unmeasured until TASK-20. 0 tickets had at least one missing provider-reported token cost; those costs are not estimated.
+**Metrics measured this session:** See the tracker above and the saved report `data\eval_reports\task27_20261004T184541Z_e77207d7.json`.
+**Next session should start with:** Review per-category errors and the zero-false-send gate; keep live Zoho delivery blocked.
+
+## [2026-10-05] TASK-29 informational-only full evaluation
+**Worked on:** TASK-29 (50-ticket informational-only simulated evaluation)
+**Completed:** Ran 50 tickets with simulated delivery; 50 matched their expected disposition.
+**Blocked/open questions:** Sequential latency remains unmeasured until TASK-20. 0 tickets had at least one missing provider-reported token cost; those costs are not estimated.
+**Metrics measured this session:** See the tracker above and the saved report `data\eval_reports\task29_20261005T062249Z_c30b0b20.json`.
+**Next session should start with:** Review per-category errors and the zero-false-send gate; keep live Zoho delivery blocked.
+
+## [2026-10-05] TASK-29 v3 regression and frozen synthetic holdout
+**Worked on:** TASK-29 policy alignment and accuracy benchmark.
+**Completed:** Measured 50 current regression tickets and all 200 frozen,
+author-labeled holdout cases using configured models and fake delivery only.
+Saved reports and sanitized per-case summaries are linked in the tracker and
+README. No Zoho calls or public replies occurred.
+**Blocked/open questions:** The 200-case score is 189/200 = 0.945, below the
+95% target. All 11 errors are false escalations in general questions. The run
+had zero false simulated sends and zero unsupported public claims, but the
+holdout is templated and not independently reviewed. Sequential latency is
+unmeasured; live delivery remains disabled.
+**Metrics measured this session:** 50-case v3 p95 42986.12800000001 ms,
+reported cost 0.110459985; holdout p95 59722.046200000026 ms, cost
+0.45285409, 716 model calls, and 0 missing token-cost calls. See the tables
+above for exact metrics and report paths.
+**Next session should start with:** Review all 11 general-question false
+escalations, improve paraphrase coverage without weakening safety, then create
+a separately reviewed evaluation set before any live-release discussion.
+
+**Evaluation memory change (2026-10-05):** The measurements above were made
+before effective Chroma recall mode was instrumented. The old code created an
+ephemeral client per ticket, but Chroma reuses a shared in-process ephemeral
+database; the 200-case holdout also used concurrent batches. The exact facts
+available to each old run were therefore not recorded and may have depended on
+scheduling. Future complete 50/200-case evaluations use a uniquely named fresh
+ephemeral collection shared sequentially, so later tickets can recall earlier
+successful summaries while `CHROMA_PERSIST_DIR` remains untouched. Old metrics
+remain historical and are not retroactively attributed to an isolated-memory
+mode.
+
+## [2026-10-05] TASK-29 informational-only full evaluation
+**Worked on:** TASK-29 (50-ticket informational-only simulated evaluation)
+**Completed:** Ran 50 tickets with simulated delivery; 50 matched their expected disposition.
+**Blocked/open questions:** Sequential latency remains unmeasured until TASK-20. 0 tickets had at least one missing provider-reported token cost; those costs are not estimated.
+**Metrics measured this session:** See the tracker above and the saved report `data\eval_reports\task29_20261005T101304Z_d51e7004.json`.
+**Next session should start with:** Review per-category errors and the zero-false-send gate; keep live Zoho delivery blocked.
+
+## [2026-10-05] TASK-29 informational-only full evaluation
+**Worked on:** TASK-29 (50-ticket informational-only simulated evaluation)
+**Completed:** Ran 50 tickets with simulated delivery; 50 matched their expected disposition.
+**Blocked/open questions:** Sequential latency remains unmeasured until TASK-20. 0 tickets had at least one missing provider-reported token cost; those costs are not estimated.
+**Metrics measured this session:** See the tracker above and the saved report `data\eval_reports\task29_20261005T175758Z_7d3962b6.json`.
+**Next session should start with:** Review per-category errors and the zero-false-send gate; keep live Zoho delivery blocked.
+
+## [2026-10-06] TASK-29 informational-only full evaluation
+**Worked on:** TASK-29 (50-ticket informational-only simulated evaluation)
+**Completed:** Ran 50 tickets with simulated delivery; 50 matched their expected disposition.
+**Blocked/open questions:** Sequential latency remains unmeasured until TASK-20. 0 tickets had at least one missing provider-reported token cost; those costs are not estimated.
+**Metrics measured this session:** See the tracker above and the saved report `data\eval_reports\task29_20261005T183529Z_2979caa5.json`.
+**Next session should start with:** Review per-category errors and the zero-false-send gate; keep live Zoho delivery blocked.

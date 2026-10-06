@@ -23,3 +23,28 @@
 {"ticket_id":"general_03","ticket_text":"My carrier tracking hasn't changed since yesterday. Is that normal, and what should I do if the expected delivery date passes?"}
 {"ticket_id":"general_04","ticket_text":"My refund has already been approved. About how long does it usually take for the money to appear in my account?"}
 {"ticket_id":"general_05","ticket_text":"It still doesn't work and I'm tired of repeating myself. I need someone to fix this right now, but I can't remember what information you need from me."}
+{"ticket_id":"order_06","ticket_text":"Could you tell me the status recorded for ORD-1002? I see it in my order history but can't remember whether it was marked delivered."}
+{"ticket_id":"order_07","ticket_text":"ORD-1005 still says it is being prepared. Has it shipped yet, or is it still processing?"}
+{"ticket_id":"order_08","ticket_text":"ORD-1003 shows delivered in my account, but nobody at my address received the lamp. Please investigate where it went instead of telling me it was delivered."}
+{"ticket_id":"order_09","ticket_text":"Can you check the delivery status of ORD-9999? That is the number I copied from my email, but I cannot find any tracking update."}
+{"ticket_id":"order_10","ticket_text":"Please check my shipment's current status and tell me where it is. I don't have the order number with me."}
+{"ticket_id":"return_06","ticket_text":"The desk lamp in ORD-1003 was delivered three days ago. I changed my mind and would like to know if a standard return is still allowed."}
+{"ticket_id":"return_07","ticket_text":"I bought the blender in ORD-1004, delivered 45 days ago. Does the normal return window still cover it? I am only asking about the standard policy."}
+{"ticket_id":"return_08","ticket_text":"ORD-1001 is on its way and has not been delivered. Can I submit a normal return before it arrives, or must I wait until delivery?"}
+{"ticket_id":"return_09","ticket_text":"ORD-1004 is past the 30-day return window. I know the standard rule says no, but please approve a one-time exception because I was away."}
+{"ticket_id":"return_10","ticket_text":"A pair of shoes arrived last week and I want to return it. I cannot find the order number; can you confirm whether my purchase qualifies?"}
+{"ticket_id":"damage_06","ticket_text":"The desk lamp from ORD-1003 arrived with a cracked shade three days ago. Am I within the time to report this damage?"}
+{"ticket_id":"damage_07","ticket_text":"My ORD-1006 Bluetooth speaker sounds defective. It arrived five days ago; what is the usual reporting window for a damaged item?"}
+{"ticket_id":"damage_08","ticket_text":"The coffee maker from ORD-1002 was delivered 12 days ago and I found it broken. Is this within the standard damaged-item reporting window?"}
+{"ticket_id":"damage_09","ticket_text":"The speaker from ORD-1006 started smoking when I plugged it in. I unplugged it immediately. I need someone to review this safety issue."}
+{"ticket_id":"damage_10","ticket_text":"A ceramic mug from ORD-9999 arrived smashed. Can you confirm my options for reporting the damage? I might have copied the order number incorrectly."}
+{"ticket_id":"billing_06","ticket_text":"My bank shows a second completed payment for ORD-1002. Please check whether I was charged twice and return any duplicate amount."}
+{"ticket_id":"billing_07","ticket_text":"Payment left my account yesterday, but I did not receive an order confirmation. Can you find the transaction and tell me whether my purchase went through?"}
+{"ticket_id":"billing_08","ticket_text":"The invoice for ORD-1006 lists an extra fee I do not recognize. Please check the bill and correct it if it is wrong."}
+{"ticket_id":"billing_09","ticket_text":"Support said my ORD-1004 refund was approved weeks ago, but my statement has no credit. Can you verify that the refund was actually issued?"}
+{"ticket_id":"billing_10","ticket_text":"I see a card payment to your store that I did not authorize. I am worried my card was used by someone else; please investigate the charge."}
+{"ticket_id":"general_06","ticket_text":"The carrier scans have paused since yesterday. Is that common, and what should I do if the estimated delivery window goes by?"}
+{"ticket_id":"general_07","ticket_text":"Before I place an order, where can I see the payment methods available at checkout?"}
+{"ticket_id":"general_08","ticket_text":"After a refund has already been approved, how many business days does it usually take to appear on a statement?"}
+{"ticket_id":"general_09","ticket_text":"Do you provide guaranteed overnight delivery to Canada, and what would that service cost? I cannot find a shipping policy on your site."}
+{"ticket_id":"general_10","ticket_text":"Something on my account is wrong. Please change my address for me now, but I cannot remember which order it belongs to."}

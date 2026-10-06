@@ -96,6 +96,33 @@ async def test_refreshes_oauth_and_sends_public_email_reply_once():
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("change", ["recipient", "newer_reply"])
+async def test_controlled_reply_rechecks_recipient_and_latest_thread(change):
+    requests = []
+
+    def opener(request, *, timeout):
+        requests.append(request)
+        path = urlsplit(request.full_url).path
+        if path.endswith("/oauth/v2/token"):
+            return FakeResponse({"access_token": "token", "expires_in_sec": 3600})
+        if path.endswith("/threads"):
+            return FakeResponse({"data": [{"id": "9" if change != "newer_reply" else "10",
+                "direction": "in" if change != "newer_reply" else "out",
+                "createdTime": "2026-10-04T00:00:00Z"}]})
+        if request.get_method() == "GET":
+            return FakeResponse({"id": "12345", "channel": "Email", "status": "Open",
+                "email": "wrong@example.com" if change == "recipient" else "owned@example.com"})
+        return FakeResponse({"id": "11"})
+
+    client = make_client(opener)
+    with pytest.raises(ZohoDeskDeliveryError):
+        await client.send_controlled_reply("12345", "Approved text",
+            expected_email="owned@example.com", expected_inbound_thread_id="9")
+    assert not any(request.get_method() == "POST" and
+        urlsplit(request.full_url).path.endswith("/sendReply") for request in requests)
+
+
+@pytest.mark.asyncio
 async def test_reuses_access_token_for_subsequent_ticket_replies():
     requests = []
 
@@ -155,6 +182,9 @@ async def test_fetch_ticket_reads_subject_description_and_channel_without_sendin
         "subject": "Package not arrived",
         "description": "Where is ORD-1001?",
         "channel": "Email",
+        "email": "customer@example.com",
+        "status": None,
+        "modifiedTime": None,
     }
     assert len(requests) == 2
     assert requests[1].get_method() == "GET"

@@ -1,5 +1,11 @@
 # BUILD_PROMPTS.md — Step Decomposition & Coding-Agent Prompts
 
+> Historical build prompts: these record earlier implementation steps and are
+> not current run instructions. For current commands and safety boundaries use
+> `README.md`, `TASKS.md`, and `DECISIONS.md`. In particular, direct graph
+> Zoho sending was superseded: `run_zoho` is draft-only, while the controlled
+> worker is implemented but not deployed. Docker does not sandbox current tools.
+
 Written for GPT-5.6 Luna (reasoning effort: high) in Codex, Cursor, or
 Antigravity. Steps map 1:1 to `TASKS.md` — same numbering, same order. Do not
 skip ahead; each prompt assumes everything before it is done and checked off.
@@ -578,7 +584,8 @@ Read src/agent/graph.py's gather_facts node (TASK-07) before starting.
 
 Task: add a temporary sequential-mode flag to gather_facts (call the three
 tools one after another instead of via asyncio.gather), run the same
-20-30 ticket eval set in both modes, and record the latency difference.
+current 50-ticket informational eval set in both modes, and record the
+latency difference. This comparison remains open in `TASKS.md`.
 
 Requirements:
 1. Do not permanently change the production behavior — the default must
@@ -644,10 +651,9 @@ for saying it out loud in an interview.
 
 ## After Phase 6
 
-The project is "done" per `AGENTS.md`'s Definition of Done once every task
-above is checked off in `TASKS.md`, every metric in `PROGRESS.md` is real, and
-`README.md` and `PRD.md` Section 7 are filled in with actual results. At that
-point — and only then — it's ready to go on a resume.
+This historical completion note predates later tasks and release gates. TASK-20,
+the 200-case accuracy target, independent review, and live deployment remain
+open; use `TASKS.md` for current status.
 
 ### TASK-24 — Single-ticket synthetic and Zoho commands
 ```
@@ -662,18 +668,49 @@ Requirements:
 the synthetic set, uses isolated in-memory Chroma and an injected fake reply
 sender, and makes no Zoho request. Label a passing send as simulated; a failed
 review remains an escalation.
-2. `python -m src.agent.run_zoho --ticket-id NUMERIC_ID --send` requires
-`ZOHO_DESK_SEND_ENABLED=true`, the flag, and interactive confirmation that
-the ticket/contact are controlled, including retyping the ID. Fetch the
-existing ticket from Zoho with ticket-read scope; require an Email channel and
-usable ticket text before running the graph.
-3. Send at most one public email reply, automatically only after all
-supervisor checks pass. Never create a ticket or replay an ambiguous send.
-Keep `zoho_smoke` as a separate delivery-only command.
+2. Historical implementation originally proposed `run_zoho --send` with
+interactive confirmation. This is superseded. Current command:
+`python -m src.agent.run_zoho --ticket-id NUMERIC_ID --draft-only`.
+It fetches an existing Email ticket and runs the graph without public delivery.
+3. A supervisor PASS does not authorize a public reply. Keep `zoho_smoke`
+as a separate, operator-confirmed delivery-only command for controlled tickets.
 4. Write mocked, network-free tests for both commands and ticket fetching.
 Do not perform a live Zoho request or send while implementing/testing.
 5. Update README.md and flow.md to explain both commands and update TASKS.md
 after checks pass. Record the command/sender choice in DECISIONS.md.
 
 Done when: command safety checks, graph integration, docs, and tests pass.
+```
+
+### TASK-27 — Expand the current synthetic benchmark to 50 cases
+```
+Keep the original 25 synthetic tickets and their historical reports intact.
+Add 25 new author-labeled cases to data/test_tickets/manifest.csv and
+tickets.jsonl: five per category, with mixed answerable and escalation cases
+grounded in the existing mock orders, policy rules, and FAQ entries.
+
+Make new live simulated-delivery evaluations require all 50 cases before
+publishing metrics, while --report still recomputes saved 25-case runs.
+Update dataset and evaluator tests and current-count documentation. Do not
+present author-drafted cases as the independent human-reviewed release set.
+Verify offline only; do not call OpenRouter or Zoho in this task. The 50-case
+accuracy, latency, and cost remain unmeasured until a complete model run.
+```
+
+### TASK-29 — Shared informational approval and local holdout
+```
+Keep the original fixture-backed 50-ticket labels and reports as historical.
+Use one versioned informational-only decision for the graph and controlled
+worker. Simulated replies must be exact, evidence-linked local FAQ text;
+customer-specific, billing, safety, action, and discretionary tickets go to
+human review regardless of supervisor PASS. No real customer sending.
+
+Add separate informational-only labels for the same 50 tickets and a frozen
+200-case author-labeled synthetic holdout with case evidence and failure tags.
+Measure both with the configured OpenRouter models where the graph needs them,
+and a fake sender only. Report disposition, false sends/escalations,
+unsupported public claims, evidence coverage, model calls, latency, and cost.
+Do not call the templated holdout independent validation. Exercise identity,
+stale/conflicting source, duplicate intake, changed ticket, uncertain send,
+and human handoff through network-free fakes. Keep deployment live mode off.
 ```

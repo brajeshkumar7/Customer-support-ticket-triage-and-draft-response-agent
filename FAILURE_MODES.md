@@ -17,15 +17,11 @@ pull from PROGRESS.md's metrics tracker where relevant)
 **Regression test:** where the test guarding against this lives (tests/)
 ```
 
-Likely candidates to watch for, based on this project's architecture — delete
-any you never actually hit, and don't pre-write ones you haven't:
-- A tool timing out and leaving the graph in an inconsistent state
-- The critic/supervisor accepting a response not actually backed by tool evidence
-- A prompt-injection attempt (via a tool's mock data) changing agent behavior
-- The retry loop hitting its cap in a case that should have succeeded sooner
-- Async tool calls racing and returning results in an unexpected order
-
 ---
+
+FM-018–FM-020 retain three early Zoho and send-gate observations whose original
+FM-007–FM-009 numbers collided with later entries. The observations and
+before/after measurements are unchanged.
 
 ## FM-001 — Manual OpenRouter run blocked by network access
 
@@ -125,7 +121,7 @@ no live sender is injected.
 **Regression test:** `tests/test_agent_graph.py::test_missing_zoho_desk_configuration_escalates_without_sending`
 verifies the missing-configuration escalation.
 
-## FM-007 - Zoho query parameters were encoded as a URL fragment
+## FM-018 - Zoho query parameters were encoded as a URL fragment
 
 **Observed behavior:** The mocked Zoho sender tests showed a `sendReply` URL
 with `#isPrivate=false&sendImmediately=true` instead of query parameters. The
@@ -136,8 +132,15 @@ request was made during this verification.
 `urlunsplit` component (the fragment) instead of the fourth (the query). The
 five count assertions also included OAuth POSTs rather than filtering for the
 `/sendReply` endpoint.
+**Fix:** Assemble the request URL with the query in the correct tuple slot and
+scope sender-count assertions to `/sendReply` requests.
+**Before -> After:** Before: six test failures were reported. After:
+`tests/test_zoho_desk_client.py` passes all 8 tests; the combined evaluator
+and Zoho-client tests pass all 20 tests.
+**Regression test:** `tests/test_zoho_desk_client.py` verifies the exact
+`sendReply` URL and that one public-reply POST is attempted without replay.
 
-## FM-008 - Smoke-test success was reported as a logger error
+## FM-019 - Smoke-test success was reported as a logger error
 
 **Observed behavior:** The controlled Zoho smoke command printed
 `log_tool_event() missing 1 required keyword-only argument: 'error'` after the
@@ -154,14 +157,43 @@ success event records that value.
 `TypeError` instead of the normal success message. After: the logger receives
 all required fields, and regression coverage checks the successful event.
 **Regression test:** `tests/test_run_eval.py::test_zoho_smoke_posts_at_most_one_fixed_reply_after_confirmation`.
-**Fix:** Assemble the request URL with the query in the correct tuple slot and
-scope sender-count assertions to `/sendReply` requests.
-**Before -> After:** Before: six test failures were reported. After:
-`tests/test_zoho_desk_client.py` passes all 8 tests; the combined evaluator
-and Zoho-client tests pass all 20 tests.
-**Regression test:** `tests/test_zoho_desk_client.py` verifies the exact
-`sendReply` URL and that one public-reply POST is attempted without replay.
 
+## FM-020 - Supervisor PASS authorized unsafe simulated deliveries
+
+**Observed behavior:** The saved TASK-19 benchmark recorded simulated sends on
+9 of the 14 tickets labeled for human escalation (`order_05`, `return_04`,
+`return_05`, `damage_03`, `billing_01`, `billing_03`, `billing_04`,
+`billing_05`, and `general_05`). It also escalated `general_03`, an FAQ case
+whose carrier-delay answer was available. Several risky drafts were initially
+rejected but a later supervisor PASS changed the terminal outcome to a send.
+The full run used a fake sender; no customer replies were sent by this
+benchmark.
+**Root cause:** The graph treated a model-generated supervisor PASS as the
+delivery authorization. The checklist was inconsistent about whether a
+reported ticket detail or a failed lookup could support a statement, and there
+was no deterministic block for unavailable billing data, safety/manager
+requests, missing or unknown orders, policy exceptions, or ambiguous intent.
+The order, policy, and FAQ tools also use local fixtures rather than
+authoritative production services.
+**Fix:** TASK-25 adds a deterministic fail-closed safety review and provider-
+neutral order/policy/FAQ contracts with typed unavailable outcomes. It keeps
+the 25 original labels unchanged, documents the ten misdispositions in
+`data/test_tickets/label_audit.md`, and adds an expanded offline gate suite.
+`src.agent.run_zoho` now passes `allow_delivery=False`, regardless of the
+environment flag. The separate confirmed smoke test is unchanged.
+**Before -> After:** Before: 9 simulated sends among 14 expected escalations
+and 1 false escalation among 11 expected auto-resolves in the saved baseline.
+After: the deterministic gate matched all 14/14 new offline cases, with 0
+false sends, 0 missed escalations, and 0 false escalations. This gate-only
+result does not measure generated drafts or the full graph. The post-gate
+25-ticket simulated graph benchmark was pending at that time; later completed
+reports are in `PROGRESS.md`. Live agent delivery remains blocked pending a
+separate decision and authoritative data.
+**Regression tests:** `tests/test_safety.py`,
+`tests/test_safety_regressions.py`, and
+`tests/test_agent_graph.py::test_deterministic_billing_gate_blocks_sender_even_when_supervisor_passes`;
+the Zoho command tests assert the runner always injects `allow_delivery=False`.
+<a id="fm-005"></a>
 ## FM-005 - Untrusted manager note was repeated in customer drafts
 
 **Observed behavior:** In TASK-16 case `policy-note-manager-exception`, the
@@ -207,3 +239,247 @@ not connect to OpenRouter before tool dispatch. Offline graph regressions
 passed (41 tests); they prove `review_note` is absent from both model prompts.
 **Regression test:** `tests/test_agent_graph.py::test_tool_results_for_model_drops_undocumented_fields_and_error_messages`
 and `tests/test_agent_graph.py::test_response_and_supervisor_prompts_exclude_case_only_policy_fields`.
+
+## FM-007 - General carrier-scan guidance was blocked by order classification
+
+**Observed behavior:** The 2026-10-04 10:11 UTC simulated graph run escalated
+`general_03`, although its draft answered the general carrier-scan question
+using the shipping-delay FAQ and passed supervisor review. No public reply
+was sent.
+**Root cause:** The classifier labeled the question `order status`. The
+deterministic gate treated that category as requiring an explicit order ID,
+despite the customer asking only whether paused scans are normal and what to
+do if the expected delivery window passes.
+**Fix:** Permit that narrow guidance intent independently of the model's
+category when the shipping-delay FAQ is returned, no order ID is present, and
+the customer has not asked for their specific shipment's status. Specific
+status requests and missing FAQ evidence remain blocked.
+**Before -> After:** The prior fully scored run matched 24/25 dispositions;
+`general_03` escalated. The next completed run matched 25/25, including a
+simulated send for `general_03`, with 0 false simulated sends among 14 expected
+escalations. P95 increased from 37615.83560000872 ms to
+48374.99450001633 ms; this run-to-run difference does not establish a causal
+latency effect of the safety rule.
+**Regression tests:** The carrier-scan cases in `tests/test_safety.py` and
+`data/test_tickets/safety_regressions.jsonl` cover the FAQ guidance,
+paraphrase, specific-status request, and unavailable FAQ. The 18-case offline
+gate suite passed; the full graph measurement is saved in
+`data/eval_reports/task19_20261004T103451Z_179820b0.json`.
+
+## FM-008 - Sandboxed evaluation could not reach OpenRouter
+
+**Observed behavior:** The first 2026-10-04 rerun repeatedly failed in the
+`classify` node with `APIConnectionError` before gathering facts. It was
+stopped after beginning the eleventh ticket; those partial results were not
+entered in the metrics tracker.
+**Root cause:** The execution environment restricted network access for the
+default sandboxed command. The same configured evaluation reached OpenRouter
+when run with network access. This does not establish that the provider was
+down.
+**Fix:** Run the authorized model evaluation with network access while keeping
+the fake sender, and count metrics only from its completed saved report.
+**Before -> After:** The first attempt had unscored workflow failures; the
+completed rerun had 0 unscored workflow failures and saved all 25 rows in
+`data/eval_reports/task19_20261004T103451Z_179820b0.json`.
+**Regression check:** The 18-case offline safety suite runs without network
+access; full model runs still require a reachable OpenRouter endpoint.
+
+<a id="fm-009"></a>
+## FM-009 - Clarifications and unresolved hazards passed the send gate
+
+**Observed behavior:** The completed 2026-10-04 50-ticket fake-sender run
+matched 46/50 expected dispositions. Four cases labeled for escalation
+(`order_08`, `damage_09`, `general_09`, `general_10`) ended as simulated sends.
+No public Zoho replies were made. The measured false-send count is 4/28
+expected escalations in `data/eval_reports/task27_20261004T133253Z_f6336e28.json`.
+**Root cause:** The supervisor checked factual grounding and tone, and the
+deterministic gate returned `send_allowed` for these four cases. Their drafts
+were largely cautious, but did not complete the requested work: investigate
+a disputed delivery, open a safety review, verify an unavailable overnight
+service and price, or change an account address. The gate does not yet treat
+these unresolved intents as mandatory human handoffs.
+**Fix:** The graph send gate now blocks delivered-but-not-received conflicts,
+product hazards including "smoking", account/order action requests, and
+general questions without a matching supported FAQ intent. The fixture
+policy checker treats smoking/sparking/overheating as damage claims, but a
+policy window never overrides a safety handoff. Real customer sending remains
+disabled; public web advice was not added as merchant evidence.
+**Before -> After:** The pre-fix complete report had 46/50 matched outcomes
+and 4/28 false simulated sends. The complete post-fix report
+`data/eval_reports/task27_20261004T145739Z_b321d04c.json` has 50/50 matched,
+0/28 false simulated sends, and 0/22 false escalations. All four named cases
+now escalate. This is a synthetic benchmark result, not a real-customer
+release decision.
+**Regression check:** The expanded offline gate set matched 31/31 expected
+decisions, including paraphrases and neighboring safe cases. Graph tests
+confirmed supervisor PASS cannot send any of the four blocked cases; the
+focused safety, tool, and graph suites passed 63 tests.
+
+## FM-010 - Evaluator placed new metric rows outside the tracker
+
+**Observed behavior:** After the 50-ticket run, `PROGRESS.md` contained seven
+measured rows above the `Metrics tracker` heading instead of inside its table.
+The values came from the saved report, but their placement made the tracker
+harder to inspect.
+**Root cause:** `update_progress` inserted missing rows before the first `---`
+in the document, which precedes the tracker.
+**Fix:** Insert missing rows after the actual metric-table header and its
+existing rows; move the seven measured rows into the table.
+**Before -> After:** Seven rows were misplaced; the same seven report-derived
+rows now sit in the tracker. No measured values were changed.
+**Regression check:** `tests/test_run_eval.py` asserts a new metric row follows
+the table header. All 20 evaluator tests passed offline.
+
+## FM-011 - Local graph accepted an arbitrary injected sender
+
+**Observed behavior:** A code audit found that the local graph would invoke
+any injected `reply_sender` when its send flag was enabled. The normal
+commands supplied a fake sender, and no real public reply was observed from
+this path, but the type boundary did not enforce the simulation-only claim.
+**Root cause:** Delivery was enabled by the environment flag and the mere
+presence of a sender; the graph checked only for the concrete Zoho class.
+**Fix:** Local graph delivery now requires the explicit
+`SimulationOnlyReplySender` base, and a sender must confirm `simulated: true`.
+Other senders are never invoked by this graph. Controlled Zoho delivery
+remains in the separate worker with its allowlist and approval checks.
+**Before -> After:** Before, an injected non-Zoho sender could be called.
+After, the network-free approved-FAQ test confirms such a sender receives zero
+calls and the graph escalates.
+**Regression check:** The focused graph and policy suite passed 96 tests.
+
+## FM-012 - Zero model calls appeared as missing token cost
+
+**Observed behavior:** The completed 50-case informational-only report showed
+seven approved FAQ runs as `unknown` cost despite logging zero model calls.
+That understated cost coverage; it did not change dispositions or total
+reported cost.
+**Root cause:** The original evaluator treated the absence of an LLM log
+event as missing provider cost, even for a deliberate no-model path.
+**Fix:** Zero LLM calls now yield known zero token cost. Missing cost remains
+unknown only when a model call occurred without a provider cost. The saved
+report and `PROGRESS.md` were recomputed from the original run IDs and log.
+**Before -> After:** Missing-cost tickets changed from 7 to 0; total
+provider-reported cost stayed 0.111505525.
+**Regression check:** `tests/test_run_eval.py` includes a zero-model-cost case.
+
+## FM-013 - One FAQ match could hide a second unsupported request
+
+**Observed behavior:** A policy review found that a ticket asking about
+payment methods and an unrelated gift-wrapping service matched exactly one
+FAQ entry. The old rule would label it informational despite leaving the
+second request unanswered. No public reply or completed 200-case result was
+produced from this observation.
+**Root cause:** The matcher counted recognized FAQ intents but did not detect
+a second question about an unrecognized subject.
+**Fix:** The shared policy rejects detectable second requests unless they are
+the documented carrier-delay follow-up covered by the same FAQ entry. A
+second question now yields `multi_intent_uncovered` for human review.
+**Before -> After:** Before, the payment-methods plus gift-wrapping example
+was approved by the single-FAQ rule. After, it is blocked; the ordinary
+payment-method question and the supported carrier-delay follow-up remain
+approved in offline tests.
+**Regression check:** The focused policy, graph, worker, and evaluator suite
+passed 93 tests. Natural-language coverage is still bounded; the synthetic
+suite does not prove every possible second request is detected.
+
+## FM-014 - Refund-timing FAQ could answer a pre-approval request
+
+**Observed behavior:** Code review found that a question about when a refund
+would be approved matched the `refund_timing` intent, although the local FAQ
+only describes posting time after approval. A request to investigate a
+tracking delay could likewise be mistaken for a general carrier-scan question.
+These were policy-path findings, not observed public sends.
+**Root cause:** Keyword overlap identified a topic without checking the
+prerequisite approval state or whether the requested action was available.
+**Fix:** The refund-timing route requires explicit approved-refund wording.
+The shared policy also hands investigation, carrier-contact, and requests to
+send customer-specific information to a person.
+**Before -> After:** The new pre-approval and action examples are now blocked;
+the development set's approved-refund timing and ordinary carrier guidance
+remain approved by the offline decision check.
+**Regression check:** Policy examples and all 50 development labels are
+checked offline before the next full model evaluation. Real refund state is
+still unverified and never asserted in an automatic reply.
+
+## FM-015 - Approved FAQ paraphrases were falsely escalated
+
+**Observed behavior:** The completed 200-case author-labeled holdout matched
+189/200 expected dispositions (0.945), below the 95% target. It had zero false
+simulated sends and zero unsupported public claims, but 11 of 32 expected
+informational replies were escalated; all 11 were general questions.
+Seven paraphrases adding the harmless framing “I need help with this” and
+“Please let me know what can be verified” were rejected as
+`multi_intent_uncovered`. Four variants asking “What cards can I use at
+checkout?” were rejected as `faq_coverage_missing`.
+**Root cause:** The second-request detector treats a broad “what can be
+verified” phrase as an independent request even when no second intent exists.
+The payment-method FAQ intent matcher does not recognize the ordinary “cards
+at checkout” paraphrase. The deterministic gate is fail-closed, so both gaps
+reduce automation through false escalations rather than unsafe sends.
+**Fix:** Unresolved. Keep the v1 dataset and its exact results immutable; do
+not tune the v1 rule and report a rerun as untouched holdout evidence. Add
+paraphrase controls to a separately versioned regression before adjusting the
+intent detector or FAQ coverage.
+**Before -> After:** Before any fix, 11/32 informational cases were
+escalated; 0/168 expected human cases were sent. No post-fix result exists.
+**Regression check:** The saved hash-pinned run is
+`data/eval_reports/holdout_v1_20261005T064737Z_9b17b234.json`; the public-safe
+case summary is `docs/measurements/task29_holdout_v1.json`. The final 189/200
+score and 11 false escalations are preserved in `PROGRESS.md`.
+
+<a id="fm-016"></a>
+## FM-016 - Per-ticket Chroma clients did not isolate evaluation memory
+
+**Observed behavior:** The benchmark code created a new `LongTermMemory`
+instance with `chromadb.EphemeralClient()` for each ticket and described those
+clients as isolated. In the installed Chroma implementation, ephemeral clients
+reuse the same in-process system and default collection. Therefore summaries
+could cross ticket boundaries. The 200-case evaluator also ran four batches
+concurrently against that shared ephemeral database, making which summaries
+were recalled dependent on scheduling. Existing reports did not record recall
+IDs or the effective memory mode, so their exact historical context cannot be
+reconstructed.
+**Root cause:** The wrapper treated a new ephemeral client object as a new
+database. Chroma's ephemeral system identifier is process-global; client
+instances do not create separate in-memory databases by default.
+**Fix:** Give each complete evaluation a fresh, uniquely named collection and
+share one `LongTermMemory` instance sequentially across the whole ticket order.
+Record the recall count, recalled fact IDs, stored summary, and memory mode in
+the report. Keep `CHROMA_PERSIST_DIR` untouched. Holdout resume rehydrates prior
+successful summaries from its checkpoint before continuing.
+**Before -> After:** Before, per-case isolation was assumed but unverified and
+the 200-case recall order was nondeterministic. After the code change, future
+runs use a single explicit sequential memory scope; no new model evaluation
+has yet been run, so no post-change accuracy or latency result exists.
+**Regression check:** Review `src/eval/run_eval.py` and
+`src/eval/run_holdout.py`; network/model evaluation is still pending. Old
+reports remain historical and must not be labeled as isolated-memory runs.
+
+## FM-017 - Model category and urgency labels were not reliable enough
+
+**Observed behavior:** The 2026-10-05 50-ticket run matched 50/50 expected
+dispositions but classified only 46/50 categories correctly. `return_05` was
+classified as damaged item; `return_07` and `return_08` as general questions;
+`billing_07` as order status. The urgency override also made `order_01` and
+`damage_03` P1 because their text mentioned "today" without stating an urgent
+deadline. The exact run is
+`data/eval_reports/task29_20261005T175758Z_7d3962b6.json`.
+**Root cause:** The graph trusted the model category without reconciling clear
+ticket intent. The P1 rule treated any occurrence of "today" as time-critical,
+including ordinary update/detection language.
+**Fix:** Add high-precision category reconciliation for explicit billing,
+return/warranty, damage/defect, and order-status cues, and expose the rule
+basis separately from model output. Remove bare "today" as a P1 cue; require
+an explicit urgency, imminent need/deadline, manager, safety, or high-stakes
+signal. Keep the original report immutable as the pre-fix result.
+**Before -> After:** Before, category accuracy was 46/50 (0.92), and 2
+ordinary "today" mentions were raised to P1. After, focused network-free
+triage/graph/evaluation tests pass 57/57; no post-fix configured-model accuracy
+or priority distribution has been measured yet.
+**Regression test:** `tests/test_triage.py` covers the four category conflicts
+and verifies a bare "today" mention does not promote a low-urgency ticket to
+P1; it also guards against changing a vague malfunction into a damage category.
+`tests/test_agent_graph.py` checks triage fields reach graph results. An
+offline replay of the saved pre-fix model outputs now selects exactly the four
+known category corrections and leaves the vague `general_05` category intact;
+this replay is a regression diagnostic, not a new accuracy measurement.

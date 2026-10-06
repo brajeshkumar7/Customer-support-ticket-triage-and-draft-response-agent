@@ -14,6 +14,7 @@ from uuid import uuid4
 from dotenv import load_dotenv
 
 from src.agent.graph import build_graph
+from src.agent.reply_sender import SimulationOnlyReplySender
 from src.memory.long_term import LongTermMemory
 from src.memory.short_term import ShortTermMemory
 from src.eval.run_eval import load_cases
@@ -21,7 +22,7 @@ from src.eval.run_eval import load_cases
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 
 
-class SimulatedReplySender:
+class SimulatedReplySender(SimulationOnlyReplySender):
     """Record an approved reply as simulated; never contact Zoho or another API."""
 
     def __init__(self) -> None:
@@ -93,6 +94,13 @@ def main(
             os.environ["ZOHO_DESK_SEND_ENABLED"] = previous_flag
 
     summary = {
+        "category": result.get("category"),
+        "urgency": result.get("urgency"),
+        "priority": result.get("priority"),
+        "priority_rank": result.get("priority_rank"),
+        "classification_basis": result.get("classification_basis"),
+        "category_basis": result.get("category_basis"),
+        "urgency_basis": result.get("urgency_basis"),
         "terminal_status": result.get("terminal_status"),
         "delivery": "simulated" if result.get("zoho_send_result", {}).get("simulated") else None,
         "supervisor_status": result.get("supervisor_status"),

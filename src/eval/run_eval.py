@@ -11,36 +11,45 @@ from __future__ import annotations
 import argparse
 import asyncio
 import csv
-import gc
+import hashlib
 import json
 import math
 import os
 import time
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 from uuid import uuid4
 
 from dotenv import load_dotenv
 
 from src.agent.graph import SUPERVISOR_RETRY_CAP, build_graph
-from src.agent.reply_sender import ReplySender
+from src.agent.production_policy import APPROVAL_POLICY_VERSION, KNOWLEDGE_PATH
+from src.agent.reply_sender import ReplySender, SimulationOnlyReplySender
 from src.memory.long_term import LongTermMemory
 from src.memory.short_term import ShortTermMemory
 from src.openrouter_client import OpenRouterClient
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 TICKETS_PATH = REPOSITORY_ROOT / "data" / "test_tickets" / "tickets.jsonl"
-MANIFEST_PATH = REPOSITORY_ROOT / "data" / "test_tickets" / "manifest.csv"
+MANIFEST_PATH = REPOSITORY_ROOT / "data" / "test_tickets" / "manifest_informational.csv"
 LOG_PATH = REPOSITORY_ROOT / "data" / "logs" / "events.jsonl"
 REPORTS_DIR = REPOSITORY_ROOT / "data" / "eval_reports"
 PROGRESS_PATH = REPOSITORY_ROOT / "PROGRESS.md"
+EXPECTED_TICKET_COUNT = 50
 EXPECTED_CATEGORIES = {
     "order_status",
     "returns",
     "damaged_item",
     "billing_dispute",
     "general_question",
+}
+CLASSIFIER_CATEGORY_LABELS = {
+    "order_status": "order status",
+    "returns": "return request",
+    "damaged_item": "damaged item",
+    "billing_dispute": "billing dispute",
+    "general_question": "general question",
 }
 EXPECTED_OUTCOMES = {"auto_resolve", "escalate"}
 LLM_EVENT_TYPE = "llm_call"
@@ -122,7 +131,7 @@ def load_cases(
     ]
 
 
-class FakeReplySender:
+class FakeReplySender(SimulationOnlyReplySender):
     """Record simulated replies for evaluation without making network calls."""
 
     def __init__(self) -> None:
@@ -170,9 +179,43 @@ def costs_by_run_id(
         entry["total_cost"] = (
             entry["reported_cost"] if entry["calls_missing_cost"] == 0 else None
         )
-        if entry["llm_calls"] == 0:
-            entry["total_cost"] = None
+        # A deterministic FAQ path deliberately has no provider call, so its
+        # known model cost is zero rather than an unknown missing cost.
     return aggregate
+
+
+def model_usage_by_run_id(
+    run_ids: set[str], log_path: Path = LOG_PATH
+) -> dict[str, dict[str, Any]]:
+    """Group logged model calls and provider costs by the model that answered."""
+    aggregate: dict[str, dict[str, Any]] = {}
+    if not log_path.is_file():
+        return aggregate
+    with log_path.open(encoding="utf-8") as log_file:
+        for line in log_file:
+            try:
+                event = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if event.get("event_type") != LLM_EVENT_TYPE or event.get("run_id") not in run_ids:
+                continue
+            output = event.get("output")
+            inputs = event.get("inputs")
+            model = (
+                output.get("model") if isinstance(output, dict) else None
+            ) or (inputs.get("model") if isinstance(inputs, dict) else None) or "unknown"
+            entry = aggregate.setdefault(str(model), {
+                "llm_calls": 0,
+                "reported_cost": 0.0,
+                "calls_missing_cost": 0,
+            })
+            entry["llm_calls"] += 1
+            cost = _safe_cost(event.get("token_cost"))
+            if cost is None:
+                entry["calls_missing_cost"] += 1
+            else:
+                entry["reported_cost"] += cost
+    return dict(sorted(aggregate.items()))
 
 
 def workflow_errors_by_run_id(
@@ -259,13 +302,80 @@ def calculate_metrics(results: list[dict[str, Any]]) -> dict[str, Any]:
     ]
     successful_costs = [row["total_cost"] for row in matched if row.get("total_cost") is not None]
     all_reported_costs = [row["reported_cost"] for row in results]
-    missing_cost_tickets = sum(
-        row.get("calls_missing_cost", 0) > 0 or row.get("llm_calls", 0) == 0
-        for row in results
-    )
+    missing_cost_tickets = sum(row.get("calls_missing_cost", 0) > 0 for row in results)
     successful_costs_complete = all(
         row.get("total_cost") is not None for row in matched
     )
+
+    def unsupported_claim_flagged(row: dict[str, Any]) -> bool:
+        if "supervisor_reason" not in row and "failed_attempts" not in row:
+            return False
+        reviews = [row.get("supervisor_reason", {})]
+        reviews.extend(
+            attempt.get("supervisor_feedback", {})
+            for attempt in row.get("failed_attempts", [])
+            if isinstance(attempt, dict)
+        )
+        target_checks = {"factual_claims_grounded", "no_unsupported_claims"}
+        return any(
+            isinstance(check, dict)
+            and check.get("id") in target_checks
+            and check.get("passed") is False
+            for review in reviews
+            if isinstance(review, dict)
+            for check in review.get("checks", [])
+        )
+
+    categories = sorted({str(row.get("category", "unknown")) for row in results})
+    classification_rows = [
+        row for row in results
+        if isinstance(row.get("predicted_category"), str)
+        and row["predicted_category"].strip()
+    ]
+    classification_correct = sum(
+        row["predicted_category"].strip().casefold()
+        == CLASSIFIER_CATEGORY_LABELS.get(
+            str(row.get("category", "")),
+            str(row.get("category", "")).replace("_", " "),
+        ).strip().casefold()
+        for row in classification_rows
+    )
+    has_safety_observations = any("safety_review" in row for row in results)
+    has_review_observations = any(
+        "supervisor_reason" in row or "failed_attempts" in row for row in results
+    )
+    category_metrics: dict[str, dict[str, Any]] = {}
+    for category in categories:
+        category_rows = [row for row in results if str(row.get("category", "unknown")) == category]
+        expected_escalations = [row for row in category_rows if row.get("expected_outcome") == "escalate"]
+        expected_auto = [row for row in category_rows if row.get("expected_outcome") == "auto_resolve"]
+        category_metrics[category] = {
+            "ticket_count": len(category_rows),
+            "llm_calls": sum(row.get("llm_calls", 0) for row in category_rows),
+            "reported_cost": sum(
+                float(row.get("reported_cost") or 0) for row in category_rows
+            ),
+            "calls_missing_cost": sum(
+                row.get("calls_missing_cost", 0) for row in category_rows
+            ),
+            "false_sends": sum(row.get("observed_outcome") == "simulated_sent" for row in expected_escalations),
+            "missed_escalations": sum(row.get("observed_outcome") != "escalated" for row in expected_escalations),
+            "false_escalations": sum(row.get("observed_outcome") == "escalated" for row in expected_auto),
+            "unsupported_claim_reviews": (
+                sum(unsupported_claim_flagged(row) for row in category_rows)
+                if any("supervisor_reason" in row or "failed_attempts" in row for row in category_rows)
+                else None
+            ),
+            "safety_gate_violations": (
+                sum(
+                    row.get("observed_outcome") == "simulated_sent"
+                    and row.get("safety_review", {}).get("send_allowed") is not True
+                    for row in category_rows
+                )
+                if any("safety_review" in row for row in category_rows)
+                else None
+            ),
+        }
 
     return {
         "ticket_count": total,
@@ -273,6 +383,22 @@ def calculate_metrics(results: list[dict[str, Any]]) -> dict[str, Any]:
         "unscored_count": len(unscored),
         "matched_count": len(matched),
         "task_completion_rate": len(matched) / len(scored) if scored else None,
+        "category_classification": {
+            "measured_count": len(classification_rows),
+            "correct_count": classification_correct,
+            "accuracy": (
+                classification_correct / len(classification_rows)
+                if classification_rows else None
+            ),
+            "urgency_distribution": {
+                urgency: sum(row.get("urgency") == urgency for row in results)
+                for urgency in ("high", "medium", "low")
+            },
+            "priority_distribution": {
+                priority: sum(row.get("priority") == priority for row in results)
+                for priority in ("P1", "P2", "P3")
+            },
+        },
         "expected_auto_resolve_count": len(auto_cases),
         "auto_resolve_incorrect_escalation_count": len(auto_escalated),
         "auto_resolve_incorrect_escalation_rate": (
@@ -291,6 +417,26 @@ def calculate_metrics(results: list[dict[str, Any]]) -> dict[str, Any]:
             if escalation_cases
             else None
         ),
+        "false_send_count": len(expected_escalated_sent),
+        "missed_escalation_count": sum(
+            row.get("observed_outcome") != "escalated" for row in escalation_cases
+        ),
+        "false_escalation_count": len(auto_escalated),
+        "unsupported_claim_review_count": (
+            sum(unsupported_claim_flagged(row) for row in scored)
+            if has_review_observations
+            else None
+        ),
+        "safety_gate_violation_count": (
+            sum(
+                row.get("observed_outcome") == "simulated_sent"
+                and row.get("safety_review", {}).get("send_allowed") is not True
+                for row in scored
+            )
+            if has_safety_observations
+            else None
+        ),
+        "by_category": category_metrics,
         "mean_retries_to_success": (
             sum(row.get("retry_count", 0) for row in matched) / len(matched)
             if matched
@@ -302,6 +448,8 @@ def calculate_metrics(results: list[dict[str, Any]]) -> dict[str, Any]:
             [float(row["latency_ms"]) for row in scored if row.get("latency_ms") is not None]
         ),
         "total_reported_token_cost": sum(all_reported_costs),
+        "llm_calls_total": sum(row.get("llm_calls", 0) for row in results),
+        "zero_model_call_tickets": sum(row.get("llm_calls", 0) == 0 for row in results),
         "tickets_with_missing_token_cost": missing_cost_tickets,
         "cost_per_successful_run": (
             sum(successful_costs) / len(matched)
@@ -312,7 +460,7 @@ def calculate_metrics(results: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def _report_result_path(report_id: str, reports_dir: Path = REPORTS_DIR) -> Path:
-    return reports_dir / f"task19_{report_id}.json"
+    return reports_dir / f"task29_{report_id}.json"
 
 
 def _write_report(report: dict[str, Any], reports_dir: Path = REPORTS_DIR) -> Path:
@@ -334,6 +482,10 @@ def load_report(report_path: Path) -> dict[str, Any]:
         raise EvaluationDataError("Evaluation report must contain a results array.")
     reconcile_workflow_errors(report)
     report["metrics"] = calculate_metrics(report["results"])
+    report["model_usage"] = report.get("model_usage") or model_usage_by_run_id(
+        {str(row["run_id"]) for row in report["results"] if row.get("run_id")}
+    )
+    report["metrics"]["by_model"] = report["model_usage"]
     return report
 
 
@@ -348,13 +500,15 @@ def print_report(report: dict[str, Any]) -> None:
     print(f"Unscored workflow failures: {metrics['unscored_count']}")
     if report.get("delivery_adapter") == "fake":
         print("Delivery: simulated only; no public reply was sent.")
-    print("\n| Ticket | Expected | Observed | Match | Retries | Latency ms | Reported cost | Missing-cost calls |")
-    print("|---|---|---|---:|---:|---:|---:|---:|")
+    print("\n| Ticket | Gold category | Predicted category | Urgency | Priority | Expected | Observed | Match | Retries | Latency ms | Reported cost | Missing-cost calls |")
+    print("|---|---|---|---|---|---|---|---:|---:|---:|---:|---:|")
     for row in report["results"]:
         match = "yes" if row.get("matches_expected") else "no"
         cost = "unknown" if row.get("total_cost") is None else repr(row["total_cost"])
         print(
-            f"| {row['ticket_id']} | {row['expected_outcome']} | {row['observed_outcome']} "
+            f"| {row['ticket_id']} | {row.get('category')} | {row.get('predicted_category') or '—'} "
+            f"| {row.get('urgency') or '—'} | {row.get('priority') or '—'} "
+            f"| {row['expected_outcome']} | {row['observed_outcome']} "
             f"| {match} | {row.get('retry_count', 0)} | {row.get('latency_ms')} "
             f"| {cost} | {row.get('calls_missing_cost', 0)} |"
         )
@@ -363,6 +517,18 @@ def print_report(report: dict[str, Any]) -> None:
         "Overall completion rate among scored tickets: "
         + _format_fraction(metrics["matched_count"], metrics["scored_ticket_count"])
     )
+    classification = metrics["category_classification"]
+    if classification["measured_count"]:
+        print(
+            "Category classification accuracy: "
+            + _format_fraction(
+                classification["correct_count"], classification["measured_count"]
+            )
+        )
+    else:
+        print("Category classification accuracy: not measured in this report")
+    print("Urgency distribution:", json.dumps(classification["urgency_distribution"], sort_keys=True))
+    print("Priority distribution:", json.dumps(classification["priority_distribution"], sort_keys=True))
     print(
         "Escalation recall: "
         + _format_fraction(metrics["expected_escalate_correct_count"], metrics["expected_escalate_count"])
@@ -380,6 +546,19 @@ def print_report(report: dict[str, Any]) -> None:
             metrics["expected_escalate_incorrect_send_count"], metrics["expected_escalate_count"]
         )
     )
+    print(f"False sends: {metrics['false_send_count']}")
+    print(f"Missed escalations: {metrics['missed_escalation_count']}")
+    print(f"False escalations: {metrics['false_escalation_count']}")
+    print(
+        "Drafts flagged for unsupported claims by supervisor: "
+        f"{metrics['unsupported_claim_review_count'] if metrics['unsupported_claim_review_count'] is not None else 'not measured in this report'}"
+    )
+    print(
+        "Deterministic safety-gate violations: "
+        f"{metrics['safety_gate_violation_count'] if metrics['safety_gate_violation_count'] is not None else 'not measured in this report'}"
+    )
+    print("By category:")
+    print(json.dumps(metrics["by_category"], indent=2, sort_keys=True))
     print(f"Mean retries-to-success: {metrics['mean_retries_to_success']!r}")
     if metrics["failure_after_cap_rate"] is None:
         print("Failure-after-cap rate: not measurable (no scored workflow runs)")
@@ -405,6 +584,10 @@ async def _run_graphs(
     *,
     evaluation_id: str,
     reply_sender: ReplySender,
+    tool_overrides: Callable[[dict[str, str]], dict[str, Any]] | None = None,
+    on_result: Callable[[dict[str, Any]], None] | None = None,
+    shared_client: OpenRouterClient | None = None,
+    evaluation_memory: LongTermMemory | None = None,
 ) -> list[dict[str, Any]]:
     from src.observability.logger import _LOG_PATH
 
@@ -413,7 +596,14 @@ async def _run_graphs(
         for case in cases
     }
     results: list[dict[str, Any]] = []
-    llm_client = OpenRouterClient()
+    llm_client = shared_client or OpenRouterClient()
+    # One fresh in-memory Chroma store is shared by this evaluation batch.
+    # It allows each later ticket to recall summaries written by earlier
+    # successful simulated runs without touching CHROMA_PERSIST_DIR.
+    memory = evaluation_memory or LongTermMemory(
+        ephemeral=True,
+        collection_name=f"eval_{uuid4().hex}",
+    )
 
     for index, case in enumerate(cases, start=1):
         print(f"[{index}/{len(cases)}] Running {case['ticket_id']}...", flush=True)
@@ -423,26 +613,21 @@ async def _run_graphs(
         graph_result: dict[str, Any] = {}
         run_error: str | None = None
         try:
-            memory = LongTermMemory(ephemeral=True)
-            graph = None
-            try:
-                graph = build_graph(
-                    short_term_memory=ShortTermMemory(run_id),
-                    long_term_memory=memory,
-                    client=llm_client,
-                    reply_sender=reply_sender,
-                )
-                graph_result = await graph.ainvoke(
-                    {
-                        "ticket_id": run_id,
-                        "ticket_text": case["ticket_text"],
-                        "zoho_ticket_id": simulated_ticket_id,
-                    }
-                )
-            finally:
-                del graph
-                del memory
-                gc.collect()
+            graph = build_graph(
+                short_term_memory=ShortTermMemory(run_id),
+                long_term_memory=memory,
+                client=llm_client,
+                reply_sender=reply_sender,
+                use_long_term_memory=True,
+                **(tool_overrides(case) if tool_overrides else {}),
+            )
+            graph_result = await graph.ainvoke(
+                {
+                    "ticket_id": run_id,
+                    "ticket_text": case["ticket_text"],
+                    "zoho_ticket_id": simulated_ticket_id,
+                }
+            )
         except Exception as error:
             run_error = type(error).__name__
             print(f"  Graph run failed: {run_error}: {error}", flush=True)
@@ -463,11 +648,21 @@ async def _run_graphs(
             if graph_result.get("terminal_status") == "escalated"
             else "failed"
         )
+        recalled_facts = graph_result.get("recalled_facts", [])
+        if not isinstance(recalled_facts, list):
+            recalled_facts = []
         results.append(
             {
                 "ticket_id": case["ticket_id"],
                 "run_id": run_id,
                 "category": case["category"],
+                "predicted_category": graph_result.get("category"),
+                "urgency": graph_result.get("urgency"),
+                "priority": graph_result.get("priority"),
+                "priority_rank": graph_result.get("priority_rank"),
+                "classification_basis": graph_result.get("classification_basis"),
+                "category_basis": graph_result.get("category_basis"),
+                "urgency_basis": graph_result.get("urgency_basis"),
                 "expected_outcome": case["expected_outcome"],
                 "observed_outcome": observed_outcome,
                 "matches_expected": (
@@ -477,7 +672,18 @@ async def _run_graphs(
                 ),
                 "retry_count": graph_result.get("retry_count", 0),
                 "supervisor_status": graph_result.get("supervisor_status"),
+                "supervisor_reason": graph_result.get("supervisor_reason"),
+                "failed_attempts": graph_result.get("failed_attempts", []),
+                "draft_response": graph_result.get("draft_response"),
+                "safety_review": graph_result.get("safety_review"),
                 "zoho_delivery_status": graph_result.get("zoho_delivery_status"),
+                "remembered_summary": graph_result.get("remembered_summary"),
+                "memory_recall_count": len(recalled_facts),
+                "memory_recalled_fact_ids": [
+                    fact.get("id")
+                    for fact in recalled_facts
+                    if isinstance(fact, dict) and isinstance(fact.get("id"), str)
+                ],
                 "latency_ms": latency_ms,
                 "run_error": run_error,
                 "workflow_error": workflow_error,
@@ -487,6 +693,13 @@ async def _run_graphs(
                 "calls_missing_cost": 0,
             }
         )
+        print(
+            f"  Chroma recalled {results[-1]['memory_recall_count']} prior fact(s); "
+            f"summary stored: {'yes' if results[-1]['remembered_summary'] else 'no'}.",
+            flush=True,
+        )
+        if on_result is not None:
+            on_result(results[-1])
 
     costs = costs_by_run_id(set(run_ids.values()), Path(_LOG_PATH))
     for row in results:
@@ -496,18 +709,36 @@ async def _run_graphs(
 
 def update_progress(report: dict[str, Any], progress_path: Path = PROGRESS_PATH) -> None:
     """Write metric values from a complete simulated-delivery report."""
-    if report.get("mode") != "simulated_delivery" or len(report.get("results", [])) != 25:
+    if report.get("mode") != "simulated_delivery" or len(report.get("results", [])) != EXPECTED_TICKET_COUNT:
         raise EvaluationDataError(
-            "Only a complete 25-ticket simulated-delivery report can update PROGRESS.md."
+            f"Only a complete {EXPECTED_TICKET_COUNT}-ticket simulated-delivery report can update PROGRESS.md."
         )
     if any(row.get("run_error") for row in report["results"]):
         raise EvaluationDataError(
             "Cannot publish metrics from an evaluation with graph setup/run errors."
         )
+    rows = report["results"]
+    ticket_ids = [row.get("ticket_id") for row in rows]
+    if (
+        any(not isinstance(ticket_id, str) or not ticket_id for ticket_id in ticket_ids)
+        or len(set(ticket_ids)) != EXPECTED_TICKET_COUNT
+        or any(row.get("observed_outcome") not in {"simulated_sent", "escalated"} for row in rows)
+    ):
+        raise EvaluationDataError(
+            "Cannot publish metrics from incomplete or duplicate ticket results."
+        )
     metrics = report.get("metrics") or calculate_metrics(report["results"])
     measured_date = report.get("measured_at", "")[:10]
 
     values = {
+        "Category classification accuracy": (
+            _format_fraction(
+                metrics["category_classification"]["correct_count"],
+                metrics["category_classification"]["measured_count"],
+            )
+            if metrics["category_classification"]["measured_count"]
+            else "Not measured in this report; classification fields were not recorded"
+        ),
         "Unscored workflow failures": str(metrics["unscored_count"]),
         "Task completion rate (simulated delivery)": (
             f"{metrics['matched_count']}/{metrics['ticket_count']} = "
@@ -532,6 +763,22 @@ def update_progress(report: dict[str, Any], progress_path: Path = PROGRESS_PATH)
         ),
         "Incorrect send rate (expected escalation)": _format_fraction(
             metrics["expected_escalate_incorrect_send_count"], metrics["expected_escalate_count"]
+        ),
+        "False sends": str(metrics["false_send_count"]),
+        "Missed escalations": str(metrics["missed_escalation_count"]),
+        "False escalations": str(metrics["false_escalation_count"]),
+        "Drafts flagged for unsupported claims": (
+            str(metrics["unsupported_claim_review_count"])
+            if metrics["unsupported_claim_review_count"] is not None
+            else "Not measured"
+        ),
+        "Deterministic safety-gate violations": (
+            str(metrics["safety_gate_violation_count"])
+            if metrics["safety_gate_violation_count"] is not None
+            else "Not measured"
+        ),
+        "Disposition errors by category": json.dumps(
+            metrics["by_category"], sort_keys=True, separators=(",", ":")
         ),
         "Per-ticket reported token cost": "; ".join(
             f"{row['ticket_id']}="
@@ -563,6 +810,13 @@ def update_progress(report: dict[str, Any], progress_path: Path = PROGRESS_PATH)
     lines = original_text.splitlines()
     replaced: set[str] = set()
     for index, line in enumerate(lines):
+        if line.startswith("**Current metrics provenance:**"):
+            lines[index] = (
+                "**Current metrics provenance:** Complete 50-ticket simulated "
+                f"graph run under informational-only labels, measured on {measured_date}. "
+                "Earlier fixture-backed reports use different labels and remain historical."
+            )
+            continue
         if not line.startswith("|"):
             continue
         cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
@@ -581,21 +835,20 @@ def update_progress(report: dict[str, Any], progress_path: Path = PROGRESS_PATH)
         if metric_name not in replaced
     ]
     if missing_rows:
-        table_end = next(
-            (
-                index
-                for index, line in enumerate(lines)
-                if index > 0 and line.strip() == "---"
-            ),
-            len(lines),
-        )
+        try:
+            table_header = lines.index("| Metric | Value | Date measured |")
+        except ValueError as error:
+            raise EvaluationDataError("PROGRESS.md has no metrics tracker table.") from error
+        table_end = table_header + 2
+        while table_end < len(lines) and lines[table_end].startswith("|"):
+            table_end += 1
         lines[table_end:table_end] = missing_rows
 
     lines.extend(
         [
             "",
-            f"## [{measured_date}] TASK-19 full evaluation",
-            "**Worked on:** TASK-19",
+            f"## [{measured_date}] TASK-29 informational-only full evaluation",
+            "**Worked on:** TASK-29 (50-ticket informational-only simulated evaluation)",
             f"**Completed:** Ran {len(report['results'])} tickets with simulated delivery; "
             f"{metrics['matched_count']} matched their expected disposition.",
             "**Blocked/open questions:** Sequential latency remains unmeasured until TASK-20. "
@@ -603,7 +856,7 @@ def update_progress(report: dict[str, Any], progress_path: Path = PROGRESS_PATH)
             "provider-reported token cost; those costs are not estimated.",
             "**Metrics measured this session:** See the tracker above and the saved report "
             f"`{report.get('report_path', '')}`.",
-            "**Next session should start with:** TASK-20 sequential versus async latency comparison.",
+            "**Next session should start with:** Review per-category errors and the zero-false-send gate; keep live Zoho delivery blocked.",
         ]
     )
     progress_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -626,8 +879,10 @@ def main(argv: list[str] | None = None) -> int:
     load_dotenv(REPOSITORY_ROOT / ".env")
     try:
         cases = load_cases()
-        if len(cases) != 25:
-            raise EvaluationDataError(f"Expected exactly 25 tickets; found {len(cases)}.")
+        if len(cases) != EXPECTED_TICKET_COUNT:
+            raise EvaluationDataError(
+                f"Expected exactly {EXPECTED_TICKET_COUNT} tickets; found {len(cases)}."
+            )
     except EvaluationDataError as error:
         parser.error(str(error))
 
@@ -637,7 +892,8 @@ def main(argv: list[str] | None = None) -> int:
     fake_sender = FakeReplySender()
     try:
         print(
-            "Evaluation uses a fake sender; it will not make Zoho requests or post public replies.",
+            "Evaluation uses a fake sender and one fresh shared ephemeral Chroma store; "
+            "later tickets can recall earlier successful summaries. No Zoho requests or public replies.",
             flush=True,
         )
         results = asyncio.run(
@@ -654,16 +910,26 @@ def main(argv: list[str] | None = None) -> int:
             os.environ["ZOHO_DESK_SEND_ENABLED"] = original_send_value
 
     report: dict[str, Any] = {
-        "task": "TASK-19",
+        "task": "TASK-29 informational-only simulated evaluation",
         "evaluation_id": evaluation_id,
         "mode": "simulated_delivery",
+        "approval_policy": APPROVAL_POLICY_VERSION,
+        "knowledge_sha256": hashlib.sha256(KNOWLEDGE_PATH.read_bytes()).hexdigest(),
+        "label_file": str(MANIFEST_PATH.relative_to(REPOSITORY_ROOT)),
+        "primary_model": os.getenv("OPENROUTER_PRIMARY_MODEL", ""),
+        "fallback_models": [item.strip() for item in os.getenv("OPENROUTER_MODELS", "").split(",") if item.strip()],
         "delivery_adapter": "fake",
+        "memory_mode": "shared_ephemeral_chroma_sequential",
         "simulated_reply_count": len(fake_sender.calls),
         "measured_at": datetime.now().astimezone().isoformat(),
         "ticket_count": len(cases),
         "results": results,
     }
     report["metrics"] = calculate_metrics(results)
+    report["model_usage"] = model_usage_by_run_id(
+        {str(row["run_id"]) for row in results if row.get("run_id")}
+    )
+    report["metrics"]["by_model"] = report["model_usage"]
     report["report_path"] = str(_report_result_path(evaluation_id).relative_to(REPOSITORY_ROOT))
     report_path = _write_report(report)
     print_report(report)

@@ -24,3 +24,28 @@ general_02,general_question,auto_resolve,FAQ explains how to find the shipment t
 general_03,general_question,auto_resolve,FAQ explains that carrier scans can pause and what to do if the delivery window has passed.
 general_04,general_question,auto_resolve,FAQ gives the usual 5-to-10-business-day posting time after a refund is approved.
 general_05,general_question,escalate,Ambiguous and angry edge case: "it" is unspecified, there are no order details, and customer demands immediate human intervention.
+order_06,order_status,auto_resolve,ORD-1002 is marked delivered in the fixture; answer its recorded status without inventing a delivery time or proof of receipt.
+order_07,order_status,auto_resolve,ORD-1005 is processing; explain the verified preparing-for-shipment state without promising a ship date.
+order_08,order_status,escalate,Customer disputes the delivered status recorded for ORD-1003; the fixture cannot establish receipt or resolve the conflict.
+order_09,order_status,escalate,ORD-9999 is absent from the fixture; no order-specific status or delivery promise can be verified.
+order_10,order_status,escalate,Customer requests a specific shipment status but supplies no order ID or identifying record.
+return_06,returns,auto_resolve,ORD-1003 was delivered 3 days ago; the ordinary 30-day return rule can answer the eligibility question.
+return_07,returns,auto_resolve,ORD-1004 was delivered 45 days ago; state the ordinary 30-day window and ineligible result without offering an exception.
+return_08,returns,auto_resolve,ORD-1001 has shipped but is not delivered; policy can explain that return eligibility cannot be evaluated before delivery.
+return_09,returns,escalate,ORD-1004 is outside the ordinary return window and the customer asks for a discretionary exception.
+return_10,returns,escalate,Return eligibility depends on a specific order but the customer supplies no order ID.
+damage_06,damaged_item,auto_resolve,ORD-1003 was delivered 3 days ago and damage was reported within the fixture's 7-day window.
+damage_07,damaged_item,auto_resolve,ORD-1006 was delivered 5 days ago and a defective speaker is within the 7-day damage-reporting window.
+damage_08,damaged_item,auto_resolve,ORD-1002 was delivered 12 days ago; a routine broken-item report is outside the 7-day rule with no exception requested.
+damage_09,damaged_item,escalate,Possible electrical smoke from ORD-1006 is a product-safety issue requiring human review regardless of policy eligibility.
+damage_10,damaged_item,escalate,Damage is reported for unknown ORD-9999; item and eligibility cannot be verified.
+billing_06,billing_dispute,escalate,Alleged second payment for ORD-1002 requires transaction records that the agent does not have.
+billing_07,billing_dispute,escalate,Customer says payment was taken but the order confirmation is missing; payment records are unavailable.
+billing_08,billing_dispute,escalate,Customer challenges an invoice line for ORD-1006; no invoice or billing source exists.
+billing_09,billing_dispute,escalate,Customer disputes whether an approved refund for ORD-1004 was actually credited; FAQ timing is not transaction evidence.
+billing_10,billing_dispute,escalate,Possible unauthorized card use requires billing and fraud review by a human.
+general_06,general_question,auto_resolve,Shipping-delay FAQ explains that carrier scans can pause and what to do after the expected delivery window.
+general_07,general_question,auto_resolve,Payment-method FAQ directs customers to the methods displayed at checkout without naming unsupported brands.
+general_08,general_question,auto_resolve,Refund-timing FAQ gives the usual posting window only after approval without confirming an individual refund.
+general_09,general_question,escalate,International overnight shipping availability is not documented in the current FAQ or approved knowledge.
+general_10,general_question,escalate,Customer vaguely requests an account-address change without a known order or authorized account-action tool.

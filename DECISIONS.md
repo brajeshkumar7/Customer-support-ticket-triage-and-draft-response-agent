@@ -16,12 +16,248 @@ Format for each entry:
 
 ---
 
-## [example — delete once you have real entries] Retry cap for supervisor loop
-**Decision:** cap retries at 3 attempts before failing loudly
-**Alternatives considered:** unlimited retries with exponential backoff; single
-retry only
-**Reasoning:** 3 attempts caught ~90% of recoverable failures in early manual
-testing; beyond that, cost per run rose faster than completion rate improved
+## [2026-10-05] Emit an explicit triage priority for each ticket
+
+**Decision:** Keep the existing five-category classifier and `low` / `medium` /
+`high` urgency labels. Add `P1` / `P2` / `P3` priority with numeric sort rank
+1 / 2 / 3. Explicit safety, high-stakes, urgent, deadline, or manager-request
+signals raise urgency to `high`; explicit repeated/impact signals raise a
+model `low` urgency to `medium`. Expose category, urgency, priority, and their
+basis in graph state, short-term memory, escalations, commands, and evaluation
+reports. A supported FAQ still uses the model-free general-question category
+path, but its urgency is checked against ticket text.
+**Alternatives considered:** Leave priority implicit in an LLM label; add a
+queue/SLA system; make every ticket call the model even when an approved FAQ
+fully determines the category.
+**Reasoning:** Priority must be inspectable and consistently sortable by a
+human reviewer. P1/P2/P3 are ordering bands only: the local single-ticket
+workflow has no multi-ticket queue, owner-defined SLA, or business routing
+service. Keep the safe FAQ fast path and use deterministic urgency overrides
+for explicit urgency/high-impact language. Do not claim measured classifier
+accuracy until a fresh labeled evaluation is run.
+**Status:** active.
+
+## [2026-10-05] Apply high-precision intent overrides after model categorization
+
+**Decision:** Retain model categorization, then apply narrow deterministic
+overrides when ticket language explicitly identifies a billing transaction
+problem, return/warranty request, damaged/defective item, or order-status
+request. Track the category basis separately from the model's raw category.
+Do not use a bare mention of "today" as a high-urgency signal; require explicit
+urgency, an imminent deadline/need, a manager request, safety, or high-stakes
+wording.
+**Alternatives considered:** Trust the model category unchanged; switch all
+categories to broad keyword-only classification; promote any same-day mention
+to P1.
+**Reasoning:** The first measured triage run got 46/50 categories correct.
+Three return cases and one billing case were misclassified, while ordinary
+tracking text mentioning an update "today" was over-prioritized. Narrow intent
+signals target clear semantics; the frozen run remains the before measurement
+and does not become a post-fix accuracy claim.
+**Status:** active.
+
+## [2026-10-06] Require item-specific evidence for malfunction overrides
+
+**Decision:** A vague phrase such as "it doesn't work" does not deterministically
+classify a ticket as a damaged item. Use explicit damage/defect terms, or a
+malfunction phrase tied to a named product or item.
+**Alternatives considered:** Treat any malfunction wording as a product defect;
+remove deterministic damage overrides entirely.
+**Reasoning:** An offline replay of the first category-rule update showed that
+the generic `general_05` complaint would be changed from general question to
+damaged item. Product-specific evidence preserves the correction for explicit
+items without converting ambiguous complaints into fabricated category facts.
+**Status:** active.
+
+## [2026-10-05] Version the FAQ completeness guard
+
+**Decision:** Treat a detectable second customer request as a human handoff
+unless it is the carrier-delay follow-up already covered by the same FAQ.
+Record the shared decision as `informational_only_v2`; keep the repository
+knowledge at `v1` with `review_required` status.
+**Alternatives considered:** Approve any ticket with one matching FAQ, or ask
+the LLM supervisor to decide whether the extra request was answered.
+**Reasoning:** One FAQ match does not prove the whole ticket is resolved, and
+supervisor PASS cannot authorize an incomplete public reply. The rule is
+conservative and still has natural-language limits, so live delivery remains
+disabled.
+**Status:** superseded by the `informational_only_v3` decision below.
+
+## [2026-10-05] Require the prerequisite for refund-timing guidance
+
+**Decision:** Version the local approval rule as `informational_only_v3`.
+The refund-posting FAQ applies only when the ticket explicitly frames the
+question after approval. Investigation, carrier-contact, and requests for
+customer-specific information remain human work.
+**Alternatives considered:** Let topic keywords alone authorize a generic
+refund or tracking answer.
+**Reasoning:** A general answer about posting after approval cannot resolve
+approval status or perform an investigation. The conservative gate keeps
+those requests out of simulated automatic delivery.
+**Status:** active.
+**Measurement (2026-10-05):** The v3 50-case regression matched 50/50
+informational-only labels. The separate author-labeled 200-case regression
+matched 189/200 (0.945), below the 95% target, with 11 false escalations in
+general-question paraphrases and zero false simulated sends. Preserve v1 as
+the measured regression baseline; do not tune against it and call the rerun
+untouched validation. Real customer sending remains disabled.
+
+## [2026-10-04] Share an informational-only approval policy
+
+**Decision:** The graph and controlled worker use one versioned, evidence-linked decision for simulated automatic replies. Only a single supported informational FAQ intent may be approved. Order-specific, billing, safety, identity-dependent, discretionary, and requested business actions require human review. The graph's previous 50/50 result remains historical under its former fixture-backed approval policy. Real customer delivery stays disabled.
+**Alternatives considered:** Keep separate approval rules for the graph and worker, or treat mock order facts as authority for future customers.
+**Reasoning:** The separate paths can disagree about sendability, and mock records cannot establish current customer identity or business facts. A shared conservative rule makes the local benchmark measure the policy intended for eventual customer use without claiming real-world validation.
+**Status:** active.
+
+## [2026-10-05] Freeze a separate author-labeled local holdout
+
+**Decision:** Keep the original 50 fixture-backed labels unchanged, add a
+separate informational-only manifest, and pin a 200-case author-drafted,
+templated synthetic holdout by SHA-256. Run it with the real configured model
+where needed and a fake sender only. Do not tune the rule against this frozen
+version after viewing results.
+**Alternatives considered:** Reuse the development labels as a release claim or
+copy public retailer policies into the active knowledge source.
+**Reasoning:** The earlier 50/50 result measured a different send policy.
+Public pages cannot establish this merchant's terms, and author-drafted cases
+cannot count as independent review. Separate labels and provenance make local
+measurements reproducible without overstating their validity.
+**Audit note (2026-10-05):** An incomplete run of this file was stopped before
+the FAQ cases while the approval rule was tightened for a multi-intent gap
+found in code review. The author had access to the scenario text. Any later
+v1 score must therefore be described as an author-labeled synthetic regression,
+not as an untouched or independently reviewed holdout result.
+**Status:** active.
+
+## [2026-10-04] Require task coverage before simulated replies
+
+**Decision:** Extend the deterministic graph send gate to block delivered-but-not-received conflicts, product-safety reports, requested business actions, and general questions without a matching supported FAQ intent. A supervisor PASS cannot override these findings. Keep the controlled Zoho worker and live-send block unchanged.
+**Alternatives considered:** Add generic web content, trust a cautious supervisor-approved clarification as a completed reply, or block all delivered orders and all general questions.
+**Reasoning:** Two complete 50-ticket fake-sender runs reproduced the same four false simulated sends. The drafts were mostly factually cautious but did not complete the requested investigation, safety review, service quote, or address change. Positive FAQ coverage and specific human-handoff rules address the cause while preserving routine answerable tickets.
+**Status:** active.
+
+## [2026-10-04] Keep public support references separate from merchant facts
+
+**Decision:** Store a small, cited register of public consumer and payment-safety
+guidance in `data/knowledge_sources.json` for review. Do not load it into the
+graph's FAQ, policy checker, order fixture, or Chroma recall as evidence for
+automatic customer replies.
+**Alternatives considered:** Copy public advice directly into the active FAQ or
+Chroma, or adopt another seller's return and shipping terms as this project's
+policy.
+**Reasoning:** The public sources describe general or jurisdiction-specific
+guidance, not this synthetic merchant's approved terms, a customer's order, or
+a verified payment. Adding them to the send path could create unsupported
+claims and make a synthetic benchmark look stronger without improving its
+evidence. The source register preserves useful leads and provenance until a
+policy owner and actual business systems are available.
+**Status:** active.
+
+## [2026-10-04] Extend the fixed synthetic benchmark to 50 cases
+
+**Decision:** Retain all 25 original tickets and add 25 author-labeled cases,
+five per category. The active live evaluator requires exactly 50 cases and
+still uses the fake sender. Saved 25-case reports remain readable as historical
+measurements; they do not become 50-case metrics.
+**Alternatives considered:** Replace the original cases, add new mock orders or
+FAQ knowledge to make every new ticket answerable, or run the configured models
+as part of the data-only expansion.
+**Reasoning:** Preserving old cases allows comparison across runs, while varied
+new cases test conflicts, missing evidence, and FAQ coverage against the same
+local knowledge. The owner chose offline preparation and validation now; the
+50-case model evaluation and its cost/latency measurements come later.
+**Status:** active.
+
+## [2026-10-04] Ground carrier-scan guidance independently of model category
+
+**Decision:** A narrow question about stalled carrier scans may use the
+shipping-delay FAQ even when the model calls it `order status`. Require a
+matching shipping-delay FAQ result, no explicit order ID, and no request to
+look up the customer's specific shipment. All existing billing, safety,
+manager, exception, and ambiguity blocks still apply.
+**Alternatives considered:** Treat every `order status` classification as
+requiring an order ID; rewrite the classification prompt; allow any tracking
+question to bypass order verification.
+**Reasoning:** The 2026-10-04 graph run classified `general_03` as `order
+status` although it asked only whether paused scans are normal and what to do
+later. Its FAQ-grounded draft passed review, but the gate falsely escalated.
+The exception must depend on the ticket's limited intent and verified FAQ
+evidence, without making a claim about the current package.
+**Status:** active.
+
+## [2026-10-04] Controlled Render deployment supersedes direct graph sending
+**Decision:** The owner selected one paid Render background worker and paid
+PostgreSQL for a controlled demonstration. The worker polls Zoho because the
+current Zoho edition has no webhook, and keys jobs by organization, ticket,
+and inbound thread. A database allowlist ties each test ticket to an exact
+controlled requester email and expiry. A database kill switch defaults off.
+The raw graph cannot construct the real sender from an environment flag.
+**Reply policy:** Only versioned, owner-approved informational templates may
+be public. Customer-specific facts, business actions, safety incidents,
+manager requests, and exceptions go to a human until authoritative providers
+and requester verification exist. LLM prose and unscoped Chroma recall are
+excluded from this outbound path. `live` fails startup pending a separate
+provider-validation and release decision.
+**Reliability:** Persist `sending` before the Zoho request; record the reply
+thread ID on success. A crash or uncertain result becomes `unknown` and is
+reconciled from Zoho without an automatic resend. This reduces duplicates but
+does not make Zoho's non-transactional ticket update exactly once.
+**Trade-off:** Test deployment adds paid infrastructure and a PostgreSQL
+dependency while severely limiting automated replies. The existing 25-ticket
+LLM benchmark remains a separate simulated workflow and cannot establish
+production safety. This supersedes the original no-paid-infrastructure
+budget assumption and the former decision that supervisor PASS alone could
+trigger an agent-initiated Zoho reply.
+**Status:** controlled implementation; not deployed, owner approval and live
+provider validation pending.
+
+## [2026-10-04] Retain two graph calls after measured comparison
+**Decision:** Keep separate classification and extraction calls in the
+LangGraph draft workflow. A combined call was faster on the fixed 25 cases
+(mean 5874.233999999706 ms versus 9006.30544 ms for the saved two-call path)
+and had 23/25 category labels correct versus 22/25, with 25/25 explicit
+order IDs correct for both. The combined category accuracy was below the 95%
+release target and still misclassified `general_03` and `return_05`.
+**Reasoning:** A small synthetic improvement does not justify a production
+classification change. The controlled informational worker does not need an
+LLM call; the graph can be reconsidered after broader reviewed evidence.
+**Evidence:** `docs/measurements/combined_classification_20261004.json`.
+**Status:** active.
+
+## [2026-09-30] Safety improvement phase blocks agent-initiated Zoho delivery
+**Decision:** Keep `src.agent.run_zoho` draft-only until the deterministic safety
+gate and expanded regression suite are reviewed and a separate decision
+authorizes delivery again. `build_graph` accepts an explicit delivery override;
+the Zoho runner always passes `allow_delivery=False`, regardless of
+`ZOHO_DESK_SEND_ENABLED`. Keep the existing one-message `zoho_smoke` command
+separate and explicitly confirmed.
+**Alternatives considered:** Continue automatic Zoho replies after supervisor
+PASS; disable only the environment flag and rely on operators not to change it.
+**Reasoning:** The TASK-19 saved benchmark showed 9 simulated sends among 14
+tickets expected to escalate. The LLM supervisor both missed high-risk cases
+and falsely rejected some safe drafts. An explicit code-level override prevents
+the agent command from contacting customers while the decision process is
+being corrected. A model PASS alone is not authorization.
+**Status:** active
+
+## [2026-09-30] Deterministic send-safety gate and fixture provider contracts
+**Decision:** Before drafting/review routing, apply a code-owned safety gate
+for billing disputes without transaction records, missing or unknown orders,
+unavailable order/policy sources, reported injury/product danger, explicit
+manager requests, policy exceptions, and unresolved intent. The gate blocks
+delivery and returns findings for the human; simple missing-detail cases may
+recommend a focused clarification. Keep the LLM supervisor as an independent
+review signal. Define provider-neutral order facts, policy, and FAQ contracts;
+current implementations remain local fixtures until an authorized commerce
+provider is selected.
+**Alternatives considered:** Let the LLM supervisor decide all risk routing;
+connect an unselected commerce or billing provider; replace Chroma during the
+accuracy work.
+**Reasoning:** The prior benchmark documented false sends on tickets whose
+needed evidence or human judgment was unavailable. Deterministic checks create
+a fail-closed boundary for those known classes. Provider protocols permit a
+future adapter without claiming that fixture results are production data.
+Chroma did not cause these decision errors and remains unchanged.
 **Status:** active
 
 ## [2026-09-23] Memory backend choice
@@ -148,7 +384,7 @@ cause duplicate customer emails through automatic replay. If Zoho's OAuth token
 response returns its generic `www.zohoapis.<region>` host, accept it only when
 the configured Desk-specific host maps to the same data center; keep using the
 Desk-specific API host for Desk requests.
-**Status:** active
+**Status:** superseded for agent-initiated replies by [Safety improvement phase blocks agent-initiated Zoho delivery](#2026-09-30-safety-improvement-phase-blocks-agent-initiated-zoho-delivery). The separate confirmed delivery smoke test remains available.
 
 ## [2026-09-28] Structured JSONL observability
 **Decision:** Append graph-node, tool, LLM-attempt, and rate-limit events to one
@@ -195,8 +431,12 @@ as untrusted and cannot override structured order or policy results.
 **Decision:** Inject a provider-neutral `ReplySender` interface into the graph.
 Keep Zoho Desk as the configured real adapter, but run all synthetic TASK-19
 cases with a fake sender that records calls and reports simulated success.
-Use an isolated in-memory Chroma client per case so evaluation does not create
-temporary directories or touch configured persistent memory.
+Create in-memory Chroma clients for the benchmark so evaluation does not touch
+configured persistent memory. The original implementation recreated a client
+per ticket intending to isolate cases; an implementation audit later found
+that Chroma's ephemeral clients shared one in-process database, so that did
+not guarantee per-case isolation. See FM-016 and the explicit collection
+boundary below.
 Run a separate, explicitly confirmed, one-ticket Zoho smoke test for an
 existing ticket and contact controlled by the operator.
 **Alternatives considered:** Require one Zoho ticket for every synthetic case;
@@ -208,20 +448,46 @@ to one operator-controlled ticket. Saved reports identify simulated delivery
 so those results are not presented as proof of external delivery.
 **Status:** active
 
+## [2026-10-05] Shared ephemeral Chroma memory in full-batch evaluations
+**Decision:** Run the 50-case regression and 200-case synthetic holdout with
+one fresh Chroma `EphemeralClient` collection shared sequentially across the
+entire evaluation. A successful simulated reply writes its normal compact
+summary; later cases can recall summaries written earlier in that run. Never
+open or modify `CHROMA_PERSIST_DIR` during these evaluations. Preserve earlier
+reports as isolated-memory historical measurements and label new reports with
+their memory mode.
+**Alternatives considered:** Keep each case isolated; share the developer's
+persistent Chroma database; run cases concurrently against one shared store.
+**Reasoning:** The owner wants the benchmark to exercise the graph's historical
+recall step. A uniquely named collection in a fresh ephemeral database tests
+recall across synthetic runs without mixing in old developer data. Sequential
+order makes which summaries are available reproducible; concurrent runs would
+make recall depend on timing.
+Historical summaries remain untrusted context and never count as evidence for
+the deterministic send decision. This synthetic setup does not validate
+customer isolation or authorize live sending.
+**Trade-off:** Full-batch evaluation is sequential and can take longer than the
+previous concurrent holdout. Metrics now depend on ticket order and memory
+mode, so they must be compared only with reports using the same setting.
+**Status:** active for future 50/200-case graph evaluations; live Zoho sending
+remains disabled. Earlier reports did not record effective recall mode and
+must not be described as isolated-memory measurements.
+
 ## [2026-09-30] Separate synthetic and Zoho single-ticket runners
 **Decision:** Provide one command for a single synthetic case that injects an
 isolated in-memory Chroma client and a fake sender, plus a separate command
 that fetches one existing Zoho Email ticket and invokes the same graph. The
-Zoho command requires explicit send mode and two interactive confirmations;
-after that, a supervisor PASS authorizes one public reply.
+The original Zoho command required explicit send mode and two interactive
+confirmations; it once allowed a supervisor PASS to authorize one public reply.
 **Alternatives considered:** Use one command with optional delivery modes;
 paste Zoho ticket text manually; keep Zoho as delivery-only smoke testing.
 **Reasoning:** Separate commands make simulated delivery and real delivery
 visibly distinct while keeping the real agent workflow involved in the Zoho
 path. Fetching from Zoho avoids copy/paste errors and uses the ticket's actual
 subject and description. No ticket creation or automatic retry is allowed.
-**Trade-off:** An automated supervisor PASS can be wrong. The latest benchmark
-had incorrect simulated sends on 9 of 14 tickets expected to escalate, so the
-real command is restricted to a ticket/contact controlled by the operator and
-the graph's decision quality still needs improvement before general use.
-**Status:** active
+**Trade-off:** An automated supervisor PASS can be wrong. The historical
+baseline had incorrect simulated sends on 9 of 14 tickets expected to
+escalate. This was evidence for disabling graph delivery.
+**Status:** superseded by the 2026-09-30 safety improvement decision and the
+2026-10-04 controlled Render deployment decision. `run_zoho` is draft-only;
+the local graph cannot send public replies.

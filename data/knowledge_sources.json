@@ -1,0 +1,46 @@
+{
+  "reviewed_at": "2026-10-04",
+  "status": "research_only_not_approved_for_customer_replies",
+  "sources": [
+    {
+      "id": "ftc-online-shopping",
+      "publisher": "US Federal Trade Commission",
+      "url": "https://consumer.ftc.gov/articles/online-shopping",
+      "scope": "US consumer shopping guidance",
+      "summary": "Customers should check the seller's own delivery, return, and refund terms, including return costs and deadlines. This page is not evidence of this project's merchant policy or any order outcome.",
+      "approved_for_agent_reply": false
+    },
+    {
+      "id": "pci-unintended-card-data",
+      "publisher": "PCI Security Standards Council",
+      "url": "https://www.pcisecuritystandards.org/faqs/1157/",
+      "scope": "Payment-card handling guidance for merchants",
+      "summary": "When cardholder data arrives through an unintended or insecure channel, avoid propagating it and use a secure process. This does not verify a charge, refund, or the merchant's payment setup.",
+      "approved_for_agent_reply": false
+    },
+    {
+      "id": "usps-package-status",
+      "publisher": "US Postal Service",
+      "url": "https://faq.usps.com/articles/Knowledge/Where-is-my-package",
+      "scope": "USPS shipments only",
+      "summary": "USPS describes several tracking states, including in transit and delivery status not updated. The project has no verified USPS carrier link or live tracking feed.",
+      "approved_for_agent_reply": false
+    },
+    {
+      "id": "owasp-excessive-agency",
+      "publisher": "OWASP GenAI Security Project",
+      "url": "https://genai.owasp.org/llmrisk/llm062025-excessive-agency/",
+      "scope": "Agent authority and downstream action controls",
+      "summary": "Limit tool functionality and permissions, require approval for consequential actions, and validate authorization at the downstream action boundary. This informs simulated-vs-live sender separation and does not establish merchant policy.",
+      "approved_for_agent_reply": false
+    },
+    {
+      "id": "nist-ai-rmf-measure",
+      "publisher": "US National Institute of Standards and Technology",
+      "url": "https://airc.nist.gov/airmf-resources/airmf/5-sec-core/",
+      "scope": "AI risk measurement and independent assessment",
+      "summary": "Document test sets and metrics, assess behavior under conditions similar to deployment, and use independent review to reduce internal bias. This informs evaluation provenance and release gates; it is not a support-answer source.",
+      "approved_for_agent_reply": false
+    }
+  ]
+}

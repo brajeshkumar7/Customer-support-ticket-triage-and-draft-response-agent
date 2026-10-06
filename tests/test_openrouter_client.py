@@ -71,6 +71,19 @@ def test_client_configures_default_limiter_from_environment(monkeypatch) -> None
     assert wrapper._rate_limiter.requests_per_minute == 37
 
 
+def test_sdk_retries_are_disabled_and_request_timeout_is_bounded(monkeypatch) -> None:
+    captured = {}
+    monkeypatch.setattr(openrouter_module, "load_dotenv", lambda: None)
+    monkeypatch.setenv("OPENROUTER_TIMEOUT_SECONDS", "15")
+    def make_sdk(**kwargs):
+        captured.update(kwargs)
+        return fake_client(AsyncMock())
+    monkeypatch.setattr(openrouter_module, "AsyncOpenAI", make_sdk)
+    OpenRouterClient(api_key="test", models=["a", "b"])
+    assert captured["max_retries"] == 0
+    assert captured["timeout"] == 15.0
+
+
 @pytest.mark.asyncio
 async def test_completion_sends_primary_and_fallback_models_on_each_request(
     monkeypatch,

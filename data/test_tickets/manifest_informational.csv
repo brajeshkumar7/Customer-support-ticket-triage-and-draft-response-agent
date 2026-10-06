@@ -1,0 +1,51 @@
+ticket_id,category,expected_outcome,notes
+order_01,order_status,escalate,Informational-only policy: mock order and shipment records do not verify a real customer; human review required. Original label remains in manifest.csv.
+order_02,order_status,escalate,Informational-only policy: mock order and shipment records do not verify a real customer; human review required. Original label remains in manifest.csv.
+order_03,order_status,escalate,Ambiguous edge case: no order number or identifying details are provided.
+order_04,order_status,escalate,Edge case: unknown ORD-9999 and delivery needed for an event today; order lookup cannot verify it.
+order_05,order_status,escalate,Angry edge case: customer alleges an earlier delivery promise and explicitly requests a manager.
+return_01,returns,escalate,Informational-only policy: mock order and shipment records do not verify a real customer; human review required. Original label remains in manifest.csv.
+return_02,returns,escalate,Informational-only policy: mock order and shipment records do not verify a real customer; human review required. Original label remains in manifest.csv.
+return_03,returns,escalate,Informational-only policy: mock order and shipment records do not verify a real customer; human review required. Original label remains in manifest.csv.
+return_04,returns,escalate,Ambiguous edge case: customer is undecided between an exchange and refund and asks about unavailable return-shipping details.
+return_05,returns,escalate,Policy-conflict edge case: ORD-1004 allegedly failed shortly after delivery; warranty or exception handling is not available in the tools.
+damage_01,damaged_item,escalate,Informational-only policy: mock order and shipment records do not verify a real customer; human review required. Original label remains in manifest.csv.
+damage_02,damaged_item,escalate,Informational-only policy: mock order and shipment records do not verify a real customer; human review required. Original label remains in manifest.csv.
+damage_03,damaged_item,escalate,Policy-conflict edge case: ORD-1004 damage is reported beyond the 7-day window and customer requests an exception.
+damage_04,damaged_item,escalate,High-stakes edge case: electrical product allegedly sparked and injured a child; human safety review is needed.
+damage_05,damaged_item,escalate,Edge case: order ORD-9999 is not in the fixture
+billing_01,billing_dispute,escalate,No billing transaction tool: duplicate charges for ORD-1002 cannot be verified or reversed.
+billing_02,billing_dispute,escalate,High-stakes dispute: customer reports an unrecognized charge and possible card misuse; no billing data is available.
+billing_03,billing_dispute,escalate,No billing transaction tool: charge after cancellation for ORD-1003 cannot be verified.
+billing_04,billing_dispute,escalate,No invoice or billing tool: disputed tax on ORD-1006 cannot be checked.
+billing_05,billing_dispute,escalate,No billing ledger: customer says the refund for ORD-1004 was partial or never received.
+general_01,general_question,auto_resolve,FAQ directly lists accepted payment methods at checkout.
+general_02,general_question,auto_resolve,FAQ explains how to find the shipment tracking link in the confirmation email.
+general_03,general_question,auto_resolve,FAQ explains that carrier scans can pause and what to do if the delivery window has passed.
+general_04,general_question,auto_resolve,FAQ gives the usual 5-to-10-business-day posting time after a refund is approved.
+general_05,general_question,escalate,"Ambiguous and angry edge case: ""it"" is unspecified"
+order_06,order_status,escalate,Informational-only policy: mock order and shipment records do not verify a real customer; human review required. Original label remains in manifest.csv.
+order_07,order_status,escalate,Informational-only policy: mock order and shipment records do not verify a real customer; human review required. Original label remains in manifest.csv.
+order_08,order_status,escalate,Customer disputes the delivered status recorded for ORD-1003; the fixture cannot establish receipt or resolve the conflict.
+order_09,order_status,escalate,ORD-9999 is absent from the fixture; no order-specific status or delivery promise can be verified.
+order_10,order_status,escalate,Customer requests a specific shipment status but supplies no order ID or identifying record.
+return_06,returns,escalate,Informational-only policy: mock order and shipment records do not verify a real customer; human review required. Original label remains in manifest.csv.
+return_07,returns,escalate,Informational-only policy: mock order and shipment records do not verify a real customer; human review required. Original label remains in manifest.csv.
+return_08,returns,escalate,Informational-only policy: mock order and shipment records do not verify a real customer; human review required. Original label remains in manifest.csv.
+return_09,returns,escalate,ORD-1004 is outside the ordinary return window and the customer asks for a discretionary exception.
+return_10,returns,escalate,Return eligibility depends on a specific order but the customer supplies no order ID.
+damage_06,damaged_item,escalate,Informational-only policy: mock order and shipment records do not verify a real customer; human review required. Original label remains in manifest.csv.
+damage_07,damaged_item,escalate,Informational-only policy: mock order and shipment records do not verify a real customer; human review required. Original label remains in manifest.csv.
+damage_08,damaged_item,escalate,Informational-only policy: mock order and shipment records do not verify a real customer; human review required. Original label remains in manifest.csv.
+damage_09,damaged_item,escalate,Possible electrical smoke from ORD-1006 is a product-safety issue requiring human review regardless of policy eligibility.
+damage_10,damaged_item,escalate,Damage is reported for unknown ORD-9999; item and eligibility cannot be verified.
+billing_06,billing_dispute,escalate,Alleged second payment for ORD-1002 requires transaction records that the agent does not have.
+billing_07,billing_dispute,escalate,Customer says payment was taken but the order confirmation is missing; payment records are unavailable.
+billing_08,billing_dispute,escalate,Customer challenges an invoice line for ORD-1006; no invoice or billing source exists.
+billing_09,billing_dispute,escalate,Customer disputes whether an approved refund for ORD-1004 was actually credited; FAQ timing is not transaction evidence.
+billing_10,billing_dispute,escalate,Possible unauthorized card use requires billing and fraud review by a human.
+general_06,general_question,auto_resolve,Shipping-delay FAQ explains that carrier scans can pause and what to do after the expected delivery window.
+general_07,general_question,auto_resolve,Payment-method FAQ directs customers to the methods displayed at checkout without naming unsupported brands.
+general_08,general_question,auto_resolve,Refund-timing FAQ gives the usual posting window only after approval without confirming an individual refund.
+general_09,general_question,escalate,International overnight shipping availability is not documented in the current FAQ or approved knowledge.
+general_10,general_question,escalate,Customer vaguely requests an account-address change without a known order or authorized account-action tool.

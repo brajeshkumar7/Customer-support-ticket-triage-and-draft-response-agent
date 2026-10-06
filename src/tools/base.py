@@ -35,7 +35,11 @@ class ToolInputError(ToolError):
     """Raised when a tool receives missing or invalid input."""
 
 
-class ToolNotFoundError(ToolError):
+class ToolUnavailableError(ToolError):
+    """Raised when the requested data is missing or its provider is unavailable."""
+
+
+class ToolNotFoundError(ToolUnavailableError):
     """Raised when a requested fixture record does not exist."""
 
 

@@ -1,10 +1,12 @@
 """Append-only, bounded JSONL events for agent runs."""
 
 import json
+import os
 import re
 import threading
 from collections.abc import Mapping
 from datetime import datetime, timezone
+from datetime import timedelta
 from pathlib import Path
 from typing import Any
 
@@ -31,6 +33,10 @@ def _redact(value: Any) -> Any:
 
 
 def _bounded(value: Any) -> Any:
+    # Deployed logs are operational metadata only. The protected job record
+    # stores identifiers and outcomes; ticket bodies and drafts stay in memory.
+    if os.getenv("DEPLOYMENT_MODE", "off").lower() in {"shadow", "test", "live"}:
+        return {"redacted": True}
     safe_value = _redact(value)
     encoded = json.dumps(safe_value, ensure_ascii=False, default=str)
     if len(encoded) <= MAX_EVENT_FIELD_CHARS:
@@ -75,9 +81,26 @@ def log_event(
         event["error"] = _bounded(error)
 
     encoded = json.dumps(event, ensure_ascii=False, default=str)
-    _LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
-    with _write_lock, _LOG_PATH.open("a", encoding="utf-8") as log_file:
+    log_path = _LOG_PATH
+    if os.getenv("DEPLOYMENT_MODE", "off").lower() in {"shadow", "test", "live"}:
+        log_path = _LOG_PATH.with_name(f"events-{datetime.now(timezone.utc):%Y-%m-%d}.jsonl")
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    with _write_lock, log_path.open("a", encoding="utf-8") as log_file:
         log_file.write(encoded + "\n")
+
+
+def purge_deployment_logs(days: int = 7) -> None:
+    """Remove only dated deployment event files after their retention window."""
+    if os.getenv("DEPLOYMENT_MODE", "off").lower() not in {"shadow", "test", "live"}:
+        return
+    cutoff = datetime.now(timezone.utc).date() - timedelta(days=days)
+    for path in _LOG_PATH.parent.glob("events-????-??-??.jsonl"):
+        try:
+            day = datetime.strptime(path.stem.removeprefix("events-"), "%Y-%m-%d").date()
+            if day < cutoff:
+                path.unlink()
+        except (OSError, ValueError):
+            continue
 
 
 def log_tool_event(

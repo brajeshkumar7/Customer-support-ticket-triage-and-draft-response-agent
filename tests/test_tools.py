@@ -32,6 +32,7 @@ async def test_policy_checker_applies_delivery_and_claim_windows():
     eligible_damage = await tool.run(order_id="ORD-1003", reason="The lamp arrived damaged.")
     late_damage = await tool.run(order_id="ORD-1002", reason="The coffee maker is broken.")
     eligible_return = await tool.run(order_id="ORD-1002", reason="I changed my mind.")
+    smoking_speaker = await tool.run(order_id="ORD-1006", reason="The speaker started smoking.")
     undelivered = await tool.run(order_id="ORD-1001", reason="I want a refund.")
 
     assert eligible_damage.data["eligible"] is True
@@ -39,6 +40,7 @@ async def test_policy_checker_applies_delivery_and_claim_windows():
     assert late_damage.data["eligible"] is False
     assert eligible_return.data["eligible"] is True
     assert eligible_return.data["policy_window_days"] == 30
+    assert smoking_speaker.data["policy_window_days"] == 7
     assert undelivered.data["eligible"] is False
 
 

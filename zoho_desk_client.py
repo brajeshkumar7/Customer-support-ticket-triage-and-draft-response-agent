@@ -170,6 +170,16 @@ class ZohoDeskClient:
         """Resolve the ticket recipient, then send exactly one public email reply."""
         return await asyncio.to_thread(self._send_public_reply, ticket_id, body)
 
+    async def send_controlled_reply(
+        self, ticket_id: str, body: str, *, expected_email: str,
+        expected_inbound_thread_id: str,
+    ) -> dict[str, Any]:
+        """Recheck recipient and thread immediately before the single POST."""
+        return await asyncio.to_thread(
+            self._send_public_reply, ticket_id, body, expected_email,
+            expected_inbound_thread_id,
+        )
+
     async def fetch_ticket(self, ticket_id: str) -> dict[str, Any]:
         """Fetch the limited ticket fields needed to run the agent, without sending."""
         started = time.perf_counter()
@@ -198,6 +208,55 @@ class ZohoDeskClient:
             run_id=f"zoho-ticket-{ticket_id}",
         )
         return result
+
+    async def list_modified_tickets(self, offset: int, limit: int = 50) -> list[dict[str, Any]]:
+        """Read one page, newest first; callers persist their own cursor."""
+        if offset < 0 or not 1 <= limit <= 50:
+            raise ValueError("Invalid Zoho ticket page.")
+        result = await asyncio.to_thread(
+            self._api_request, "GET", "tickets", token=self._get_access_token(),
+            query={"from": str(offset), "limit": str(limit), "sortBy": "-modifiedTime"},
+        )
+        data = result.get("data")
+        if not isinstance(data, list):
+            raise ZohoDeskDeliveryError("Zoho ticket listing was invalid.", delivery_status="failed")
+        return data
+
+    async def list_threads(self, ticket_id: str) -> list[dict[str, Any]]:
+        """Return all thread summaries; refuse malformed or excessively large histories."""
+        if not re.fullmatch(r"[0-9]+", str(ticket_id)):
+            raise ZohoDeskConfigurationError("zoho_ticket_id must be numeric.")
+        threads: list[dict[str, Any]] = []
+        for offset in range(0, 1000, 50):
+            page = await asyncio.to_thread(
+                self._api_request, "GET", f"tickets/{ticket_id}/threads",
+                token=self._get_access_token(),
+                query={"from": str(offset), "limit": "50"},
+            )
+            data = page.get("data")
+            if not isinstance(data, list) or any(not isinstance(item, dict) for item in data):
+                raise ZohoDeskDeliveryError("Zoho thread listing was invalid.", delivery_status="failed")
+            threads.extend(data)
+            if len(data) < 50:
+                return threads
+        raise ZohoDeskDeliveryError("Zoho thread history exceeds safe limit.", delivery_status="failed")
+
+    async def fetch_thread(self, ticket_id: str, thread_id: str) -> dict[str, Any]:
+        if not re.fullmatch(r"[0-9]+", str(ticket_id)) or not re.fullmatch(r"[0-9]+", str(thread_id)):
+            raise ZohoDeskConfigurationError("Zoho ticket and thread IDs must be numeric.")
+        return await asyncio.to_thread(
+            self._api_request, "GET", f"tickets/{ticket_id}/threads/{thread_id}",
+            token=self._get_access_token(),
+        )
+
+    async def add_private_note(self, ticket_id: str, note: str) -> dict[str, Any]:
+        if not re.fullmatch(r"[0-9]+", str(ticket_id)):
+            raise ZohoDeskConfigurationError("zoho_ticket_id must be numeric.")
+        return await asyncio.to_thread(
+            self._api_request, "POST", f"tickets/{ticket_id}/comments",
+            token=self._get_access_token(),
+            body={"content": note, "isPublic": False},
+        )
 
     def _refresh_access_token(self) -> str:
         payload = urlencode(
@@ -300,6 +359,9 @@ class ZohoDeskClient:
             "subject": ticket.get("subject"),
             "description": ticket.get("description"),
             "channel": ticket.get("channel"),
+            "email": ticket.get("email"),
+            "status": ticket.get("status"),
+            "modifiedTime": ticket.get("modifiedTime"),
         }
 
     def _api_request(
@@ -335,9 +397,25 @@ class ZohoDeskClient:
             },
             method=method,
         )
-        with self._opener(request, timeout=self.timeout_seconds) as response:
-            raw = response.read()
-            http_status = getattr(response, "status", 200)
+        started = time.perf_counter()
+        try:
+            with self._opener(request, timeout=self.timeout_seconds) as response:
+                raw = response.read()
+                http_status = getattr(response, "status", 200)
+        except Exception as error:
+            try:
+                log_tool_event(tool_name="zoho_api", inputs={"method": method, "path": path},
+                    output=None, error={"type": type(error).__name__},
+                    latency_ms=(time.perf_counter() - started) * 1000)
+            except OSError:
+                pass
+            raise
+        try:
+            log_tool_event(tool_name="zoho_api", inputs={"method": method, "path": path},
+                output={"http_status": http_status}, error=None,
+                latency_ms=(time.perf_counter() - started) * 1000)
+        except OSError:
+            pass
         if not raw:
             return {"_http_status": http_status}
         result = json.loads(raw.decode("utf-8"))
@@ -346,7 +424,9 @@ class ZohoDeskClient:
         result["_http_status"] = http_status
         return result
 
-    def _send_public_reply(self, ticket_id: str, body: str) -> dict[str, Any]:
+    def _send_public_reply(self, ticket_id: str, body: str,
+                           expected_email: str | None = None,
+                           expected_inbound_thread_id: str | None = None) -> dict[str, Any]:
         ticket_id = str(ticket_id).strip()
         if not re.fullmatch(r"[0-9]+", ticket_id):
             raise ZohoDeskConfigurationError("zoho_ticket_id must be numeric.")
@@ -380,6 +460,24 @@ class ZohoDeskClient:
                 "Zoho Desk ticket has no valid requester email; no reply was attempted.",
                 delivery_status="failed",
             )
+        if expected_email is not None and recipient.strip().casefold() != expected_email.casefold():
+            raise ZohoDeskDeliveryError("Requester changed before send; no reply was attempted.", delivery_status="failed")
+        if expected_inbound_thread_id is not None:
+            if str(ticket.get("channel", "")).casefold() != "email" or str(ticket.get("status", "")).casefold() in {"closed", "spam", "deleted"}:
+                raise ZohoDeskDeliveryError("Ticket channel or status changed; no reply was attempted.", delivery_status="failed")
+            try:
+                threads = self._api_request(
+                    "GET", f"tickets/{ticket_id}/threads", token=token,
+                    query={"from": "0", "limit": "50"},
+                ).get("data")
+            except Exception as error:
+                raise ZohoDeskDeliveryError("Could not recheck threads; no reply was attempted.", delivery_status="failed") from error
+            if not isinstance(threads, list) or not threads or len(threads) >= 50:
+                raise ZohoDeskDeliveryError("Thread history is unavailable; no reply was attempted.", delivery_status="failed")
+            latest = max(threads, key=lambda item: str(item.get("createdTime", "")))
+            if (str(latest.get("id")) != expected_inbound_thread_id
+                    or str(latest.get("direction", "")).casefold() not in {"in", "incoming"}):
+                raise ZohoDeskDeliveryError("A newer or outgoing thread exists; no reply was attempted.", delivery_status="failed")
 
         reply = {
             "channel": "EMAIL",
@@ -409,6 +507,11 @@ class ZohoDeskClient:
                 "Zoho Desk did not confirm whether the reply was sent.",
                 delivery_status="unknown",
             ) from error
+        if expected_inbound_thread_id is not None and not response.get("id"):
+            raise ZohoDeskDeliveryError(
+                "Zoho did not return a reply thread ID; delivery needs reconciliation.",
+                delivery_status="unknown",
+            )
         return {
             "zoho_ticket_id": ticket_id,
             "thread_id": response.get("id"),

@@ -1,5 +1,25 @@
 # Production-readiness follow-ups
 
+## Controlled deployment status (reviewed 2026-10-06)
+
+Code now defines a paid Render worker and PostgreSQL ledger for controlled
+Zoho polling, exact ticket/contact allowlisting, a database kill switch,
+versioned informational templates, and uncertain-send reconciliation. It has
+not been deployed or tested against a live Zoho thread schema in this change.
+`off` is the default, `shadow` cannot write to Zoho, and `live` fails startup.
+The knowledge file is still marked `review_required`; no test send can start
+until its owner approves it and configures the matching hash. Earlier
+follow-ups below describe the historical graph path. See
+`docs/controlled_render.md` for current deployment steps and limits.
+
+**Real-customer blockers:** Select authoritative order, shipment, billing,
+and policy providers; verify requester identity and data freshness; collect
+200 attributed reviewed release cases and 100 real shadow decisions; test
+controlled intake, restart, privacy, and reconciliation; record a separate
+live-send decision. A finite zero-failure sample is a release gate, not proof
+of perfect accuracy. The current poller uses one worker and must be observed
+for API paging/cursor gaps and Zoho credit consumption.
+
 This file tracks improvements to revisit as the project approaches its final
 production-style portfolio state. These notes do not expand the acceptance
 criteria of the current TASKS.md item. Implement them only when they fit the
@@ -7,6 +27,43 @@ active task and the PRD; otherwise keep them deferred until the relevant later
 phase.
 
 ## Deferred follow-ups
+
+Some "Current state" and "Status" paragraphs below are dated snapshots from
+their original tasks. The current graph has recall, classify, conditional fact
+gathering, informational safety review, respond, supervisor, simulated send or
+explicit escalation, and remember on simulated success. The latest completed
+50-case run matched 50/50 author-drafted dispositions with 7 simulated sends;
+it predates the final TASK-32 triage edit. The 200-case author-labeled holdout
+matched 189/200, below its 95% target. Neither validates real customer sending.
+
+### Validate deterministic decision gate and improve model review quality
+
+**Current state:** TASK-25 adds a deterministic gate for billing disputes with
+no transaction source, missing/unknown/unavailable order data, unavailable
+policy data, customer injury/product danger, explicit manager requests, policy
+exceptions, and ambiguous intent. The LLM supervisor remains an independent
+review signal. The Zoho agent runner passes `allow_delivery=False`, so it is
+draft-only even if `.env` enables sending. The standalone controlled
+`zoho_smoke` command remains separate. Fourteen new offline rule regressions
+specify evidence and acceptable drafts/dispositions.
+
+**Historical follow-up:** Re-run the 25-ticket graph evaluation with simulated delivery,
+include the additional safety scenarios in future labeled graph evaluations,
+and review per-category false sends, missed escalations, unsupported-claim
+review flags, and false escalations. Keep live agent delivery blocked until a
+separate decision after zero false sends across a reviewed safety suite and
+validation against authoritative business sources. A passing deterministic
+unit set does not prove generated drafts are safe.
+
+**Verification:** Run the safety regression module offline and graph tests with
+fake model/tool/sender dependencies. Confirm the Zoho agent command cannot
+invoke any sender when the environment flag is true. Inspect the later saved
+benchmark report; do not overwrite baseline numbers without a completed run.
+
+**Status:** The quoted 14-case gate result and connection failure describe an
+earlier TASK-25 snapshot. Later complete 25- and 50-case fake-sender graph
+benchmarks are recorded in `PROGRESS.md`. The current informational-only
+policy still needs independent review and a fresh post-TASK-32 run.
 
 ### Reuse the compiled graph while keeping memory per ticket
 
@@ -28,8 +85,9 @@ can inspect a run's stored values after completion.
 
 ### Grow graph topology from workflow responsibilities
 
-**Current state:** The graph has `classify` and `respond` nodes as the TASK-05
-vertical slice. It does not yet gather verified facts or review/route drafts.
+**Historical state:** TASK-05 initially had only `classify` and `respond`.
+The current graph has the review, fact-gathering, routing, and memory nodes
+described in `docs/architecture.md`.
 
 **Follow-up:** Add clearly named nodes only as needed to implement the PRD
 workflow: ticket intake/validation, classification, fact gathering using the
@@ -46,7 +104,8 @@ the support-ticket scope in the PRD.
 **Verification:** Tests should cover the actual routing paths, grounded drafts,
 escalation, and bounded failure behavior as those capabilities are added.
 
-**Status:** Deferred; evolve the graph in the relevant TASKS.md phases.
+**Status:** The planned graph topology was implemented in later tasks. The
+numeric-node environment setting remains intentionally absent.
 
 ### Calibrate supervisor decisions against labeled scenarios
 
@@ -69,13 +128,15 @@ latency/token usage from actual evaluation runs. Confirm a deliberately
 unsupported claim is rejected and valid grounded drafts are not rejected at an
 unacceptable rate.
 
-**Status:** Deferred; evaluate with TASK-18/TASK-19.
+**Status:** Checklist behavior has been exercised, but per-check human-labeled
+calibration remains open. Synthetic disposition scores do not supply it.
 
 ### Protect tool logs and evaluate order-detail extraction strategies
 
 **Current state:** Mock tool events are written to JSONL with their inputs and
-outputs. `gather_facts` makes a separate LLM call to extract order details
-before starting concurrent tool calls. Current fixture data is synthetic.
+outputs. For non-FAQ human-review cases, `gather_facts` makes a separate LLM
+call to extract order details before concurrent fixture tools. A single
+covered FAQ intent skips extraction and business tools. Fixture data is synthetic.
 
 **Follow-up:** Before using real customer data, define field redaction and log
 retention rules. During the full evaluation (TASK-19), compare the current
@@ -116,12 +177,29 @@ production-readiness review.
 
 ### Replace mock data sources and local persistence for deployment
 
+**TASK-29 local boundary:** The graph and controlled worker now share an
+informational-only approval rule. Seven of the original 50 tickets are labeled
+eligible for simulated FAQ replies under that rule. All customer-specific
+fixture cases are human review even when the mock order lookup succeeds.
+`data/approved_knowledge/v1.json` remains `review_required`; no local
+simulation result approves real customer sending. A hypothetical provider
+evidence contract checks requester match, freshness, and contradictions, but
+no actual order, shipment, billing, or identity provider is configured.
+The frozen 200-case author-labeled holdout measures local behavior only and
+cannot replace independently reviewed real-ticket cases or shadow validation.
+The 2026-10-05 v3 run matched 189/200 cases (94.5%), below the 95% local
+target, with 11 false escalations in general questions, zero false simulated
+sends, and zero unsupported public claims. The false-escalation target is
+still open; see `FAILURE_MODES.md` FM-015 and `PROGRESS.md`. Do not enable
+customer sending from this result.
+
 **Current state:** Order and policy tools use synthetic local fixtures, FAQ
 search uses a small in-code dataset, and long-term facts persist in local
 Chroma. These are development implementations, not production integrations.
-An opt-in Zoho Desk outbound email adapter is implemented using OAuth refresh
-tokens; it is disabled by default and has not been live-tested. Zoho Desk is
-selected only for ticket reply delivery, not as the source of order facts.
+An opt-in Zoho Desk outbound email adapter uses OAuth refresh tokens. A prior
+manual controlled-ticket send was confirmed, but the current local graph
+does not authorize real delivery. Zoho Desk is selected only for ticket
+reply delivery, not as the source of order facts.
 
 **Follow-up:** Before deployment, select and integrate the authorized commerce
 or support API as the source of current order and customer facts, and select a
@@ -137,21 +215,26 @@ successful lookups, missing records, authorization failures, timeouts, and
 rate limits. Verify database persistence, access isolation, backup/recovery,
 and that failures still produce the intended safe escalation or fallback.
 
-**Status:** Partially addressed: Zoho Desk outbound delivery is implemented.
-Selecting the authoritative commerce API and a production database remains
-deferred until before deployment.
+**Status:** Partially addressed: Zoho outbound code and a PostgreSQL worker
+ledger are implemented, but no Render deployment or real business provider
+contract tests have occurred. Selecting the authoritative commerce and
+billing APIs remains required before real customer release.
 
 ### Validate Zoho Desk delivery in a controlled environment
 
-**Current state:** Public replies are sent only when explicitly enabled and
-all three supervisor checklist items pass. The 25-case TASK-19 benchmark uses
-a fake sender and never sends live replies. The standalone Zoho smoke command
+**Current state:** Agent-initiated public replies are blocked by TASK-25's
+`allow_delivery=False` override in the Zoho runner, even if the environment
+flag is true. The 50-case informational benchmark and frozen 200-case holdout
+use a fake sender and never send live replies. The standalone Zoho smoke command
 targets one existing ticket and contact controlled by the operator; it sends
 one fixed public message only after explicit CLI and interactive confirmation.
 Ambiguous request outcomes are not retried; the operator must check the ticket
 before any manual replay.
 
-**Follow-up:** Before enabling delivery for real customers, use the standalone
+**Follow-up:** Before re-enabling graph delivery, first satisfy the TASK-25
+zero-false-send gate on a reviewed suite, validate real order/policy providers,
+and make a separate decision. Before enabling delivery for real customers,
+use the standalone
 smoke command against one Zoho Desk internal test ticket and controlled
 contact, confirm the OAuth app has only the
 required ticket-read and ticket-update scopes, define operator approval and
@@ -165,7 +248,9 @@ the smoke command requires explicit confirmation, sends no more than one reply,
 and does not retry an ambiguous outcome. Confirm the human escalation contains
 enough context to review without exposing credentials in logs.
 
-**Status:** Deferred; live validation requires a controlled Zoho Desk account.
+**Status:** The operator previously confirmed one controlled Zoho send. The
+new polling, allowlist, note, restart, and reconciliation paths remain
+unvalidated against the live Zoho API; test-mode delivery stays gated.
 
 ## Recording future follow-ups
 

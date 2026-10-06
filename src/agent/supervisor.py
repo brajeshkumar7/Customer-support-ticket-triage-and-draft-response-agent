@@ -9,15 +9,20 @@ SUPERVISOR_CHECKLIST = [
     {
         "id": "factual_claims_grounded",
         "check": (
-            "Every factual claim in the draft is backed by a successful tool result "
-            "actually present in the current state."
+            "Claims about current order, policy, billing, or shipment facts are backed "
+            "by successful current tool results. A ticket supports only what the "
+            "customer said or requested; such statements must be attributed as reports, "
+            "not presented as verified business facts. Typed unavailable status supports "
+            "only a statement that a lookup could not verify a requested field."
         ),
     },
     {
         "id": "no_unsupported_claims",
         "check": (
-            "The draft does not claim order, policy, refund, delivery, or account "
-            "facts that no successful tool returned."
+            "The draft does not claim order, policy, refund, delivery, billing, or "
+            "account outcomes that no successful tool returned. It may accurately "
+            "acknowledge the customer's reported issue or request without treating it "
+            "as independently verified."
         ),
     },
     {

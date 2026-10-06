@@ -75,9 +75,17 @@ class OpenRouterClient:
             raise OpenRouterConfigurationError("OPENROUTER_API_KEY is required.")
 
         self.models = parse_openrouter_models(configured_models)
+        try:
+            timeout_seconds = float(os.getenv("OPENROUTER_TIMEOUT_SECONDS", "20"))
+        except ValueError as error:
+            raise OpenRouterConfigurationError("OPENROUTER_TIMEOUT_SECONDS must be positive.") from error
+        if not 0 < timeout_seconds <= 120:
+            raise OpenRouterConfigurationError("OPENROUTER_TIMEOUT_SECONDS must be between 0 and 120.")
         self._client = client or AsyncOpenAI(
             api_key=configured_key,
             base_url=configured_url,
+            timeout=timeout_seconds,
+            max_retries=0,
         )
         self._sleep = sleep
         self._rate_limiter = rate_limiter or OpenRouterRateLimiter(sleep=sleep)
