@@ -1,15 +1,57 @@
+# Local configuration (keep shareable examples)
 .env
+.env.*
+!.env.example
+
+# Python environments and bytecode
 __pycache__/
-*.pyc
+*.py[cod]
 .venv/
 venv/
+
+# Runtime data and local indexes
 data/logs/*.jsonl
 data/eval_reports/
 data/test_tickets/zoho_ticket_map.csv
 chroma_data/
 data/rag_index/
 tmp/pdfs/
+
+# Test caches and scratch directories
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+/.pytest-run-tmp/
+/.pytest-tmp-*/
+/.pytest_tmp/
+/.task*-pytest-tmp/
+/.task*-test-*/
+/._task*_pytest_temp/
+/pytest-cache-files-*/
+/_production_test_temp/
+/_pytest_task*_temp/
+/_task*_tmp_*/
+/tests/.tmp_release/
+/data/audit_pytest_*/
+/data/test_tmp_task*/
+/data/logs/.task*-pytest-tmp/
+/data/logs/task*-chroma-*/
+/data/logs/task*_pytest_tmp_*/
+
+# JavaScript dependencies and build artifacts
 node_modules/
 .next/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Local temporary files and OS metadata
 .tmp/
+.DS_Store
+Thumbs.db
+Desktop.ini
