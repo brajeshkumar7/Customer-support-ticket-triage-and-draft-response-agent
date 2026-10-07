@@ -342,6 +342,11 @@ Administration initializes required tables; it needs `DEPLOYMENT_MODE=test`.
 
 ## 9. Measured results and remaining limits
 
+Separately, [manual Zoho integration observations](docs/zoho_manual_validation.md)
+record owner-shared OAuth, ticket lookup, historical delivery, safety blocks,
+recipient confirmation and acknowledgement receipt. These controlled manual
+tests are excluded from the synthetic accuracy metrics below.
+
 [TASK-43 measurement](docs/measurements/task43_regression.json), measured 2026-10-07. Raw local report: `data/eval_reports/task29_20261007T095641Z_d2289193.json`.
 
 | Metric | Recorded value |

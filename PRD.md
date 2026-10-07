@@ -160,6 +160,13 @@ TASK-43: 50 attempted, 50 scored, 47 matched; disposition match 0.94; 0 false si
 Disposition mismatches: `general_03`, `general_04`, `general_08`. This is a fully scored development measurement, not production approval. The earlier TASK-41 attempt remains historical. Current 200-case validation, independent review, larger-corpus measurements, sequential comparison and live-release gates remain open. Worker deployment/intake/delivery were not tested by this fake-sender run.
 
 ## 6. Observability Requirements
+
+**Separate manual integration evidence:** [Zoho validation record](docs/zoho_manual_validation.md)
+summarizes the owner's shared controlled runs and inbox confirmations, including
+historical sending and current reviewed acknowledgements. These are qualitative
+integration observations, excluded from the 50-case benchmark and its metrics.
+They do not validate unattended delivery or the undeployed worker.
+
 - Local evaluation logs tool inputs/outputs, latency, and provider cost.
   Deployment logs omit ticket bodies and drafts; PostgreSQL stores minimal
   job and delivery metadata with retention cleanup.

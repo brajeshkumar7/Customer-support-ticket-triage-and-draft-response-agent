@@ -823,3 +823,8 @@ score appears. The 200-case and specialized evaluations remain separate; a new
 
 Status: measured and saved. TASK-43: 50 attempted, 50 scored, 47 matched; disposition match 0.94; 0 false simulated sends, 3 false escalations, 0 operational failures. Full-run p95: 52145.7439000078 ms; reported token cost: 0.245525665. See [TASK-43 measurement](docs/measurements/task43_regression.json).
 The measurement is complete; accuracy/speed/release acceptance is not implied.
+
+Separate evidence: [manual Zoho validation](docs/zoho_manual_validation.md)
+records owner-shared controlled runs, including historical sends and manually
+confirmed acknowledgement receipt. These observations are not TASK-43 cases
+and must not be included in its synthetic accuracy, latency or cost metrics.

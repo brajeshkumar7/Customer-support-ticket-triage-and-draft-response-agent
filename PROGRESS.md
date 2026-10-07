@@ -1252,6 +1252,14 @@ The original rows are preserved below, not current-stack measurements.
 
 ## [2026-10-07] TASK-43 current-stack showcase evaluation
 
+**Manual integration evidence supplement:** [Zoho validation record](docs/zoho_manual_validation.md)
+retrospectively records terminal excerpts and inbox confirmations shared by the
+owner: OAuth refresh, ticket lookup, historical API delivery, safety escalation,
+recipient mismatch refusal and manually confirmed acknowledgement receipt.
+Individual run dates/configurations are incomplete; no aggregate accuracy or
+delivery rate is inferred. These observations do not enter the benchmark below.
+This supplement changed documentation only; no new Zoho or model call occurred.
+
 **Completed:** Ran the 50 author-labeled development cases once, with configured OpenRouter models, Jev triage/review, PDF hybrid RAG, shared business policy, shared ephemeral Chroma and fake delivery only. No Zoho request or email.
 
 TASK-43: 50 attempted, 50 scored, 47 matched; disposition match 0.94; 0 false simulated sends, 3 false escalations, 0 operational failures. Full-run p95: 52145.7439000078 ms; reported token cost: 0.245525665.
