@@ -700,3 +700,19 @@ current agent. The 200-case regression and specialized critic/injection tests
 remain separately scoped; this run does not establish those release gates.
 **Status:** measured; TASK-43: 50 attempted, 50 scored, 47 matched; disposition match 0.94; 0 false simulated sends, 3 false escalations, 0 operational failures. Full-run p95: 52145.7439000078 ms; reported token cost: 0.245525665.
 No Zoho email or deployment occurred. This measurement does not change approval policy or release authorization.
+
+## [2026-10-07] Sequential/concurrent dispatch measurement (TASK-20)
+
+Use an explicit graph argument defaulting to concurrent; the comparison CLI alone
+selects sequential dispatch. Measure two fresh ordered 50-case fake-delivery
+batches, sequential first, with separate ephemeral history and one shared model
+rate budget. Time dispatch separately from retrieval/extraction and full runs.
+This satisfies PRD Section 5 latency measurement. Publish only complete scored
+pairs; preserve failures as diagnostics. Live model variation, pacing and caches
+limit causal interpretation. No artificial delay, provider change or real send.
+
+**Measurement follow-up (2026-10-08):** The newly authorized full pair attempted
+all 100 runs but produced 18 sequential and one concurrent operational failure.
+The comparison remains diagnostic with no accepted percentage reduction.
+Preserve the prior tracker and [recorded results](docs/task20_comparison.md);
+no paid restart or release decision is implied.

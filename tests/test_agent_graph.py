@@ -543,8 +543,9 @@ async def test_three_tools_are_dispatched_concurrently(long_term_memory, enabled
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("tool_dispatch_mode", ["concurrent", "sequential"])
 async def test_tool_failure_is_recorded_and_does_not_abort_graph(
-    long_term_memory, enabled_fake_zoho_desk
+    long_term_memory, enabled_fake_zoho_desk, tool_dispatch_mode
 ):
     client = FakeOpenRouterClient(
         [
@@ -556,6 +557,7 @@ async def test_tool_failure_is_recorded_and_does_not_abort_graph(
     )
     graph = build_graph(
         short_term_memory=ShortTermMemory("ticket-tool-error"),
+        tool_dispatch_mode=tool_dispatch_mode,
         long_term_memory=long_term_memory,
         client=client,
         primary_model="test-model",

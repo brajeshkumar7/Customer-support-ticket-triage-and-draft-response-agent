@@ -53,6 +53,10 @@ place; don't delete completed items, so the history stays visible.
       send benchmark replies to Zoho. Keep live validation to the explicit
       one-ticket smoke test for a ticket/contact the operator controls.
 - [ ] TASK-20: Run sequential vs. async latency comparison, record the delta
+  - Both modes attempted all 50 cases on 2026-10-07/08: sequential 32 scored,
+    31 matched, 18 operational failures; concurrent 49 scored, 47 matched,
+    one operational failure. Zero false simulated sends. [Diagnostic](docs/task20_comparison.md).
+    No accepted reduction or paid restart; a fully scored pair is still needed.
 
 ## Phase 6 — Ship
 - [x] TASK-21: Architecture diagrams for the local graph and controlled worker

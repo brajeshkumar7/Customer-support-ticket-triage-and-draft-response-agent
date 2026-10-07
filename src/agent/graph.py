@@ -26,7 +26,7 @@ from src.agent.supervisor import (
 )
 from src.memory.long_term import LongTermMemory
 from src.memory.short_term import ShortTermMemory
-from src.observability.logger import log_node_event, log_tool_event
+from src.observability.logger import log_event, log_node_event, log_tool_event
 from src.openrouter_client import OpenRouterClient
 from src.tools.base import ToolError, ToolResult
 from src.tools.faq_search import FAQSearchTool
@@ -50,6 +50,19 @@ CLASSIFICATIONS = {
 URGENCIES = {"low", "medium", "high"}
 SAMPLE_TICKET = "My package ORD-1001 has not arrived. Can you check its status?"
 logger = logging.getLogger(__name__)
+
+
+async def dispatch_fact_tools(tool_calls, *, mode: str):
+    """Collect individual failures in both modes; concurrency is the default path."""
+    if mode == "concurrent":
+        return await asyncio.gather(*tool_calls, return_exceptions=True)
+    results = []
+    for call in tool_calls:
+        try:
+            results.append(await call)
+        except Exception as error:
+            results.append(error)
+    return results
 
 
 def _message_content(response: Any) -> str:
@@ -247,8 +260,11 @@ def build_graph(
     use_long_term_memory: bool = True,
     use_rag: bool | None = None,
     knowledge_search_tool: KnowledgeSearchTool | None = None,
+    tool_dispatch_mode: str = "concurrent",
 ):
     """Compile a per-ticket graph with injectable memory, tools, and model client."""
+    if tool_dispatch_mode not in {"concurrent", "sequential"}:
+        raise ValueError("tool_dispatch_mode must be concurrent or sequential.")
     load_dotenv()
     model = primary_model or os.getenv("OPENROUTER_PRIMARY_MODEL", "").strip()
     if not model:
@@ -433,7 +449,16 @@ def build_graph(
             ),
             faq_search.run(run_id=state["ticket_id"], query=state["ticket_text"]),
         )
-        raw_results = await asyncio.gather(*tool_calls, return_exceptions=True)
+        dispatch_started = time.perf_counter()
+        raw_results = await dispatch_fact_tools(tool_calls, mode=tool_dispatch_mode)
+        try:
+            log_event(event_type="tool_dispatch", run_id=state["ticket_id"],
+                      name="gather_facts_dispatch",
+                      inputs={"mode": tool_dispatch_mode, "call_count": len(tool_calls)},
+                      output={"completed_count": len(raw_results)},
+                      latency_ms=(time.perf_counter() - dispatch_started) * 1000)
+        except OSError:
+            logger.exception("Could not log tool dispatch timing.")
         tool_results: dict[str, dict[str, Any]] = {}
         for name, result in zip(tool_names, raw_results, strict=True):
             if isinstance(result, Exception):

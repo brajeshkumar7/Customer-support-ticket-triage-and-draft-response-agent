@@ -246,6 +246,32 @@ are not retried. This tests the adapter, not agent accuracy.
 
 ## 5. Tests and additional evaluations
 
+### Sequential/concurrent comparison (TASK-20)
+
+```powershell
+python -m src.eval.compare_tool_dispatch
+python -m src.eval.compare_tool_dispatch --report data/eval_reports/TASK20_REPORT.json
+```
+
+The first command runs two fresh 50-ticket batches with configured models
+(paid calls if selected): sequential fixture dispatch first, concurrent second.
+Both use only fake delivery and separate fresh shared ephemeral Chroma; no
+Zoho calls or emails. Ordinary commands still default to concurrent dispatch.
+Existing RAG and informational bypasses are unchanged. Reports/checkpoints
+are saved in `data/eval_reports/task20_*.json`; the second command recomputes
+offline. Interrupted batches are diagnostics, with no automatic paid restart.
+Dispatch timings exclude RAG/extraction; full-run differences also include
+model variation, pacing and cache effects. Automatic comparison-row publication requires two
+complete scored batches and is separate from the ordinary accuracy tracker.
+
+The latest [comparison attempt](docs/task20_comparison.md), completed 2026-10-08,
+attempted all 100 runs: sequential 32 scored/31 matched with 18 operational
+failures; concurrent 49 scored/47 matched with one failure. Both recorded zero
+false simulated sends. Its subset latencies are diagnostic, with no accepted
+speedup or tracker replacement. TASK-20 remains open. The earlier FM-029
+checkpoint defect was fixed offline before this attempt; no paid batch was
+automatically restarted.
+
 | Command | Configuration / external calls | Output and scope |
 | --- | --- | --- |
 | `python -m pytest tests -q` | Installed Python dependencies; fake clients, no live model or email calls | Console results; network-free implementation regressions |

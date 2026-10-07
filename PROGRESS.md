@@ -22,6 +22,38 @@ pick this back up cold
 
 ## Metrics tracker (update as you measure — mirrors PRD.md Section 5)
 
+TASK-20 accepted comparison remains unmeasured. The newly authorized pair
+attempted all 100 runs on 2026-10-07/08, with 18 sequential and one concurrent
+operational failure. [Diagnostic measurements](docs/task20_comparison.md)
+are recorded separately; the tracker below remains TASK-43 and must not be
+paired with the diagnostic's subset p95 values. The initial checkpoint failure
+(FM-029) was fixed before this new attempt.
+
+### [2026-10-07] TASK-20 implementation and interrupted live attempt
+
+Implemented comparison-only sequential dispatch, default concurrent behavior,
+separate dispatch logging, fake-only two-batch runner, raw-row checkpoints,
+configuration pinning, offline recomputation and complete-pair publication
+guards. Both graph dispatch modes preserve individual tool failures.
+
+Verification: 63 targeted network-free tests passed. Initial sandbox attempts
+hit Windows temporary-directory permissions; the final run used a fresh
+workspace directory outside that sandbox and completed successfully.
+The comparison's first paid attempt completed sequential `order_01`, then
+failed while calculating an empty concurrent batch (FM-029). That reporting
+bug is now covered by offline tests. No paid restart was made. Its six logged
+model calls cost 0.005233218; dispatch took 6.972 ms and gather_facts 21315.544 ms.
+The original full-run wall-clock measurement was lost, so no full-run latency
+is inferred. The [diagnostic](docs/measurements/task20_dispatch_diagnostic.json)
+contains a reconstructed partial observation and is not a benchmark.
+
+TASK-20 remains open until a newly initiated complete pair scores all 100
+ticket runs. Existing TASK-43 metrics and historical tracker remain intact.
+No Zoho request, public email, label change or artificial tool delay occurred.
+Use `python -m src.eval.compare_tool_dispatch` to explicitly start a new pair;
+the completed runner writes only comparison rows to the tracker. General
+accuracy findings and production-release gates are unaffected.
+
 **Current metrics provenance:** data/eval_reports/task29_20261007T095641Z_d2289193.json, measured 2026-10-07T15:58:40.053686+05:30. All 50 cases scored; publication means a complete measurement, not that accuracy or release targets passed.
 
 TASK-43: 50 attempted, 50 scored, 47 matched; disposition match 0.94; 0 false simulated sends, 3 false escalations, 0 operational failures. Full-run p95: 52145.7439000078 ms; reported token cost: 0.245525665. See [TASK-43 measurement](docs/measurements/task43_regression.json).
@@ -1280,3 +1312,39 @@ TASK-43: 50 attempted, 50 scored, 47 matched; disposition match 0.94; 0 false si
 Disposition mismatches: `general_03`, `general_04`, `general_08`. Supervisor unsupported-claim flags are review signals, not independent truth labels. Raw report: `data/eval_reports/task29_20261007T095641Z_d2289193.json`; shareable body-free summary: [TASK-43 measurement](docs/measurements/task43_regression.json). Historical tracker/session measurements are preserved. The current accepted tracker was copied from the harness and its distribution/model attribution rows refreshed directly from this report.
 
 **Verification:** Saved-report recomputation exactly reproduced the saved metrics; 856 correlated JSONL events contained 277 model calls with matching provider-cost attribution. Local Markdown links and the final diff were checked. No model, tool, policy, PDF, manifest or evaluation-label change was made. One successful run does not establish that earlier intermittent parsing defects are fixed. The 200-case and specialized evaluations were not rerun.
+
+## [2026-10-08] TASK-20 full attempted pair: diagnostic only
+
+**Completed:** Newly authorized sequential-first and concurrent-second batches
+each attempted all 50 cases with configured models, fake sender, separate fresh
+shared ephemeral Chroma and one model rate budget. Started 2026-10-07; last
+correlated event 2026-10-08T00:49:26.838406+05:30. All 100 rows were saved.
+Raw report: `data/eval_reports/task20_20261007T182019Z_3d6bdad5.json`.
+[Results](docs/task20_comparison.md); [body-free report](docs/measurements/task20_dispatch_20261008.json).
+
+| Diagnostic metric | Sequential | Concurrent |
+| --- | --- | --- |
+| Attempted / scored / matched | 50 / 32 / 31 | 50 / 49 / 47 |
+| Unscored operational failures | 18 | 1 |
+| False simulated sends / scored false escalations | 0 / 1 | 0 / 2 |
+| Full-run p95, scored subset only (ms) | 51568.66219999938 | 52613.4406000001 |
+| Dispatch p95 (ms) | 7.951 | 5.919 |
+| gather_facts p95 (ms) | 35909.156 | 33790.803 |
+| Dispatch / successful bypass count | 29 / 3 | 43 / 6 |
+| Model calls | 209 | 276 |
+| Provider-reported cost subtotal | 0.170256754 | 0.240768267 |
+| Tickets with missing provider costs | 17 | 0 |
+
+**Verification:** Offline recomputation exactly reproduced the saved summary;
+all per-run costs and timing fields matched 1,575 correlated JSONL events.
+No Zoho events, emails or configured persistent-memory use. No automatic paid
+restart, model substitution, artificial delay, agent fix or label change.
+
+**Open:** FM-028 gather_facts ValueError (sequential order_04), one timeout and
+16 classify connection failures; FM-026 respond ValueError (concurrent
+general_08). FM-027 scored false escalations: sequential general_08; concurrent
+general_03/general_04. The subsets differ and do not yield an accepted async
+percentage reduction. Missing provider cost remains unknown, not zero. The
+runner withheld tracker publication; TASK-20 remains open. Prior TASK-43
+metrics and historical sessions are preserved. This does not demonstrate a
+causal speedup or production readiness.

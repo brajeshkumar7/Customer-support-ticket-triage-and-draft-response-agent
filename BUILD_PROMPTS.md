@@ -593,10 +593,10 @@ using `python -m src.eval.zoho_smoke --ticket-id ID --send`.
 ```
 Read src/agent/graph.py's gather_facts node (TASK-07) before starting.
 
-Task: add a temporary sequential-mode flag to gather_facts (call the three
-tools one after another instead of via asyncio.gather), run the same
-current 50-ticket informational eval set in both modes, and record the
-latency difference. This comparison remains open in `TASKS.md`.
+Task: use `python -m src.eval.compare_tool_dispatch` to run two fresh 50-case
+informational evaluations: sequential fixture dispatch first, concurrent
+second. Use configured models and fake delivery only, never Zoho. Each batch
+has separate fresh shared ephemeral Chroma. Ordinary graph runs remain concurrent.
 
 Requirements:
 1. Do not permanently change the production behavior — the default must
@@ -607,10 +607,26 @@ Requirements:
    from async, writing both numbers into PROGRESS.md's metrics tracker
    (add rows for "p95 latency (sequential)" and "p95 latency (async)" if not
    already present).
+3. Save per-case checkpoints and configuration provenance; stop if dataset,
+   knowledge, policy or model settings change. Recompute offline with
+   `python -m src.eval.compare_tool_dispatch --report PATH`.
+4. Measure three-tool dispatch separately from gather_facts and full runs;
+   informational tickets bypass these tools. No artificial delays. Preserve
+   negative reductions and note model/pacing/cache variability.
+5. Publish only two fully scored 50-case batches; interrupted/failed pairs
+   remain diagnostics and do not close TASK-20. Never auto-restart a paid run.
 
 Done when: PROGRESS.md shows both real numbers and the computed reduction,
 and the graph's default mode is confirmed still async.
 ```
+
+Current status: default concurrent behavior and offline calculations verified.
+After the initial FM-029 checkpoint fix, a newly authorized pair attempted all
+100 runs on 2026-10-07/08. Sequential: 32 scored, 31 matched, 18 operational
+failures. Concurrent: 49 scored, 47 matched, one operational failure. Zero false
+simulated sends in both. [Recorded results](docs/task20_comparison.md) are a
+diagnostic; subset p95 values are not an accepted comparison. No percentage
+reduction was published; TASK-20 remains open. No automatic paid restart.
 
 ---
 

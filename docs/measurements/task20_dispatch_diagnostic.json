@@ -1,0 +1,114 @@
+{
+  "task": "TASK-20",
+  "comparison_id": "20261007T181254Z_7852ea8d",
+  "delivery_adapter": "fake",
+  "measured_at": "2026-10-07",
+  "batches": {
+    "sequential": [
+      {
+        "ticket_id": "order_01",
+        "run_id": "task19-20261007T181254Z_7852ea8d-sequential-order_01",
+        "category": "order_status",
+        "expected_outcome": "escalate",
+        "observed_outcome": "escalated",
+        "matches_expected": true,
+        "run_error": null,
+        "latency_ms": null,
+        "retry_count": 0,
+        "evidence_origin": "Reconstructed from shared console completion and correlated JSONL; original in-memory checkpoint lost.",
+        "reported_cost": 0.005233218,
+        "llm_calls": 6,
+        "calls_missing_cost": 0,
+        "total_cost": 0.005233218,
+        "dispatch_ms": 6.972,
+        "gather_facts_ms": 21315.544
+      }
+    ],
+    "concurrent": []
+  },
+  "error": {
+    "type": "ValueError",
+    "message": "Checkpoint metric calculation rejected empty concurrent batch."
+  },
+  "limitations": "Incomplete diagnostic only. Full-run wall-clock latency and original row were not saved; do not infer them from node timings. No paid restart.",
+  "summary": {
+    "sequential": {
+      "complete": false,
+      "metrics": {
+        "ticket_count": 1,
+        "scored_ticket_count": 1,
+        "unscored_count": 0,
+        "matched_count": 1,
+        "task_completion_rate": 1.0,
+        "category_classification": {
+          "measured_count": 0,
+          "correct_count": 0,
+          "accuracy": null,
+          "urgency_distribution": {
+            "high": 0,
+            "medium": 0,
+            "low": 0
+          },
+          "priority_distribution": {
+            "P1": 0,
+            "P2": 0,
+            "P3": 0
+          }
+        },
+        "expected_auto_resolve_count": 0,
+        "auto_resolve_incorrect_escalation_count": 0,
+        "auto_resolve_incorrect_escalation_rate": null,
+        "expected_escalate_count": 1,
+        "expected_escalate_correct_count": 1,
+        "escalation_recall": 1.0,
+        "expected_escalate_incorrect_send_count": 0,
+        "expected_escalate_incorrect_send_rate": 0.0,
+        "false_send_count": 0,
+        "missed_escalation_count": 0,
+        "false_escalation_count": 0,
+        "unsupported_claim_review_count": null,
+        "safety_gate_violation_count": null,
+        "by_category": {
+          "order_status": {
+            "ticket_count": 1,
+            "llm_calls": 6,
+            "reported_cost": 0.005233218,
+            "calls_missing_cost": 0,
+            "false_sends": 0,
+            "missed_escalations": 0,
+            "false_escalations": 0,
+            "unsupported_claim_reviews": null,
+            "safety_gate_violations": null
+          }
+        },
+        "mean_retries_to_success": 0.0,
+        "failure_after_cap_count": 0,
+        "failure_after_cap_rate": 0.0,
+        "p95_latency_ms": null,
+        "total_reported_token_cost": 0.005233218,
+        "llm_calls_total": 6,
+        "zero_model_call_tickets": 0,
+        "tickets_with_missing_token_cost": 0,
+        "cost_per_successful_run": 0.005233218
+      },
+      "dispatch_p95_ms": 6.972,
+      "gather_facts_p95_ms": 21315.544,
+      "dispatch_count": 1,
+      "bypass_count": 0,
+      "model_calls": 6
+    },
+    "concurrent": {
+      "complete": false,
+      "metrics": null,
+      "dispatch_p95_ms": null,
+      "gather_facts_p95_ms": null,
+      "dispatch_count": 0,
+      "bypass_count": 0,
+      "model_calls": 0
+    },
+    "publishable": false,
+    "full_run_reduction_percent": null,
+    "dispatch_reduction_percent": null,
+    "disposition_differences": []
+  }
+}

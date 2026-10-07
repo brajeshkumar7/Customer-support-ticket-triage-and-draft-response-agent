@@ -593,6 +593,7 @@ async def _run_graphs(
     on_result: Callable[[dict[str, Any]], None] | None = None,
     shared_client: OpenRouterClient | None = None,
     evaluation_memory: LongTermMemory | None = None,
+    tool_dispatch_mode: str = "concurrent",
 ) -> list[dict[str, Any]]:
     from src.observability.logger import _LOG_PATH
 
@@ -628,6 +629,7 @@ async def _run_graphs(
                 client=llm_client,
                 reply_sender=reply_sender,
                 use_long_term_memory=True,
+                tool_dispatch_mode=tool_dispatch_mode,
                 **(tool_overrides(case) if tool_overrides else {}),
             )
             graph_result = await graph.ainvoke(

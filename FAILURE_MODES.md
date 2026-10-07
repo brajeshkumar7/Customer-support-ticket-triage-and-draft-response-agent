@@ -659,3 +659,60 @@ for evaluation; neither the label nor the implementation was changed.
 
 TASK-43: 50 attempted, 50 scored, 47 matched; disposition match 0.94; 0 false simulated sends, 3 false escalations, 0 operational failures. Full-run p95: 52145.7439000078 ms; reported token cost: 0.245525665. Source: [TASK-43 measurement](docs/measurements/task43_regression.json).
 Disposition mismatches: `general_03`, `general_04`, `general_08`. This rerun changes no underlying implementation and is not a before/after fix claim. Previous workflow failures remain historical evidence and require separate investigation; no live sending is enabled.
+
+## FM-029 - TASK-20 first checkpoint failed on an empty second batch
+
+On 2026-10-07, comparison `20261007T181254Z_7852ea8d` completed sequential
+`order_01` with explicit escalation and no send. The checkpoint publisher
+called the existing metric calculator on the not-yet-started concurrent batch;
+it raised `ValueError: Cannot calculate evaluation metrics for an empty result set.`
+The final save hit the same error, so the in-memory row was not persisted.
+Correlated JSONL events survive; full-run wall-clock latency cannot be recovered
+exactly from them. No comparison metric or success claim was published.
+
+Fix: empty batch metrics are null, save an initial report, persist each raw row
+before enrichment, and test empty and one-row checkpoint/offline handling.
+The paid comparison was not automatically restarted. Offline verification can
+validate the fix; a new explicitly initiated full pair is still needed to close
+TASK-20. The first ticket's agent escalation was expected, not this runner bug.
+
+### FM-028 follow-up - TASK-20 sequential attempt, 2026-10-07
+
+During newly authorized comparison `20261007T182019Z_3d6bdad5`, sequential
+`order_04` failed in gather_facts with ValueError and safely escalated without
+delivery. Its run ID is
+`task19-20261007T182019Z_3d6bdad5-sequential-order_04`.
+This is an operational workflow failure, not a scored disposition or proof
+that sequential dispatch caused it. Preserve the checkpoint and finish the
+planned attempts; no accepted latency comparison or automatic paid restart.
+
+### TASK-20 provider availability failures, 2026-10-08
+
+In comparison `20261007T182019Z_3d6bdad5`, sequential `billing_05` failed
+in gather_facts with APITimeoutError; `general_01` and `general_02` failed
+in classify with APIConnectionError. All produced explicit escalation without
+sending and remain unscored. These provider/transport failures do not establish
+an effect of fixture dispatch mode. No model substitution, live delivery,
+or automatic paid batch restart is performed. The completed diagnostic will
+record every affected run and preserve the previously accepted tracker.
+
+### FM-027 follow-up - TASK-20 sequential retrieval rejection
+
+Sequential `general_08` in comparison `20261007T182019Z_3d6bdad5` again
+escalated with "Retrieved guidance does not cover the entire request."
+Its informational label expects a simulated reply. This remains a scored
+false escalation, separate from transport/workflow failures. No tuning or
+relabeling is made during this measurement.
+
+In the concurrent batch of the same comparison, `general_03` falsely
+escalated with "No retrieved simulation-approved PDF contains the exact
+versioned reply." The failure is preserved as a scored retrieval rejection;
+it does not demonstrate a dispatch performance effect.
+
+### FM-026 follow-up - TASK-20 concurrent response validation
+
+Concurrent `general_08` in comparison `20261007T182019Z_3d6bdad5` failed
+in respond with ValueError and escalated without sending. This run is unscored,
+not a successful human disposition or a scored false escalation. The logged
+node/type do not establish the precise malformed field. Retain this failure
+and finish the remaining planned cases; no paid batch restart or agent fix.

@@ -102,7 +102,9 @@ escalations for human review; mock order data does not authorize delivery.
 - [x] Disposition match rate across the current fixed set of 50 synthetic scenarios
 - [x] Mean retries-to-success and failure rate after cap
 - [ ] p95 latency comparison of sequential versus async tool calls (TASK-20;
-  full-run p95 is measured, but the sequential comparison is not)
+  the latest pair attempted all 100 runs but had 19 operational failures;
+  [diagnostic subset measurements](docs/task20_comparison.md) do not satisfy
+  the fully scored comparison gate)
 - [x] Cost per successful run (provider-reported token cost from logs)
 - Category classification accuracy and urgency/priority distribution on
   labeled local cases; report these separately from disposition accuracy.
