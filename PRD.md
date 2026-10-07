@@ -79,8 +79,9 @@ escalations for human review; mock order data does not authorize delivery.
   served model. Unclear or invalid answers fail into human escalation. Jev
   confidence is distinct from supervisor checklist confidence and does not
   authorize delivery. The prior generative classifier's measurements remain historical. TASK-41
-  measured category accuracy at 45/50 = 0.9; its three operational failures
-  prevent clean full-workflow acceptance, and urgency calibration remains open.
+  measured 45/50 categories with three workflow failures; the later TASK-43
+  run scored all 50 cases with 46/50 correct categories (0.92).
+  Urgency calibration and broader accuracy/reliability acceptance remain open.
 - **Controlled Zoho deployment:** a single Render worker polls Zoho and uses
   PostgreSQL for unique inbound-thread jobs, a cursor, exact test allowlists,
   a kill switch, and delivery status. `off` is the default; `shadow` never
@@ -146,11 +147,17 @@ escalations for human review; mock order data does not authorize delivery.
   from the 10 scored results. The refund-timing statement in the refund
   pre-approval case is supported by the existing refund-timing FAQ fixture.
 
-The latest TASK-41 attempt recorded 50 attempted, 47 scored, 45 matched, two false escalations, three operational failures, and zero false simulated sends. Its scored-only match rate is 0.9574468085106383; failures are excluded from that denominator, not counted as successes. See [the diagnostic](docs/measurements/task41_policy.json). Failed batches retain saved reports but do not overwrite the accepted tracker.
+The historical TASK-41 attempt recorded 50 attempted, 47 scored, 45 matched, two false escalations, three operational failures, and zero false simulated sends. Its scored-only match rate is 0.9574468085106383; failures are excluded from that denominator, not counted as successes. See [the diagnostic](docs/measurements/task41_policy.json). Failed batches retain saved reports but do not overwrite the accepted tracker.
 
 `PROGRESS.md` preserves report provenance. Current 200-case validation,
 retrieval/workflow failures and latency gates remain open. An interrupted run
 does not establish new accuracy.
+
+
+### Current 50-case evaluation (TASK-43, 2026-10-07)
+
+TASK-43: 50 attempted, 50 scored, 47 matched; disposition match 0.94; 0 false simulated sends, 3 false escalations, 0 operational failures. Full-run p95: 52145.7439000078 ms; reported token cost: 0.245525665. See [TASK-43 measurement](docs/measurements/task43_regression.json).
+Disposition mismatches: `general_03`, `general_04`, `general_08`. This is a fully scored development measurement, not production approval. The earlier TASK-41 attempt remains historical. Current 200-case validation, independent review, larger-corpus measurements, sequential comparison and live-release gates remain open. Worker deployment/intake/delivery were not tested by this fake-sender run.
 
 ## 6. Observability Requirements
 - Local evaluation logs tool inputs/outputs, latency, and provider cost.
@@ -164,18 +171,20 @@ does not establish new accuracy.
 ## 7. Explicit Trade-off
 
 The informational-only approval policy gives up automation coverage to avoid
-replying from mock or unverified customer-specific data. In the accepted historical
-50-case run, 7 tickets received simulated replies and 43 escalated; all 50
-matched their author-drafted disposition labels, with zero false simulated
-sends. The separate 200-case author-labeled holdout missed its 95% target:
-189/200 dispositions matched, with 11 false escalations and no false simulated
-sends. Narrow approval improves observed send safety in these synthetic cases
-but rejects some answerable questions and cannot establish real-customer
-accuracy. That historical 50-case result predates Jev/RAG. TASK-41 yielded
-four simulated replies, two false escalations and three operational failures;
-full-run p95 was 65542.06790000899 ms. This demonstrates the current coverage
-and latency trade-off, not production acceptance. Real sending remains blocked
-pending authoritative sources and independent review.
+replying from fictional or unverified customer-specific facts. In the current
+TASK-43 run, 4 of 50 tickets received simulated informational replies;
+46 were escalated, including 3 supported FAQ questions that should have
+been answerable. The run matched 47/50 author-labeled dispositions
+(0.94), with 0 false simulated sends and 0 operational failures.
+Full-run p95 was 52145.7439000078 ms. Narrow authority constrained unsafe
+sending in this sample, while retrieval/coverage rejection reduced useful
+automation. The 95% disposition target was not met. These development results
+cannot establish real-customer accuracy or authorize live delivery.
+
+Historical 50/50 and 189/200 results, and the partial TASK-41 attempt, retain
+their dates and provenance in Section 5 and PROGRESS.md. Current 200-case
+validation, authoritative business data, identity verification and independent
+review remain open. Source: [TASK-43 measurement](docs/measurements/task43_regression.json).
 
 ## 8. Deliverables
 - [ ] Public repo status is unverified; the README links the architecture diagram

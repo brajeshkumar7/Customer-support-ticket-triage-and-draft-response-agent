@@ -24,6 +24,12 @@ informational reply only when all of these hold:
 authoritative commerce/billing providers and a separate release decision are
 implemented. `ZOHO_DESK_SEND_ENABLED` does not override these gates.
 
+
+## Current 50-case evaluation (TASK-43, 2026-10-07)
+
+TASK-43: 50 attempted, 50 scored, 47 matched; disposition match 0.94; 0 false simulated sends, 3 false escalations, 0 operational failures. Full-run p95: 52145.7439000078 ms; reported token cost: 0.245525665. See [TASK-43 measurement](measurements/task43_regression.json).
+Disposition mismatches: `general_03`, `general_04`, `general_08`. This is a fully scored development measurement, not production approval. The earlier TASK-41 attempt remains historical. Current 200-case validation, independent review, larger-corpus measurements, sequential comparison and live-release gates remain open. Worker deployment/intake/delivery were not tested by this fake-sender run.
+
 ## Optional preparation and deployment (not performed)
 
 `render.yaml` describes **paid** Render resources: one worker and one private
@@ -95,7 +101,7 @@ drafts. Audit access to Zoho and the database separately.
 
 ## Release gate still outstanding
 
-The graph benchmarks are separate from worker validation. The current TASK-41
+The graph benchmarks are separate from worker validation. The historical TASK-41
 attempt had 50 attempts, 47 scored and 45 matched, with three operational
 failures; it does not validate Zoho polling, identity, reconciliation or customer
 delivery. Older 25/50/200-case measurements remain historical. The release evaluator requires at least

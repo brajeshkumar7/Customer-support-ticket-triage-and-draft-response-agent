@@ -248,7 +248,8 @@ Original draft-only send condition below was extended by TASK-35 acknowledgement
 - [x] Verify the API contract and graph/evaluator behavior offline; one live
       Jev request succeeded using the configured OpenRouter key.
 - [x] Document configured-model 50-case Jev/RAG attempts: TASK-41 measured
-      45/50 correct categories; three workflow failures prevent clean acceptance.
+      45/50 correct categories with three workflow failures; TASK-43 later scored
+      all 50 cases with 46/50 correct categories and 47/50 disposition matches.
 - [ ] Calibrate urgency and establish comparative accuracy/speed; historical
       generative measurements do not prove an improvement.
 
@@ -264,8 +265,8 @@ Original draft-only send condition below was extended by TASK-35 acknowledgement
 - [x] Run offline regressions, index/reindex the seven PDFs, and verify one
       configured-model fake-delivery case; document the observed review failure.
 - [x] Document all 50 TASK-41 attempts, including latency/cost and failures.
-- [ ] Obtain a fully scored current-stack 50-case report and validate all 200
-      cases; citation validity alone does not establish answer correctness.
+- [x] Obtain a fully scored current-stack 50-case report (TASK-43).
+- [ ] Validate all 200 cases; citation validity alone does not establish answer correctness.
 - [ ] Measure larger-corpus retrieval; no 1,000-document performance claim yet.
 
 
@@ -314,3 +315,14 @@ Original draft-only send condition below was extended by TASK-35 acknowledgement
 - [x] Correct policy/corpus counts, exporter behavior, measurement provenance,
       encoding and duplicate failure identifiers; check links and final diff.
 - [x] Documentation only; no new live evaluation, deployment or email send.
+
+
+### TASK-43 - Refresh current-stack showcase evaluation
+- [x] Run all 50 development cases with configured OpenRouter models, Jev,
+      current PDF RAG/shared policy, shared ephemeral Chroma and fake delivery.
+- [x] Save and recompute the report, retain historical measurements, publish
+      a body-free measurement or explicitly labeled failure diagnostic.
+- [x] Update current evaluation claims across documentation from actual results;
+      preserve unmet 200-case, latency-comparison and live-release gates.
+
+TASK-43 outcome: 50 attempted, 50 scored, 47 matched; disposition match 0.94; 0 false simulated sends, 3 false escalations, 0 operational failures. Full-run p95: 52145.7439000078 ms; reported token cost: 0.245525665. Accuracy/calibration, FAQ coverage and live-release gaps remain open; this task closes measurement/publication only.

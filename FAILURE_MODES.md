@@ -632,3 +632,30 @@ it from scored accuracy. The complete saved report preserves its run ID.
 ### TASK-41 final measurement - FM-026, FM-027 and FM-028
 
 Report: `data/eval_reports/task29_20261006T184220Z_b48293f6.json`. All 50 attempted; 47 scored, 45 matched. FM-026: general_04 respond ValueError. FM-028: order_07 and order_09 gather_facts ValueError. FM-027: general_03 and general_08 false escalations due to retrieval/coverage. Zero false simulated sends; four simulated replies. These failures remain open. The policy consistency tests pass, but do not establish corrected retrieval, model-output validation or deployment readiness.
+
+
+### FM-027 follow-up - TASK-43 refresh, 2026-10-07
+During the fresh configured-model 50-case run, `general_03` again escalated
+although its informational label expects a simulated reply. The observed
+reason was: "No retrieved simulation-approved PDF contains the exact versioned
+reply." Run ID: `task19-20261007T095641Z_d2289193-general_03`; source: correlated
+JSONL events. This is a coverage/approval false escalation, not a public send
+or proof that the reply PDF is absent from disk. No fix or relabeling is made
+in this measurement task. Final counts are in the TASK-43 measurement below.
+
+In the same run, `general_04` also falsely escalated with "Retrieved guidance
+does not cover the entire request." This is a scored coverage rejection; unlike
+its TASK-41 outcome, no operational response-parsing failure was reported for
+this attempt. This observation alone does not demonstrate that the earlier
+parsing defect has been fixed. Final totals are recorded below.
+
+`general_08` likewise falsely escalated during TASK-43 with "Retrieved guidance
+does not cover the entire request." Its run ID is
+`task19-20261007T095641Z_d2289193-general_08`. The coverage rejection is preserved
+for evaluation; neither the label nor the implementation was changed.
+
+
+### TASK-43 final measurement follow-up
+
+TASK-43: 50 attempted, 50 scored, 47 matched; disposition match 0.94; 0 false simulated sends, 3 false escalations, 0 operational failures. Full-run p95: 52145.7439000078 ms; reported token cost: 0.245525665. Source: [TASK-43 measurement](docs/measurements/task43_regression.json).
+Disposition mismatches: `general_03`, `general_04`, `general_08`. This rerun changes no underlying implementation and is not a before/after fix claim. Previous workflow failures remain historical evidence and require separate investigation; no live sending is enabled.

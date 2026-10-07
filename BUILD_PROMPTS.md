@@ -16,8 +16,10 @@ Current triage update (TASK-36): use `OPENROUTER_TRIAGE_MODEL` and Jev's
 Decisions API with typed category/urgency questions. Earlier prompts describing
 generated classification JSON are historical. Current requests and validation
 are in `src/agent/jev_triage.py` and `src/openrouter_client.py`. TASK-41
-recorded a 50-case attempt with three operational failures; clean workflow
-acceptance and current 200-case validation remain open in `TASKS.md`.
+recorded a historical 50-case attempt with three operational failures. TASK-43
+now has 50 scored cases and 47 matches (0.94), with no operational failure in
+that run. FAQ coverage, accuracy/calibration and current 200-case validation
+remain open in `TASKS.md`.
 
 **How to use each prompt:** paste it as-is into a fresh session (or a fresh
 message if continuing a session). Do not paraphrase it or "summarize the
@@ -805,3 +807,19 @@ project-owned Markdown against current entrypoints and saved reports, consolidat
 commands in README, preserve historical measurements, and keep unmet gates open.
 Do not replay earlier build prompts as current delivery instructions. No model
 evaluation, deployment, application change or email send belongs to this task.
+
+
+### TASK-43 - Refresh evaluation for the current implementation
+Run the current 50-case development benchmark with configured models and fake
+delivery only: `python -m src.eval.run_eval`. Store its raw report and correlate
+cost/latency with the run's JSONL events. Recompute using `--report PATH`.
+Update current documentation from this run, preserving older measured results
+as historical. Fully scored reports can be exported with
+`python -m src.eval.export_public_metrics REPORT NEW_SUMMARY`; reports containing
+workflow failures must be labeled diagnostics, not clean accepted benchmarks.
+Do not send Zoho email, change labels, tune the agent or rerun until a preferred
+score appears. The 200-case and specialized evaluations remain separate; a new
+50-case result does not update their historical measurements.
+
+Status: measured and saved. TASK-43: 50 attempted, 50 scored, 47 matched; disposition match 0.94; 0 false simulated sends, 3 false escalations, 0 operational failures. Full-run p95: 52145.7439000078 ms; reported token cost: 0.245525665. See [TASK-43 measurement](docs/measurements/task43_regression.json).
+The measurement is complete; accuracy/speed/release acceptance is not implied.

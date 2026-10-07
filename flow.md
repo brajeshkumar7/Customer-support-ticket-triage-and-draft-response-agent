@@ -363,3 +363,9 @@ customer-specific claims, and real customer sending remains disabled.
 Earlier descriptions of hardcoded checker windows and duplicated policy prose
 are historical. This is consistency validation, not merchant approval or a
 claim of improved model accuracy. New measurements require a completed run.
+
+
+## Latest measured development run (TASK-43)
+
+TASK-43: 50 attempted, 50 scored, 47 matched; disposition match 0.94; 0 false simulated sends, 3 false escalations, 0 operational failures. Full-run p95: 52145.7439000078 ms; reported token cost: 0.245525665. See [saved measurement](docs/measurements/task43_regression.json).
+The current result uses informational-only labels and fake delivery. Historical fixture-backed and pre-Jev/RAG reports do not describe this run. The 200-case and independent release evaluations remain separate and were not rerun.

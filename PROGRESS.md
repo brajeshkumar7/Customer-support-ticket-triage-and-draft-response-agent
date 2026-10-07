@@ -22,39 +22,37 @@ pick this back up cold
 
 ## Metrics tracker (update as you measure — mirrors PRD.md Section 5)
 
-**Accepted historical tracker provenance:** Complete 50-ticket simulated graph run under informational-only labels, saved as `data/eval_reports/task29_20261005T183529Z_2979caa5.json` and recorded on 2026-10-06. It predates the final TASK-32 triage edit; a fresh complete run is still needed. Earlier fixture-backed and v3 reports remain historical. The interrupted OpenRouter run produced no complete report or new accuracy measurement.
+**Current metrics provenance:** data/eval_reports/task29_20261007T095641Z_d2289193.json, measured 2026-10-07T15:58:40.053686+05:30. All 50 cases scored; publication means a complete measurement, not that accuracy or release targets passed.
 
-These tracker values predate Jev triage/supervision, PDF RAG and shared policy.
-They are retained because subsequent batches contained operational failures.
-The latest TASK-41 attempt recorded 50 attempted, 47 scored, 45 matched, two false escalations, three operational failures, and zero false simulated sends. Its scored-only match rate is 0.9574468085106383; failures are excluded from that denominator, not counted as successes. See [the diagnostic](docs/measurements/task41_policy.json). Failed batches retain saved reports but do not overwrite the accepted tracker.
-Current-stack 200-case validation and the sequential/async comparison remain open.
+TASK-43: 50 attempted, 50 scored, 47 matched; disposition match 0.94; 0 false simulated sends, 3 false escalations, 0 operational failures. Full-run p95: 52145.7439000078 ms; reported token cost: 0.245525665. See [TASK-43 measurement](docs/measurements/task43_regression.json).
+Current 200-case validation, sequential latency comparison, larger-corpus testing, independent review and live release remain open.
 
 | Metric | Value | Date measured |
 |---|---|---|
-| Category classification accuracy | 50/50 = 1.0 | 2026-10-06 |
-| Urgency / priority distribution (not accuracy) | urgency={"high":6,"medium":20,"low":24}; priority={"P1":6,"P2":20,"P3":24} | 2026-10-06 |
-| Task completion rate (simulated delivery) | 50/50 = 1.0 | 2026-10-06 |
-| Mean retries-to-success | 0.0 | 2026-10-06 |
-| Failure rate after cap | 0/50 = 0.0 | 2026-10-06 |
+| Category classification accuracy | 46/50 = 0.92 | 2026-10-07 |
+| Urgency / priority distribution (not accuracy) | urgency={"high":6,"medium":22,"low":22}; priority={"P1":6,"P2":22,"P3":22} | 2026-10-07 |
+| Task completion rate (simulated delivery) | 47/50 = 0.94 | 2026-10-07 |
+| Mean retries-to-success | 0.0 | 2026-10-07 |
+| Failure rate after cap | 0/50 = 0.0 | 2026-10-07 |
 | p95 latency (sequential) | Not measured: pending TASK-20 | Not measured |
-| p95 latency (async) | 44778.41449999687 ms | 2026-10-06 |
-| Cost per successful run | 0.0023002769000000003 | 2026-10-06 |
-| Total reported token cost | 0.115013845 | 2026-10-06 |
-| Tickets with missing token cost | 0 | 2026-10-06 |
-| Escalation recall | 43/43 = 1.0 | 2026-10-06 |
-| Incorrect escalation rate (auto-resolve) | 0/7 = 0.0 | 2026-10-06 |
-| Incorrect send rate (expected escalation) | 0/43 = 0.0 | 2026-10-06 |
-| Unscored workflow failures | 0 | 2026-10-06 |
+| p95 latency (async) | 52145.7439000078 ms | 2026-10-07 |
+| Cost per successful run | 0.004910815914893617 | 2026-10-07 |
+| Total reported token cost | 0.245525665 | 2026-10-07 |
+| Tickets with missing token cost | 0 | 2026-10-07 |
+| Escalation recall | 43/43 = 1.0 | 2026-10-07 |
+| Incorrect escalation rate (auto-resolve) | 3/7 = 0.42857142857142855 | 2026-10-07 |
+| Incorrect send rate (expected escalation) | 0/43 = 0.0 | 2026-10-07 |
+| Unscored workflow failures | 0 | 2026-10-07 |
 | Prompt-injection attempts / successes | TASK-16: 10 / 1 unsafe; TASK-17: 10 scored / 0 unsafe; 20 additional attempts unscored | 2026-09-29 |
-| Per-ticket reported token cost | order_01=0.0024906; order_02=0.0021614; order_03=0.0028225999999999998; order_04=0.0022011; order_05=0.0028393999999999997; return_01=0.0024518; return_02=0.0026594; return_03=0.0027513; return_04=0.0027282; return_05=0.0031215; damage_01=0.0028855; damage_02=0.0030467; damage_03=0.0027773; damage_04=0.0026889; damage_05=0.0023401; billing_01=0.002686; billing_02=0.0022768000000000003; billing_03=0.0025835; billing_04=0.0022337; billing_05=0.0036691; general_01=0.0; general_02=0.0; general_03=0.0; general_04=0.0; general_05=0.0030807; order_06=0.00190063; order_07=0.0022162600000000003; order_08=0.0031430399999999997; order_09=0.003111505; order_10=0.00249139; return_06=0.0024129100000000003; return_07=0.00237035; return_08=0.0027194100000000002; return_09=0.0026095650000000003; return_10=0.002780745; damage_06=0.00237981; damage_07=0.0025817; damage_08=0.0029088000000000004; damage_09=0.00278204; damage_10=0.00223231; billing_06=0.0029295149999999997; billing_07=0.00249134; billing_08=0.00268221; billing_09=0.0028379399999999997; billing_10=0.003136855; general_06=0.0; general_07=0.0; general_08=0.0; general_09=0.00295821; general_10=0.00284171 | 2026-10-06 |
-| False sends | 0 | 2026-10-06 |
-| Missed escalations | 0 | 2026-10-06 |
-| False escalations | 0 | 2026-10-06 |
-| Drafts flagged for unsupported claims | 23 | 2026-10-06 |
-| Deterministic safety-gate violations | 0 | 2026-10-06 |
-| Disposition errors by category | {"billing_dispute":{"calls_missing_cost":0,"false_escalations":0,"false_sends":0,"llm_calls":40,"missed_escalations":0,"reported_cost":0.02752696,"safety_gate_violations":0,"ticket_count":10,"unsupported_claim_reviews":7},"damaged_item":{"calls_missing_cost":0,"false_escalations":0,"false_sends":0,"llm_calls":40,"missed_escalations":0,"reported_cost":0.02662316,"safety_gate_violations":0,"ticket_count":10,"unsupported_claim_reviews":5},"general_question":{"calls_missing_cost":0,"false_escalations":0,"false_sends":0,"llm_calls":12,"missed_escalations":0,"reported_cost":0.00888062,"safety_gate_violations":0,"ticket_count":10,"unsupported_claim_reviews":2},"order_status":{"calls_missing_cost":0,"false_escalations":0,"false_sends":0,"llm_calls":40,"missed_escalations":0,"reported_cost":0.025377925,"safety_gate_violations":0,"ticket_count":10,"unsupported_claim_reviews":5},"returns":{"calls_missing_cost":0,"false_escalations":0,"false_sends":0,"llm_calls":40,"missed_escalations":0,"reported_cost":0.02660518,"safety_gate_violations":0,"ticket_count":10,"unsupported_claim_reviews":4}} | 2026-10-06 |
-| 50-case reported cost by category | billing_dispute=0.02752696; damaged_item=0.02662316; general_question=0.00888062; order_status=0.025377925; returns=0.02660518 | 2026-10-06 |
-| 50-case model attribution | openai/gpt-6-luna-pro=172 LLM calls, 0.115013845 reported cost, 0 missing-cost calls; no fallback model calls logged | 2026-10-06 |
+| Per-ticket reported token cost | order_01=0.005014308; order_02=0.0054538650000000004; order_03=0.005251375; order_04=0.00513064; order_05=0.005090114000000001; return_01=0.005690642; return_02=0.005222165; return_03=0.0036920689999999996; return_04=0.006284954; return_05=0.005137147999999999; damage_01=0.005635795000000001; damage_02=0.005592001; damage_03=0.004117979; damage_04=0.0063868959999999995; damage_05=0.0071407120000000004; billing_01=0.005142826; billing_02=0.005762628; billing_03=0.007471666000000001; billing_04=0.004548954; billing_05=0.005194136; general_01=0.001080966; general_02=0.001094655; general_03=0.006076563; general_04=0.005049382999999999; general_05=0.005839101000000001; order_06=0.00509361; order_07=0.005085967; order_08=0.005452818; order_09=0.004139993000000001; order_10=0.005025918000000001; return_06=0.004101654000000001; return_07=0.003868279; return_08=0.005305027; return_09=0.003760496; return_10=0.0058310490000000005; damage_06=0.004262519; damage_07=0.00380225; damage_08=0.0036679589999999997; damage_09=0.005099794; damage_10=0.007505015; billing_06=0.005664300999999999; billing_07=0.004153813; billing_08=0.005557607; billing_09=0.004821239; billing_10=0.005558904; general_06=0.001291712; general_07=0.000915196; general_08=0.003591371; general_09=0.006471421999999999; general_10=0.007396211 | 2026-10-07 |
+| False sends | 0 | 2026-10-07 |
+| Missed escalations | 0 | 2026-10-07 |
+| False escalations | 3 | 2026-10-07 |
+| Drafts flagged for unsupported claims | 22 | 2026-10-07 |
+| Deterministic safety-gate violations | 0 | 2026-10-07 |
+| Disposition errors by category | {"billing_dispute":{"calls_missing_cost":0,"false_escalations":0,"false_sends":0,"llm_calls":60,"missed_escalations":0,"reported_cost":0.053876073999999996,"safety_gate_violations":0,"ticket_count":10,"unsupported_claim_reviews":1},"damaged_item":{"calls_missing_cost":0,"false_escalations":0,"false_sends":0,"llm_calls":59,"missed_escalations":0,"reported_cost":0.05321092,"safety_gate_violations":0,"ticket_count":10,"unsupported_claim_reviews":6},"general_question":{"calls_missing_cost":0,"false_escalations":3,"false_sends":0,"llm_calls":42,"missed_escalations":0,"reported_cost":0.03880658,"safety_gate_violations":0,"ticket_count":10,"unsupported_claim_reviews":1},"order_status":{"calls_missing_cost":0,"false_escalations":0,"false_sends":0,"llm_calls":59,"missed_escalations":0,"reported_cost":0.050738608000000004,"safety_gate_violations":0,"ticket_count":10,"unsupported_claim_reviews":6},"returns":{"calls_missing_cost":0,"false_escalations":0,"false_sends":0,"llm_calls":57,"missed_escalations":0,"reported_cost":0.048893483,"safety_gate_violations":0,"ticket_count":10,"unsupported_claim_reviews":8}} | 2026-10-07 |
+| 50-case reported cost by category | billing_dispute=0.053876073999999996; damaged_item=0.05321092; general_question=0.03880658; order_status=0.050738608000000004; returns=0.048893483 | 2026-10-07 |
+| 50-case model attribution | {"openai/gpt-6-luna-pro":{"calls_missing_cost":0,"llm_calls":181,"reported_cost":0.23301806499999994},"typesafe/jev-1.13-20260917":{"calls_missing_cost":0,"llm_calls":96,"reported_cost":0.012507600000000004}} | 2026-10-07 |
 
 The earlier v3 report (`task29_20261005T062249Z_c30b0b20.json`) remains
 available for historical comparison. Its 0.110459985 total cost and
@@ -1217,3 +1215,60 @@ larger-corpus performance and all live-release gates remain open.
 
 **Next session should start with:** Diagnose the saved TASK-41 failures before
 claiming current full-workflow accuracy; use README for verified run commands.
+
+
+### Historical accepted tracker before TASK-43
+
+Source: `data/eval_reports/task29_20261005T183529Z_2979caa5.json`; pre-Jev/RAG.
+The original rows are preserved below, not current-stack measurements.
+
+| Metric | Value | Date measured |
+|---|---|---|
+| Category classification accuracy | 50/50 = 1.0 | 2026-10-06 |
+| Urgency / priority distribution (not accuracy) | urgency={"high":6,"medium":20,"low":24}; priority={"P1":6,"P2":20,"P3":24} | 2026-10-06 |
+| Task completion rate (simulated delivery) | 50/50 = 1.0 | 2026-10-06 |
+| Mean retries-to-success | 0.0 | 2026-10-06 |
+| Failure rate after cap | 0/50 = 0.0 | 2026-10-06 |
+| p95 latency (sequential) | Not measured: pending TASK-20 | Not measured |
+| p95 latency (async) | 44778.41449999687 ms | 2026-10-06 |
+| Cost per successful run | 0.0023002769000000003 | 2026-10-06 |
+| Total reported token cost | 0.115013845 | 2026-10-06 |
+| Tickets with missing token cost | 0 | 2026-10-06 |
+| Escalation recall | 43/43 = 1.0 | 2026-10-06 |
+| Incorrect escalation rate (auto-resolve) | 0/7 = 0.0 | 2026-10-06 |
+| Incorrect send rate (expected escalation) | 0/43 = 0.0 | 2026-10-06 |
+| Unscored workflow failures | 0 | 2026-10-06 |
+| Prompt-injection attempts / successes | TASK-16: 10 / 1 unsafe; TASK-17: 10 scored / 0 unsafe; 20 additional attempts unscored | 2026-09-29 |
+| Per-ticket reported token cost | order_01=0.0024906; order_02=0.0021614; order_03=0.0028225999999999998; order_04=0.0022011; order_05=0.0028393999999999997; return_01=0.0024518; return_02=0.0026594; return_03=0.0027513; return_04=0.0027282; return_05=0.0031215; damage_01=0.0028855; damage_02=0.0030467; damage_03=0.0027773; damage_04=0.0026889; damage_05=0.0023401; billing_01=0.002686; billing_02=0.0022768000000000003; billing_03=0.0025835; billing_04=0.0022337; billing_05=0.0036691; general_01=0.0; general_02=0.0; general_03=0.0; general_04=0.0; general_05=0.0030807; order_06=0.00190063; order_07=0.0022162600000000003; order_08=0.0031430399999999997; order_09=0.003111505; order_10=0.00249139; return_06=0.0024129100000000003; return_07=0.00237035; return_08=0.0027194100000000002; return_09=0.0026095650000000003; return_10=0.002780745; damage_06=0.00237981; damage_07=0.0025817; damage_08=0.0029088000000000004; damage_09=0.00278204; damage_10=0.00223231; billing_06=0.0029295149999999997; billing_07=0.00249134; billing_08=0.00268221; billing_09=0.0028379399999999997; billing_10=0.003136855; general_06=0.0; general_07=0.0; general_08=0.0; general_09=0.00295821; general_10=0.00284171 | 2026-10-06 |
+| False sends | 0 | 2026-10-06 |
+| Missed escalations | 0 | 2026-10-06 |
+| False escalations | 0 | 2026-10-06 |
+| Drafts flagged for unsupported claims | 23 | 2026-10-06 |
+| Deterministic safety-gate violations | 0 | 2026-10-06 |
+| Disposition errors by category | {"billing_dispute":{"calls_missing_cost":0,"false_escalations":0,"false_sends":0,"llm_calls":40,"missed_escalations":0,"reported_cost":0.02752696,"safety_gate_violations":0,"ticket_count":10,"unsupported_claim_reviews":7},"damaged_item":{"calls_missing_cost":0,"false_escalations":0,"false_sends":0,"llm_calls":40,"missed_escalations":0,"reported_cost":0.02662316,"safety_gate_violations":0,"ticket_count":10,"unsupported_claim_reviews":5},"general_question":{"calls_missing_cost":0,"false_escalations":0,"false_sends":0,"llm_calls":12,"missed_escalations":0,"reported_cost":0.00888062,"safety_gate_violations":0,"ticket_count":10,"unsupported_claim_reviews":2},"order_status":{"calls_missing_cost":0,"false_escalations":0,"false_sends":0,"llm_calls":40,"missed_escalations":0,"reported_cost":0.025377925,"safety_gate_violations":0,"ticket_count":10,"unsupported_claim_reviews":5},"returns":{"calls_missing_cost":0,"false_escalations":0,"false_sends":0,"llm_calls":40,"missed_escalations":0,"reported_cost":0.02660518,"safety_gate_violations":0,"ticket_count":10,"unsupported_claim_reviews":4}} | 2026-10-06 |
+| 50-case reported cost by category | billing_dispute=0.02752696; damaged_item=0.02662316; general_question=0.00888062; order_status=0.025377925; returns=0.02660518 | 2026-10-06 |
+| 50-case model attribution | openai/gpt-6-luna-pro=172 LLM calls, 0.115013845 reported cost, 0 missing-cost calls; no fallback model calls logged | 2026-10-06 |
+
+
+## [2026-10-07] TASK-43 current-stack showcase evaluation
+
+**Completed:** Ran the 50 author-labeled development cases once, with configured OpenRouter models, Jev triage/review, PDF hybrid RAG, shared business policy, shared ephemeral Chroma and fake delivery only. No Zoho request or email.
+
+TASK-43: 50 attempted, 50 scored, 47 matched; disposition match 0.94; 0 false simulated sends, 3 false escalations, 0 operational failures. Full-run p95: 52145.7439000078 ms; reported token cost: 0.245525665.
+
+| Metric | Recorded value |
+| --- | --- |
+| Attempts / scored / matched | 50 / 50 / 47 |
+| Disposition match | 0.94 |
+| Category classification | 46/50 = 0.92 |
+| False simulated sends / false escalations | 0 / 3 |
+| Operational failures | 0 |
+| Simulated replies | 4 |
+| Full-run p95 latency | 52145.7439000078 ms |
+| Total provider-reported token cost | 0.245525665 |
+| Mean retries-to-success | 0.0 |
+| Tickets with missing token cost | 0 |
+
+Disposition mismatches: `general_03`, `general_04`, `general_08`. Supervisor unsupported-claim flags are review signals, not independent truth labels. Raw report: `data/eval_reports/task29_20261007T095641Z_d2289193.json`; shareable body-free summary: [TASK-43 measurement](docs/measurements/task43_regression.json). Historical tracker/session measurements are preserved. The current accepted tracker was copied from the harness and its distribution/model attribution rows refreshed directly from this report.
+
+**Verification:** Saved-report recomputation exactly reproduced the saved metrics; 856 correlated JSONL events contained 277 model calls with matching provider-cost attribution. Local Markdown links and the final diff were checked. No model, tool, policy, PDF, manifest or evaluation-label change was made. One successful run does not establish that earlier intermittent parsing defects are fixed. The 200-case and specialized evaluations were not rerun.

@@ -5,10 +5,7 @@ deterministic safety decisions, cited drafts, structured review, bounded
 retries, and observable outcomes. This is a measured portfolio project,
 **not approved for unattended real-customer delivery**.
 
-The latest TASK-41 attempt had **50 attempted, 47 scored, 45 matched, two false
-escalations, three operational failures, and zero false simulated sends**.
-Failed batches retain their reports but do not overwrite the accepted metrics
-tracker. Older 50/50 results describe earlier implementations.
+TASK-43: 50 attempted, 50 scored, 47 matched; disposition match 0.94; 0 false simulated sends, 3 false escalations, 0 operational failures. Full-run p95: 52145.7439000078 ms; reported token cost: 0.245525665. See [TASK-43 measurement](docs/measurements/task43_regression.json). These are author-labeled synthetic development results, not independent real-customer validation. Older measurements remain historical.
 
 ## Guides
 
@@ -340,29 +337,27 @@ Administration initializes required tables; it needs `DEPLOYMENT_MODE=test`.
   batches; recompute with the matching `--report` command.
 - **`docs/measurements/`:** committed body-free historical measurements and
   failure diagnostics. Failed diagnostics are not accepted benchmark metrics.
-- **[PROGRESS.md](PROGRESS.md):** accepted historical tracker and dated sessions.
+- **[PROGRESS.md](PROGRESS.md):** current report-backed tracker, historical measurements and dated sessions.
 - **Dashboard:** individual JSONL events, not independent correctness verdicts.
 
 ## 9. Measured results and remaining limits
 
-[TASK-41 diagnostic](docs/measurements/task41_policy.json), measured 2026-10-07:
+[TASK-43 measurement](docs/measurements/task43_regression.json), measured 2026-10-07. Raw local report: `data/eval_reports/task29_20261007T095641Z_d2289193.json`.
 
 | Metric | Recorded value |
 | --- | --- |
-| Attempts / scored / matched | 50 / 47 / 45 |
-| Conditional disposition match among scored cases | 0.9574468085106383; excludes three operational failures |
-| Category classification | 45/50 = 0.9 |
-| False simulated sends / false escalations | 0 / 2 |
+| Attempts / scored / matched | 50 / 50 / 47 |
+| Disposition match | 0.94 |
+| Category classification | 46/50 = 0.92 |
+| False simulated sends / false escalations | 0 / 3 |
+| Operational failures | 0 |
 | Simulated replies | 4 |
-| Full-run p95 latency | 65542.06790000899 ms |
-| Total provider-reported token cost | 0.241219502 |
+| Full-run p95 latency | 52145.7439000078 ms |
+| Total provider-reported token cost | 0.245525665 |
+| Mean retries-to-success | 0.0 |
+| Tickets with missing token cost | 0 |
 
-`general_03` and `general_08` falsely escalated; `general_04`, `order_07`, and
-`order_09` had operational failures. A full successful run, current 200-case
-validation, sequential/async comparison, larger-corpus retrieval measurements,
-and live-release gates remain open. The older accepted 50/50 tracker and
-189/200 holdout are historical, pre-Jev/RAG results. Finite synthetic success
-does not establish perfect accuracy or production readiness.
+Disposition mismatches: `general_03`, `general_04`, `general_08`. The 95% disposition target is not met in this run; no production acceptance follows. Current 200-case validation, sequential/async comparison, larger-corpus performance and live-release gates remain open. Historical TASK-41 failures are preserved in its diagnostic; absence of an operational failure here does not prove a parsing defect was fixed.
 
 Recorded examples include:
 

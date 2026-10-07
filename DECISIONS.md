@@ -69,8 +69,8 @@ enabled, not the independent controlled worker's approved-template policy.
 **Source:** [Chroma Search API availability](https://docs.trychroma.com/cloud/search-api/overview).
 **Status:** implemented with offline checks and one configured-model simulated
 reply; subsequent 50-case attempts are documented under TASK-38/40/41.
-Clean current-workflow acceptance, current 200-case validation and larger-corpus
-retrieval measures remain open.
+TASK-43 subsequently scored all 50 cases; accuracy/calibration, current
+200-case validation and larger-corpus retrieval measures remain open.
 
 ## [2026-10-06] Use Jev typed decisions for ticket triage (TASK-36)
 
@@ -100,8 +100,10 @@ claimed without a labeled Jev run. Existing benchmark numbers are historical.
 [confidence guidance](https://docs.typesafe.ai/confidence).
 **Status:** active; mocked contract/regression checks and one live Jev call
 verified. TASK-41 later measured 45/50 correct categories (0.9), with three
-workflow failures across the complete attempt. Comparative speed improvement
-and urgency calibration are not established; current 200-case validation is open.
+workflow failures across the complete attempt. The later TASK-43 run measured
+46/50 correct categories (0.92) with all 50 cases scored. Comparative causal
+accuracy/speed improvement and urgency calibration are not established;
+current 200-case validation remains open.
 
 ## [2026-10-06] Send a neutral acknowledgement after a failed controlled draft review
 
@@ -684,3 +686,17 @@ failures and zero false simulated sends; failed batches do not overwrite the
 accepted historical tracker.
 **Status:** active; documentation only. Workflow/retrieval failures, current
 200-case validation, sequential comparison, scale and live-release gates remain open.
+
+
+## [2026-10-07] Refresh the 50-case showcase measurement (TASK-43)
+**Decision:** Run the existing 50-case development regression once with the
+owner's configured models, current Jev/RAG/shared-policy stack and fake sender
+only. This is PRD Section 5 measurement, not an agent or label change. Preserve
+historical reports and clearly distinguish scored disposition accuracy from
+operational failures. Publish accepted metrics only if every case scores;
+otherwise retain the existing tracker and publish a labeled diagnostic.
+**Reasoning:** The owner requested the newest evaluation for showcasing the
+current agent. The 200-case regression and specialized critic/injection tests
+remain separately scoped; this run does not establish those release gates.
+**Status:** measured; TASK-43: 50 attempted, 50 scored, 47 matched; disposition match 0.94; 0 false simulated sends, 3 false escalations, 0 operational failures. Full-run p95: 52145.7439000078 ms; reported token cost: 0.245525665.
+No Zoho email or deployment occurred. This measurement does not change approval policy or release authorization.

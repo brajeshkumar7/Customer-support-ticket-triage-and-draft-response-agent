@@ -1,5 +1,11 @@
 # Local knowledge and evaluation audit — 2026-10-04
 
+
+## Current 50-case evaluation (TASK-43, 2026-10-07)
+
+TASK-43: 50 attempted, 50 scored, 47 matched; disposition match 0.94; 0 false simulated sends, 3 false escalations, 0 operational failures. Full-run p95: 52145.7439000078 ms; reported token cost: 0.245525665. See [TASK-43 measurement](measurements/task43_regression.json).
+Disposition mismatches: `general_03`, `general_04`, `general_08`. This is a fully scored development measurement, not production approval. The earlier TASK-41 attempt remains historical. Current 200-case validation, independent review, larger-corpus measurements, sequential comparison and live-release gates remain open. Worker deployment/intake/delivery were not tested by this fake-sender run.
+
 ## What the agent can actually use
 
 **Current state (TASK-41):** The graph searches 13 simulation PDFs: seven
