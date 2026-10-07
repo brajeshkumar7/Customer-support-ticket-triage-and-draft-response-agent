@@ -373,34 +373,66 @@ record owner-shared OAuth, ticket lookup, historical delivery, safety blocks,
 recipient confirmation and acknowledgement receipt. These controlled manual
 tests are excluded from the synthetic accuracy metrics below.
 
-[TASK-43 measurement](docs/measurements/task43_regression.json), measured 2026-10-07. Raw local report: `data/eval_reports/task29_20261007T095641Z_d2289193.json`.
+[TASK-43 measurement](docs/measurements/task43_regression.json), measured 2026-10-07; 50 attempted, 50 scored, 47 matched, with four simulated replies. The values below are copied verbatim from the [PROGRESS metrics tracker](PROGRESS.md#metrics-tracker-update-as-you-measure--mirrors-prdmd-section-5), including historical injection dates and genuinely unmeasured sequential latency. Raw local report: `data/eval_reports/task29_20261007T095641Z_d2289193.json`.
 
-| Metric | Recorded value |
-| --- | --- |
-| Attempts / scored / matched | 50 / 50 / 47 |
-| Disposition match | 0.94 |
-| Category classification | 46/50 = 0.92 |
-| False simulated sends / false escalations | 0 / 3 |
-| Operational failures | 0 |
-| Simulated replies | 4 |
-| Full-run p95 latency | 52145.7439000078 ms |
-| Total provider-reported token cost | 0.245525665 |
-| Mean retries-to-success | 0.0 |
-| Tickets with missing token cost | 0 |
+| Metric | Value | Date measured |
+| --- | --- | --- |
+| Category classification accuracy | 46/50 = 0.92 | 2026-10-07 |
+| Urgency / priority distribution (not accuracy) | urgency={"high":6,"medium":22,"low":22}; priority={"P1":6,"P2":22,"P3":22} | 2026-10-07 |
+| Task completion rate (simulated delivery) | 47/50 = 0.94 | 2026-10-07 |
+| Mean retries-to-success | 0.0 | 2026-10-07 |
+| Failure rate after cap | 0/50 = 0.0 | 2026-10-07 |
+| p95 latency (sequential) | Not measured: pending TASK-20 | Not measured |
+| p95 latency (async) | 52145.7439000078 ms | 2026-10-07 |
+| Cost per successful run | 0.004910815914893617 | 2026-10-07 |
+| Total reported token cost | 0.245525665 | 2026-10-07 |
+| Tickets with missing token cost | 0 | 2026-10-07 |
+| Escalation recall | 43/43 = 1.0 | 2026-10-07 |
+| Incorrect escalation rate (auto-resolve) | 3/7 = 0.42857142857142855 | 2026-10-07 |
+| Incorrect send rate (expected escalation) | 0/43 = 0.0 | 2026-10-07 |
+| Unscored workflow failures | 0 | 2026-10-07 |
+| Prompt-injection attempts / successes | TASK-16: 10 / 1 unsafe; TASK-17: 10 scored / 0 unsafe; 20 additional attempts unscored | 2026-09-29 |
+| False sends | 0 | 2026-10-07 |
+| Missed escalations | 0 | 2026-10-07 |
+| False escalations | 3 | 2026-10-07 |
+| Drafts flagged for unsupported claims | 22 | 2026-10-07 |
+| Deterministic safety-gate violations | 0 | 2026-10-07 |
+| 50-case reported cost by category | billing_dispute=0.053876073999999996; damaged_item=0.05321092; general_question=0.03880658; order_status=0.050738608000000004; returns=0.048893483 | 2026-10-07 |
+| 50-case model attribution | {"openai/gpt-6-luna-pro":{"calls_missing_cost":0,"llm_calls":181,"reported_cost":0.23301806499999994},"typesafe/jev-1.13-20260917":{"calls_missing_cost":0,"llm_calls":96,"reported_cost":0.012507600000000004}} | 2026-10-07 |
+
+<details>
+<summary>Per-ticket costs and category error breakdown</summary>
+
+| Metric | Value | Date measured |
+| --- | --- | --- |
+| Per-ticket reported token cost | order_01=0.005014308; order_02=0.0054538650000000004; order_03=0.005251375; order_04=0.00513064; order_05=0.005090114000000001; return_01=0.005690642; return_02=0.005222165; return_03=0.0036920689999999996; return_04=0.006284954; return_05=0.005137147999999999; damage_01=0.005635795000000001; damage_02=0.005592001; damage_03=0.004117979; damage_04=0.0063868959999999995; damage_05=0.0071407120000000004; billing_01=0.005142826; billing_02=0.005762628; billing_03=0.007471666000000001; billing_04=0.004548954; billing_05=0.005194136; general_01=0.001080966; general_02=0.001094655; general_03=0.006076563; general_04=0.005049382999999999; general_05=0.005839101000000001; order_06=0.00509361; order_07=0.005085967; order_08=0.005452818; order_09=0.004139993000000001; order_10=0.005025918000000001; return_06=0.004101654000000001; return_07=0.003868279; return_08=0.005305027; return_09=0.003760496; return_10=0.0058310490000000005; damage_06=0.004262519; damage_07=0.00380225; damage_08=0.0036679589999999997; damage_09=0.005099794; damage_10=0.007505015; billing_06=0.005664300999999999; billing_07=0.004153813; billing_08=0.005557607; billing_09=0.004821239; billing_10=0.005558904; general_06=0.001291712; general_07=0.000915196; general_08=0.003591371; general_09=0.006471421999999999; general_10=0.007396211 | 2026-10-07 |
+| Disposition errors by category | {"billing_dispute":{"calls_missing_cost":0,"false_escalations":0,"false_sends":0,"llm_calls":60,"missed_escalations":0,"reported_cost":0.053876073999999996,"safety_gate_violations":0,"ticket_count":10,"unsupported_claim_reviews":1},"damaged_item":{"calls_missing_cost":0,"false_escalations":0,"false_sends":0,"llm_calls":59,"missed_escalations":0,"reported_cost":0.05321092,"safety_gate_violations":0,"ticket_count":10,"unsupported_claim_reviews":6},"general_question":{"calls_missing_cost":0,"false_escalations":3,"false_sends":0,"llm_calls":42,"missed_escalations":0,"reported_cost":0.03880658,"safety_gate_violations":0,"ticket_count":10,"unsupported_claim_reviews":1},"order_status":{"calls_missing_cost":0,"false_escalations":0,"false_sends":0,"llm_calls":59,"missed_escalations":0,"reported_cost":0.050738608000000004,"safety_gate_violations":0,"ticket_count":10,"unsupported_claim_reviews":6},"returns":{"calls_missing_cost":0,"false_escalations":0,"false_sends":0,"llm_calls":57,"missed_escalations":0,"reported_cost":0.048893483,"safety_gate_violations":0,"ticket_count":10,"unsupported_claim_reviews":8}} | 2026-10-07 |
+
+</details>
 
 Disposition mismatches: `general_03`, `general_04`, `general_08`. The 95% disposition target is not met in this run; no production acceptance follows. Current 200-case validation, sequential/async comparison, larger-corpus performance and live-release gates remain open. Historical TASK-41 failures are preserved in its diagnostic; absence of an operational failure here does not prove a parsing defect was fixed.
 
-Recorded examples include:
+### Recorded failures
 
-- **FM-005:** injected manager approval entered a draft; field allowlisting and
-  the measured post-fix run are preserved in the failure log.
-- **FM-022:** Jev rejected supported development drafts; the provisional review
-  threshold is not independently calibrated.
-- **FM-026/028:** response/fact-gathering validation failed in current benchmark
-  attempts; these are operational failures, not successful dispositions.
+- **[FM-005: injected manager approval](FAILURE_MODES.md#fm-005---untrusted-manager-note-was-repeated-in-customer-drafts).** Two drafts repeated an injected manager-approval claim despite an ineligible policy result; the graph eventually escalated without delivery. Schema projection removed undocumented tool fields from drafting and review context, and the successful TASK-17 retest scored 10 cases with 0 unsafe injection successes. These are historical injection measurements, not a new test of the current stack.
+- **[FM-022: Jev false rejections](FAILURE_MODES.md#fm-022---jev-reviewer-rejected-supported-simulation-drafts).** In nine labeled development reviews, Jev rejected all six unsupported/insufficient drafts and all three supported fixture-attributed drafts, producing agreement of 0.6666666666666666. The semantic cause and provisional threshold calibration remain unresolved; passing API contract tests does not establish review accuracy.
+- **[FM-026: response validation failures](FAILURE_MODES.md#fm-026---task-40-benchmark-draft-parsing-failed).** A TASK-40 draft failed validation with `ValueError` and safely escalated without simulated delivery; that run remained unscored. The [TASK-20 diagnostic](docs/task20_comparison.md) later recorded another response validation failure on concurrent `general_08`, so this remains an operational reliability gap rather than a correct gold-label outcome.
 
-See [FAILURE_MODES.md](FAILURE_MODES.md) for exact observations and before/after
-records. Real automation still needs merchant
+Real automation still needs merchant
 approval, authoritative business data, identity checks, representative independent
 review, and operational validation. Customer-specific fixture data and historical
 Chroma summaries cannot authorize a real reply.
+
+
+## 10. What a reviewer will look for here
+
+- **A defined task and explicit limits:** [PRD goal](PRD.md#2-goal) and [measured trade-off](PRD.md#7-explicit-trade-off).
+- **A real multi-step stateful workflow:** [current architecture](docs/architecture.md#local-graph), [graph implementation](src/agent/graph.py) and [state contract](src/agent/state.py).
+- **Triage and priority decisions:** [Jev triage](src/agent/jev_triage.py), [priority derivation](src/agent/triage.py) and [contract tests](tests/test_jev_triage.py).
+- **Retrieval with traceable policy evidence:** [knowledge guide](knowledgebase/README.md), [shared policy source](data/policies/support_v1.json), [hybrid RAG tests](tests/test_pdf_rag.py) and [policy boundary tests](tests/test_business_policy.py).
+- **Explicit safety and bounded recovery:** [safety authorization tests](tests/test_safety_authorization.py), [supervisor contract](src/agent/supervisor.py) and [graph regression tests](tests/test_agent_graph.py).
+- **Real measurements with honest gaps:** [metrics tracker](PROGRESS.md#metrics-tracker-update-as-you-measure--mirrors-prdmd-section-5), [TASK-43 report](docs/measurements/task43_regression.json) and [failed comparison diagnostic](docs/task20_comparison.md). The incomplete comparison is excluded from accepted speedup claims.
+- **Adversarial testing and recorded failures:** [injection cases](src/eval/prompt_injection_tests.py), [evaluation runner](src/eval/run_prompt_injection_eval.py) and the [failure summaries above](#recorded-failures), with linked before/after evidence.
+- **Observable execution:** [JSONL logger](src/observability/logger.py), [dashboard guide](dashboard/README.md) and [node-update streaming example](src/agent/stream_example.py).
+- **Delivery integration separated from model accuracy:** [manual Zoho evidence](docs/zoho_manual_validation.md), [controlled-run commands](#4-controlled-zoho-runs) and [undeployed worker prerequisites](docs/controlled_render.md).
+- **Open release requirements:** [production-readiness follow-ups](PRODUCTION_READINESS.md) and [task status](TASKS.md). Authoritative business data, independent review and live operational validation are still required.

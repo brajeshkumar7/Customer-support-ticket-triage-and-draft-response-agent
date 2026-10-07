@@ -179,21 +179,40 @@ They do not validate unattended delivery or the undeployed worker.
 
 ## 7. Explicit Trade-off
 
-The informational-only approval policy gives up automation coverage to avoid
-replying from fictional or unverified customer-specific facts. In the current
-TASK-43 run, 4 of 50 tickets received simulated informational replies;
-46 were escalated, including 3 supported FAQ questions that should have
-been answerable. The run matched 47/50 author-labeled dispositions
-(0.94), with 0 false simulated sends and 0 operational failures.
-Full-run p95 was 52145.7439000078 ms. Narrow authority constrained unsafe
-sending in this sample, while retrieval/coverage rejection reduced useful
-automation. The 95% disposition target was not met. These development results
-cannot establish real-customer accuracy or authorize live delivery.
+### Send safety versus automation coverage
 
-Historical 50/50 and 189/200 results, and the partial TASK-41 attempt, retain
-their dates and provenance in Section 5 and PROGRESS.md. Current 200-case
-validation, authoritative business data, identity verification and independent
-review remain open. Source: [TASK-43 measurement](docs/measurements/task43_regression.json).
+The difficult choice was how much authority to give the agent. Letting a
+supervisor PASS authorize delivery made the workflow more permissive, but the
+historical TASK-19 benchmark simulated replies on 9 of 14 tickets that needed
+human escalation. A plausible, grounded-sounding answer could still leave a
+billing dispute, policy exception or safety concern unresolved. That failure
+is recorded in [FM-020](FAILURE_MODES.md#fm-020---supervisor-pass-authorized-unsafe-simulated-deliveries).
+
+The project therefore chose a narrower approval policy: automatically approve
+only informational replies fully covered by specific, versioned knowledge.
+Customer-specific facts and business actions require human review until
+authoritative sources and identity verification exist. RAG can find relevant
+text, and Jev can review a draft, but neither establishes that a fictional
+order record belongs to the requester or authorizes a refund. A supervisor
+PASS cannot override the deterministic safety gate. The decision is documented
+in [DECISIONS.md](DECISIONS.md#2026-10-04-share-an-informational-only-approval-policy).
+
+The cost is fewer useful automatic replies and more human work. In the latest
+fully scored standalone benchmark, TASK-43, 4 of 50 tickets received simulated
+informational replies and 46 escalated. Three supported FAQ questions were
+incorrectly escalated; 47/50 dispositions matched their author-drafted labels
+(0.94), with 0 false simulated sends and 0 operational failures. The 95%
+disposition target was not met. Full-run p95 was 52145.7439000078 ms.
+Source: [TASK-43 measurement](docs/measurements/task43_regression.json).
+
+This is a deliberate limit on authority, with retrieval and coverage failures
+still needing improvement. The older and newer benchmarks used different
+datasets and approval policies, so their results are not a controlled measure
+of the policy's effect. Zero false sends in this synthetic sample does not
+prove production safety. Historical results remain in Section 5 and
+PROGRESS.md; current holdout validation, authoritative business data, identity
+verification and independent review remain open. Real customer automation
+remains disabled.
 
 ## 8. Deliverables
 - [ ] Public repo status is unverified; the README links the architecture diagram
