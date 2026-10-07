@@ -8,35 +8,51 @@ undeployed; its `live` mode refuses startup.
 
 ```mermaid
 flowchart TD
-    A[Ticket text and internal run ID] --> B[Recall Chroma historical summaries]
-    B --> C[Jev typed category and urgency; derive P1/P2/P3]
-    C --> D[gather_facts: hybrid PDF retrieval and bounded evidence review]
-    D --> E{Supported informational intent?}
-    E -->|Yes| F[Skip extraction and fixture tools]
-    E -->|No| G[Extract explicit order ID and reason]
-    G --> H[Concurrent order lookup, shared-policy check, FAQ search]
-    H --> I[Deterministic safety and policy-evidence consistency]
-    F --> I
-    I --> J[Exact approved FAQ text or cited human-review draft]
-    J --> K[Local exact-template check or Jev three-check review]
-    K -->|Eligible FAIL; retries left| R[prepare_retry: feedback; max 3 retries]
-    R --> J
-    K -->|Safety allowed and PASS| S[Simulation-only sender]
-    S -->|Confirmed simulation| M[Remember compact summary]
-    M --> END1[END: simulated sent]
-    K -->|Blocked, uncertain, failed or exhausted| X[Complete human escalation]
-    S -->|No sender or delivery failure| X
-    C -->|Unclear or failed classification| X
-    D -->|Operational failure| X
-    J -->|Operational failure| X
-    X --> END2[END: escalated]
+    START([START: ticket text and internal run ID]) --> recall["recall: Chroma history when enabled"]
+    recall -->|No workflow error| classify["classify: Jev category and urgency; derive priority"]
+    recall -->|Workflow error| escalate["escalate: complete human-review payload"]
+    classify -->|Clear category; no workflow error| gather_facts["gather_facts: optional hybrid RAG; conditional extraction and fixture tools"]
+    classify -->|Unclear category or workflow error| escalate
+    gather_facts -->|No workflow error| safety_review["safety_review: deterministic approval and policy-evidence checks"]
+    gather_facts -->|Workflow error| escalate
+    safety_review -->|No workflow error; allowed or blocked| respond["respond: exact approved reply or human-review draft"]
+    safety_review -->|Workflow error| escalate
+    respond -->|No workflow error| supervisor["supervisor: local template validation or Jev checklist"]
+    respond -->|Workflow error| escalate
+    supervisor -->|PASS and safety allowed| send_response["send_response: final validation; simulation-only delivery"]
+    supervisor -->|Non-PASS; safety allowed; fewer than 3 retries| prepare_retry["prepare_retry: increment count and inject feedback"]
+    supervisor -->|Safety blocked, workflow error or retry cap reached| escalate
+    prepare_retry -->|No workflow error| respond
+    prepare_retry -->|Workflow error| escalate
+    send_response -->|Confirmed simulation; no workflow error| remember["remember: write compact summary when enabled"]
+    send_response -->|Disabled, failed, unconfirmed or workflow error| escalate
+    remember --> END([END])
+    escalate --> END
 ```
 
-The graph topology is `recall → classify → gather_facts → safety_review →
-respond → supervisor`, followed by bounded retry, simulated delivery and
-remember, or escalation. Guarded operational errors escalate; Chroma recall/
-storage errors are nonfatal and visible in state. A blocked safety gate cannot
-be overridden by supervisor PASS. Escalation includes ticket, tool results,
+Node names and routing above match `build_graph` in
+[`src/agent/graph.py`](../src/agent/graph.py), reviewed 2026-10-08.
+Each retry repeats only `respond` and `supervisor`, with at most three retries
+after the initial draft. A blocked safety decision still proceeds through
+drafting and review, then escalates even if the supervisor passes.
+
+`gather_facts` first runs bounded hybrid PDF retrieval/evidence review when RAG
+is enabled. Supported informational intents then skip order extraction and
+the three fixture tools. Other intents extract an explicit order ID/reason
+and dispatch order lookup, shared-policy checks and FAQ search concurrently
+by default. TASK-20's comparison runner alone selects sequential dispatch;
+both modes retain individual tool failures as unavailable results. These are
+operations inside `gather_facts`, not additional graph nodes.
+
+Guarded processing errors follow the shown escalation routes. Chroma query/
+write failures are caught inside the memory nodes and reported in state;
+they do not normally abort the workflow. `remember` and `escalate` have direct
+edges to END. Successful simulated delivery has already set terminal status
+`sent` before remembering; escalation sets `escalated`. Sending disabled,
+missing configuration, invalid final text or unconfirmed delivery routes to
+escalation. No real Zoho sender can deliver from this local graph.
+
+Escalation includes ticket, tool results,
 failed drafts with feedback and a human-readable reason; it does not assign a
 Zoho human by itself.
 
