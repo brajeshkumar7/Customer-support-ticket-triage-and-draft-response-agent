@@ -9,6 +9,12 @@ TASK-43: 50 attempted, 50 scored, 47 matched; disposition match 0.94; 0 false si
 
 ## Guides
 
+**Review the engineering evidence:** [results, baseline, saved traces and
+reproduction commands](docs/evidence_review.md). The 94% disposition match
+includes correct human handoffs; simulated reply coverage was 4/50 (8%).
+The evidence guide makes both the successful paths and remaining failures
+inspectable.
+
 - [Project instructions](AGENTS.md), [specification](PRD.md), [tasks](TASKS.md)
 - [Architecture](docs/architecture.md), [three explained workflows](flow.md)
 - [Knowledgebase](knowledgebase/README.md), [dataset](data/test_tickets/README.md)

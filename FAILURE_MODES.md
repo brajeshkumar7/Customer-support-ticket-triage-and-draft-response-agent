@@ -1,5 +1,28 @@
 # FAILURE_MODES.md — Real Failures Encountered
 
+## FM-030 — Evidence audit test run could not access temporary directories
+
+**Observed behavior (2026-10-09):** The existing Python regression suite, run
+for TASK-44 with `--basetemp=.tmp/proof-audit/pytest-temp`, emitted test errors
+and failed session cleanup with Windows `PermissionError` / `WinError 5`.
+The captured output is `.tmp/proof-audit/pytest.txt`. No passing suite count
+is inferred from that interrupted result.
+
+**Cause established:** Access to the pytest temporary directory was denied
+in the restricted execution environment. The precise ACL cause is unverified;
+this observation does not establish an application regression.
+
+**Follow-up:** Rerun the unchanged suite in a separate temporary directory
+with the necessary filesystem access. Preserve the initial failure and record
+the actual rerun outcome in PROGRESS.md. No implementation fix is proposed.
+
+**Outcome:** The same suite passed 328 tests in 19.39 seconds with normal
+filesystem access and a separate temporary directory. The captured rerun is
+`.tmp/proof-audit/pytest-unrestricted.txt`; JUnit results are in the adjacent
+`pytest-unrestricted.xml`. The body-free TASK-44 audit retains counts and
+source hashes. This resolves verification for this session, not the sandbox
+ACL issue; no application or test implementation changed.
+
 This is not a hypothetical list. Only add an entry once you've actually hit
 the failure while building. This file is your answer, ready-made, when an
 interviewer asks "tell me about a failure you ran into building this."

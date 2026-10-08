@@ -1348,3 +1348,47 @@ percentage reduction. Missing provider cost remains unknown, not zero. The
 runner withheld tracker publication; TASK-20 remains open. Prior TASK-43
 metrics and historical sessions are preserved. This does not demonstrate a
 causal speedup or production readiness.
+
+## [2026-10-09] TASK-44 reproducible engineering evidence
+
+**Scope:** Owner-requested proof strengthening under PRD Sections 5, 6 and 8.
+Added documentation and an offline audit utility only. Application code,
+existing tests, prompts, configuration, datasets, PDFs and delivery policy
+were not changed. No new paid model evaluation, Zoho request or deployment.
+
+**Verified existing measurement:** The audit matched the TASK-43 raw report
+SHA-256 to its published summary, checked every exported case field,
+recomputed harness metrics and matched per-run model call counts, costs and
+terminal routes against 856 correlated JSONL events, including 277 model
+calls. The result remains 47/50 disposition matches, with four simulated
+replies and three false escalations. This is an audit of the October 7 run,
+not a new accuracy measurement.
+
+**Derived interpretation:** On those same labels, a constant escalation
+baseline matches 43/50 (86%). The recorded agent adds four correct simulated
+replies for an eight-percentage-point difference; simulated automation
+coverage is 4/50 (8%), and eligible reply capture is 4/7
+(0.5714285714285714). These are arithmetic derivations from saved outcomes,
+not independent experiments or evidence of customer time savings.
+
+**Fresh verification:** The unchanged Python suite passed 328 tests in 19.39
+seconds under Python 3.13.0. The initial restricted run failed on Windows
+temporary-directory permissions; FM-030 retains that observation. The rerun
+used normal filesystem access and a separate directory. Local JUnit evidence:
+`.tmp/proof-audit/pytest-unrestricted.xml`; captured terminal output:
+`.tmp/proof-audit/pytest-unrestricted.txt`. The committed audit records the
+JUnit hash, exact suite counts and implementation/test/data file hashes.
+
+**Published:** [Evidence guide](docs/evidence_review.md),
+[body-free audit](docs/measurements/proof_audit.json), and
+[offline verifier](docs/verify_evidence.py). The guide includes actual saved
+success, supervisor-PASS-but-blocked, and false-escalation traces, an interview
+walkthrough and scoped resume wording. README links directly to it.
+
+**Audit checks:** Public arithmetic verification passed; scratch copies with
+an altered aggregate, altered match flag or wrong raw-report hash were all
+rejected. The scratch validation script is
+`.tmp/proof-audit/check_verifier.py`; original evidence remained unchanged.
+Local links, published fields and final diff were reviewed. This audit does
+not close current-stack holdout, calibration, latency, worker deployment or
+live-release requirements. Hash agreement is not independent attestation.

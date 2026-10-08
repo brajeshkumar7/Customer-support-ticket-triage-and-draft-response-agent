@@ -330,3 +330,16 @@ Original draft-only send condition below was extended by TASK-35 acknowledgement
       preserve unmet 200-case, latency-comparison and live-release gates.
 
 TASK-43 outcome: 50 attempted, 50 scored, 47 matched; disposition match 0.94; 0 false simulated sends, 3 false escalations, 0 operational failures. Full-run p95: 52145.7439000078 ms; reported token cost: 0.245525665. Accuracy/calibration, FAQ coverage and live-release gaps remain open; this task closes measurement/publication only.
+
+### TASK-44 — Reproducible engineering evidence without application changes
+
+Scope: owner-requested proof strengthening under PRD Sections 5, 6 and 8.
+Preserve implementation, model settings, labels and delivery restrictions.
+
+- [x] Verify saved public metrics against private report and correlated logs.
+- [x] Run the unchanged offline test suite and capture counts and source hashes.
+- [x] Publish a concise evidence guide with the constant-escalation baseline,
+      automation coverage, real saved traces, reproduction steps and scoped
+      resume wording; link it from README.
+- [x] Check evidence output, links and the final diff; preserve all open
+      accuracy, calibration, deployment and live-release tasks.
