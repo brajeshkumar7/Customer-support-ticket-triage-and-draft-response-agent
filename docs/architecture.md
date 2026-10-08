@@ -95,6 +95,76 @@ updates, not token streams. See [commands](../README.md).
 
 ## Interactive Zoho runner
 
+This is the current connection between the agent and Zoho Desk. Zoho stores
+the ticket and sends the email; the local agent analyzes the ticket and
+produces a draft. The operator controls the final reviewed send.
+
+```mermaid
+flowchart TD
+    OP["Operator: existing numeric Zoho API ticket ID"] --> MODE{"run_zoho mode"}
+    MODE -->|draft-only| OWN["Confirm controlled ticket/contact and retype ticket ID"]
+    MODE -->|send-reviewed| CFG["Require ZOHO_DESK_SEND_ENABLED=true"]
+    CFG --> OWN
+    OWN -->|Confirmed| AUTH["ZohoDeskClient: OAuth access token from configured refresh token"]
+    OWN -->|Not confirmed| STOP["Stop: no email"]
+    AUTH --> FETCH["Zoho API: GET tickets/TICKET_ID"]
+    FETCH --> TEXT["Convert subject and description to plain ticket text"]
+    TEXT -->|Missing usable description| STOP
+    TEXT --> GRAPH["Same 10-node LangGraph workflow shown above; allow_delivery=False"]
+    GRAPH --> RESULT["Print category, priority, evidence, safety findings, review and draft"]
+    RESULT -->|draft-only| DONE["Finish: draft or escalation only; no public reply"]
+    RESULT -->|send-reviewed| REFETCH["Refetch ticket; check unchanged text, open status and requester email"]
+    REFETCH -->|Invalid or changed| STOP
+    REFETCH --> PICK{"Supervisor PASS, nonempty draft and no workflow error?"}
+    PICK -->|Yes| DRAFT["Propose agent draft; blocked automatic safety still requires human review"]
+    PICK -->|No| ACK["Propose fixed human-review acknowledgement, not failed draft"]
+    DRAFT --> REVIEW["Display exact outgoing text and requester email"]
+    ACK --> REVIEW
+    REVIEW --> CONF["Operator types requester email and SEND TICKET_ID"]
+    CONF -->|Mismatch or declined| STOP
+    CONF -->|Confirmed| CHECK["Sender refetches ticket; rechecks requester and status"]
+    CHECK -->|Check fails| STOP
+    CHECK -->|Valid| POST["Zoho API: one public EMAIL sendReply request"]
+    POST -->|Reply thread ID returned| SENT["Record reviewed_email_status=sent and thread ID; Zoho handles email delivery"]
+    POST -->|Failure or uncertain result| UNKNOWN["Report failure or uncertainty; inspect Zoho before any retry"]
+```
+
+### What crosses the integration boundary
+
+- **Input:** `--ticket-id` is Zoho's API `id`, not the visible ticket number
+  such as `#101`. The fetched subject/description become graph `ticket_text`;
+  a unique internal run ID stays separate from the Zoho ID.
+- **Agent work:** recall, Jev triage, conditional tools/RAG, safety decisions,
+  drafting and review run locally using the configured models. Zoho ticket
+  fetching does not make the fictional order tools authoritative. The graph
+  cannot send in this command because delivery is explicitly disabled.
+- **Reviewed output:** the wrapper sends outside the graph after human
+  confirmation. A safety-blocked run can remain `terminal_status=escalated`
+  even if a subsequent manually reviewed email succeeds. Its separate
+  `reviewed_email_status` and content source identify that action.
+- **Email routing:** the recipient is the fetched ticket's requester `email`.
+  The sender address comes from `ZOHO_DESK_FROM_EMAIL`. The client posts to
+  `tickets/TICKET_ID/sendReply` with email content and public/immediate-send
+  parameters. A confirmed thread ID establishes API acceptance, not inbox
+  receipt; Zoho and the recipient's mail system handle actual delivery.
+- **Credentials and records:** `.env` supplies regional Zoho endpoints,
+  organization ID and OAuth credentials. The client sends its access token
+  and organization ID to Zoho; the agent does not receive credentials as
+  evidence. Fetch/send outcomes use the existing JSONL logging path.
+
+Commands, run from the repository root:
+
+```powershell
+python -m src.agent.run_zoho --ticket-id TICKET_API_ID --draft-only
+python -m src.agent.run_zoho --ticket-id TICKET_API_ID --send-reviewed
+```
+
+Replace `TICKET_API_ID` with the numeric ID of a ticket/contact you control.
+Both commands call Zoho and configured models; only `--send-reviewed` can
+attempt an email. There is no unattended sending in this path. The separate
+`python -m src.eval.zoho_smoke --ticket-id TICKET_API_ID --send` command tests
+delivery of a fixed message and does not run the agent.
+
 `run_zoho` fetches an existing ticket's subject/description, runs the graph with
 delivery disabled, and prints the draft and findings. Usable ticket text can
 be analyzed across channels. `--send-reviewed` is a separate, controlled human
@@ -102,6 +172,12 @@ send: review exact text and confirm requester/ticket; PASS proposes the draft,
 otherwise a fixed acknowledgement is proposed. Ticket changes block sending;
 an uncertain send is never automatically repeated. This path is not polling,
 latest-thread ingestion or unattended customer support.
+
+Implementation: [`run_zoho.py`](../src/agent/run_zoho.py) and
+[`zoho_desk_client.py`](../zoho_desk_client.py). The interactive runner does
+not provide the worker's durable deduplication or latest-thread checks.
+Rerunning and confirming a reviewed send can post another email; an uncertain
+send is never automatically repeated.
 
 ## Separate controlled worker
 
